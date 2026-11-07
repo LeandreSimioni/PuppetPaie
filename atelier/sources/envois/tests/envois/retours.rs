@@ -8,7 +8,6 @@ use envois::retours::{
     taux_pas_d_octets,
 };
 use serde_json::{json, Value};
-use socle::base64::lire as base64_lire;
 
 const CRM_REEL: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ns2:rapport xmlns:ns2=\"http://www.gip-mds.fr/\" identifiant=\"450189378\" type=\"CRM nominatif\" profil=\"DSN\" version=\"v02r01\"><envoi><envoi_identification><idflux>WSUrBZ50Y4RWJdDpsRsh.3r</idflux></envoi_identification></envoi><declaration><declaration_bilan><etat>OK</etat><salarie><NIR>1990101999999</NIR><matricule>2</matricule><taux_imposition_PAS>0.00</taux_imposition_PAS></salarie><salarie><NIR>2990101999999</NIR><matricule>1</matricule><taux_imposition_PAS>0.00</taux_imposition_PAS></salarie></declaration_bilan></declaration></ns2:rapport>";
 
@@ -179,9 +178,8 @@ fn les_attestations_d_une_archive_de_nature_46() {
         ("AER_12345678900017__092026_ABC_03102026_MARTIN_PAUL_JEAN_2_77.PDF", b"%PDF-deux", false),
     ]);
     let att = aer_spectacle(&a).unwrap();
-    let att = att.as_array().unwrap();
     assert_eq!(att.len(), 2);
-    assert_eq!((att[0]["periode"].as_str(), att[0]["qui"].as_str()), (Some("2026-09"), Some("DUPONT ALICE")));
-    assert_eq!(base64_lire(att[0]["donnees"].as_str().unwrap()).unwrap(), b"%PDF-un");
-    assert_eq!((att[1]["periode"].as_str(), att[1]["qui"].as_str()), (Some("2026-09"), Some("MARTIN PAUL JEAN")));
+    assert_eq!((att[0].periode.as_str(), att[0].qui.as_str()), ("2026-09", "DUPONT ALICE"));
+    assert_eq!(att[0].donnees, b"%PDF-un");
+    assert_eq!((att[1].periode.as_str(), att[1].qui.as_str()), ("2026-09", "MARTIN PAUL JEAN"));
 }

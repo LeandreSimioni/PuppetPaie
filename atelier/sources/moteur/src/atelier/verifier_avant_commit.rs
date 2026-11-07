@@ -3,9 +3,10 @@
 //! valeurs de la compagnie du poste qu'il y lit (SIRET, SIREN, comptes Urssaf, Congés Spectacles et France Travail, IBAN,
 //! BIC, et pour chaque salarié son NIR, son numéro Congés Spectacles, son courriel, son adresse, son nom et son prénom).
 //!
-//! Le verrou de la suite (`tests/fichiers/donnees_reelles.rs`) tient déjà, à chaque passage de tests, le nom et le SIREN
-//! de la compagnie du poste, les chemins du poste et les NIR sans la marque d'invention. Ce garde-ci fait ce que le verrou
-//! ne peut pas faire sans porter lui-même ce qu'il cherche : il LIT les vraies valeurs dans `prive/config/` (jamais
+//! Le verrou de la suite (`tests/fichiers/donnees_reelles.rs`) passe, à chaque passage de tests, la même liste
+//! (`ce_qui_part`) au même détecteur de NIR (`nirs_non_inventes`), avec les mêmes exemples excusés, et y cherche le nom
+//! de la compagnie du poste dans le code. Ce garde-ci fait ce que le verrou ne peut pas faire sans porter lui-même ce
+//! qu'il cherche : il LIT les vraies valeurs dans `prive/config/` (jamais
 //! `prive/config/*.bin`) et les cherche dans ce qui part. **Il ne contient aucune donnée réelle** : un garde-fou qui
 //! porterait la liste des NIR à protéger serait exactement ce qu'il prétend empêcher. Il ne tourne pas dans la suite (un
 //! test ne lit jamais `prive/`) ; il tourne avant chaque commit, en crochet git (`atelier/.githooks/pre-commit`, posé par
@@ -34,15 +35,15 @@ type R<T> = Result<T, String>;
 const PRIVE: &str = "prive/";
 
 /// Les fichiers écrits en texte. Les formats de déclaration en sont (`.dsn`, les gabarits `.txt`, les retours `.xml`) :
-/// ceux des compagnies fictives portent des NIR, inventés, qu'il faut voir passer.
-const EXTENSIONS: [&str; 20] = [
+/// ceux des compagnies fictives portent des NIR, inventés, qu'il faut voir passer, comme les gestes d'un scénario
+/// (`.jsonl`) et les pages web gardées telles que servies (`.mht`, `.xhtml`).
+const EXTENSIONS: [&str; 26] = [
     "py", "md", "html", "css", "js", "json", "txt", "cmd", "pyw", "modele", "yml", "yaml", "toml", "rs", "dsn", "xml", "csv",
-    "sh", "command", "log",
+    "sh", "command", "log", "jsonl", "mht", "xhtml", "xsd", "svg", "nsi",
 ];
 
-/// La marque d'un NIR inventé, la même que le verrou de la suite (`tests/fichiers/donnees_reelles.rs`, qui la lit ici) :
-/// une commune ou un rang que personne n'a, dans les treize premiers chiffres.
-pub const INVENTE: [&str; 3] = ["999", "123456", "000"];
+/// La marque d'un NIR inventé : une commune ou un rang que personne n'a, dans les treize premiers chiffres.
+const INVENTE: [&str; 3] = ["999", "123456", "000"];
 
 /// Les valeurs FABRIQUÉES qui remplacent les vraies dans les tests et les exemples. Elles ne désignent personne, mais elles
 /// ont la forme du vrai -- c'est même leur intérêt : leurs clés se vérifient, donc un test ne peut pas passer sur un numéro
@@ -80,12 +81,9 @@ pub const FICTIVES: [(&str, &str); 10] = [
 /// publié (leur empreinte se vérifie, `moteur sources`) : un numéro qui y a la forme d'un NIR, d'un IBAN ou d'un BIC est
 /// celui de l'émetteur -- l'exemple d'une documentation officielle, ou un nombre qui n'en est pas un. Chacun est nommé
 /// ici, fichier par fichier (relatif à la racine du dépôt), avec ce qu'il est ; seuls les motifs GÉNÉRIQUES s'y taisent,
-/// jamais les vraies valeurs lues dans `prive/config/`.
-///
-/// Le verrou de la suite tient sa propre liste (`donnees_reelles.rs`, `EXEMPLES_DES_TEXTES`) : elle excuse ce que SON
-/// détecteur de NIR trouve, qui n'est pas ce que trouvent les trois motifs d'ici (il ne lit pas un NIR dans une adresse
-/// web, mais il en lit un à mois 20-99) ; une liste commune excuserait chez l'un ce que seul l'autre trouve.
-pub const EXEMPLES_DES_TEXTES: [(&str, &str); 9] = [
+/// jamais les vraies valeurs lues dans `prive/config/`. Le verrou de la suite s'en sert aussi. Ce qui n'est pas listé
+/// est refusé, nos notes comprises.
+pub const EXEMPLES_DES_TEXTES: [(&str, &str); 12] = [
     (
         "atelier/reference/sources/gip-mds-api-dsn/ctip-dsn-crm-oc-phases-2-3-20160601.txt",
         "les salariés et les comptes d'exemple des comptes rendus métier OC imprimés par le CTIP (présentation de juin 2016)",
@@ -99,12 +97,16 @@ pub const EXEMPLES_DES_TEXTES: [(&str, &str); 9] = [
         "l'IBAN d'exemple (FR99 1234...) de l'aide à la codification Agirc-Arrco",
     ),
     (
-        "atelier/reference/sources/bofip/BOI-RSA-BASE-30-10-20-20260810.html",
-        "un identifiant de requête EUR-Lex (qid) dans une adresse de la page du BOFiP",
-    ),
-    (
         "atelier/reference/sources/gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6.8-20260706.txt",
         "les exemples de flux et de réponses du guide de l'API DSN (GIP-MDS)",
+    ),
+    (
+        "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2955-mutation-transfert-contrat-20250818.html",
+        "le salarié d'exemple de la fiche net-entreprises 2955",
+    ),
+    (
+        "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2955-mutation-transfert-contrat-20250818.txt",
+        "le salarié d'exemple de la fiche net-entreprises 2955",
     ),
     (
         "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429.html",
@@ -121,6 +123,14 @@ pub const EXEMPLES_DES_TEXTES: [(&str, &str); 9] = [
     (
         "atelier/reference/sources/insee-nir-siret/insee-schema-nir-20261028.txt",
         "les NIR d'exemple du schéma des identifiants d'individus de l'INSEE",
+    ),
+    (
+        "atelier/reference/sources/urssaf-liste-des-sites-et-des-activites.csv",
+        "une longitude de la table de l'Urssaf (des décimales de coordonnée), pas un NIR",
+    ),
+    (
+        "atelier/reference/sources/python/python-cpython-3.11.17-pyexpat-20261015.txt",
+        "une empreinte hexadécimale d'Argument Clinic dans la source de CPython (`[clinic end generated code: … input=…]`), pas un NIR",
     ),
 ];
 
@@ -142,17 +152,19 @@ pub struct Trouvaille {
     pub quoi: String,
 }
 
-/// Un motif et ce qu'il désigne : une forme (une expression, et ce qu'une ligne doit au moins porter pour qu'elle y
-/// trouve quelque chose -- la `regex` du moteur est compilée sans ses optimisations, qui pèsent sur le binaire, et ce
-/// filtre lui épargne les lignes où elle ne peut rien trouver), ou une valeur lue, cherchée sans tenir compte de la casse.
+/// Un motif et ce qu'il désigne : un NIR (`nirs_non_inventes`), une forme d'IBAN ou de BIC (une expression, que
+/// `porte_fr` épargne aux lignes où elle ne peut rien trouver : la `regex` du moteur est compilée sans ses
+/// optimisations, qui pèsent sur le binaire), ou une valeur lue, cherchée sans tenir compte de la casse.
 enum Motif {
-    Forme { re: Regex, quoi: &'static str, filtre: fn(&str) -> bool },
+    Nir,
+    Forme { re: Regex, quoi: &'static str },
     Valeur { minuscules: String, quoi: String },
 }
 
 impl Motif {
     fn quoi(&self) -> &str {
         match self {
+            Motif::Nir => "NIR",
             Motif::Forme { quoi, .. } => quoi,
             Motif::Valeur { quoi, .. } => quoi,
         }
@@ -161,22 +173,46 @@ impl Motif {
     /// Une valeur qui n'est pas inventée, dans `ligne` (`minuscules` : la même, en minuscules).
     fn trouve(&self, ligne: &str, minuscules: &str) -> bool {
         match self {
-            Motif::Forme { re, quoi, filtre } => filtre(ligne) && re.find_iter(ligne).any(|t| !invente(t.as_str(), quoi)),
+            Motif::Nir => !nirs_non_inventes(ligne.as_bytes()).is_empty(),
+            Motif::Forme { re, .. } => porte_fr(ligne) && re.find_iter(ligne).any(|t| !fictive(t.as_str())),
             Motif::Valeur { minuscules: v, .. } => minuscules.contains(v.as_str()),
         }
     }
 }
 
-/// Treize chiffres ASCII de suite : ce que tout NIR du motif générique porte.
-fn treize_chiffres(ligne: &str) -> bool {
-    let mut suite = 0;
-    for b in ligne.bytes() {
-        suite = if b.is_ascii_digit() { suite + 1 } else { 0 };
-        if suite == 13 {
-            return true;
+/// Les numéros à la forme d'un NIR qui ne sont pas inventés, hors d'une adresse web : `(début, numéro)`. La forme : sexe,
+/// année, mois (01-12, ou 20-99 pour les cas spéciaux), département (deux chiffres, 2A, 2B), six chiffres, puis la clé si
+/// elle suit ; ni précédé d'une lettre ou d'un chiffre, ni suivi d'un troisième chiffre (un horodatage
+/// « 20260906080000 » en a quatorze). Inventé : listé dans `FICTIVES`, ou la marque `INVENTE` dans ses treize chiffres.
+pub fn nirs_non_inventes(o: &[u8]) -> Vec<(usize, String)> {
+    let chiffre = |i: usize| o.get(i).is_some_and(u8::is_ascii_digit);
+    let mut trouves = Vec::new();
+    for i in 0..o.len().saturating_sub(12) {
+        if !matches!(o[i], b'1' | b'2') || (i > 0 && o[i - 1].is_ascii_alphanumeric()) {
+            continue;
+        }
+        let mois = matches!((o[i + 3], o[i + 4]), (b'0', b'1'..=b'9') | (b'1', b'0'..=b'2') | (b'2'..=b'9', b'0'..=b'9'));
+        let departement = (chiffre(i + 5) && chiffre(i + 6)) || (o[i + 5] == b'2' && matches!(o[i + 6], b'A' | b'B'));
+        if !(chiffre(i + 1) && chiffre(i + 2) && mois && departement && (i + 7..i + 13).all(chiffre)) {
+            continue;
+        }
+        let suite = (i + 13..).take_while(|&j| chiffre(j)).count();
+        let treize = String::from_utf8_lossy(&o[i..i + 13]);
+        if (suite == 0 || suite == 2) && !INVENTE.iter().any(|m| treize.contains(m)) && !dans_une_url(o, i) {
+            let nir = String::from_utf8_lossy(&o[i..i + 13 + suite]).into_owned();
+            if !fictive(&nir) {
+                trouves.push((i, nir));
+            }
         }
     }
-    false
+    trouves
+}
+
+/// Un numéro de document dans une adresse web (l'Unédic en a de treize chiffres, EUR-Lex en met dans ses requêtes)
+/// n'est pas un NIR.
+fn dans_une_url(o: &[u8], i: usize) -> bool {
+    let debut = o[..i].iter().rposition(|b| b" \t\n\"'(<".contains(b)).map_or(0, |p| p + 1);
+    o[debut..].starts_with(b"http://") || o[debut..].starts_with(b"https://")
 }
 
 /// « FR » : ce que tout IBAN et tout BIC du motif générique porte.
@@ -187,19 +223,14 @@ fn porte_fr(ligne: &str) -> bool {
 /// Les trois motifs génériques. La casse compte : un BIC et un IBAN s'écrivent en capitales, et chercher « CHIFFRE » sans
 /// tenir compte de la casse trouve le mot « chiffres » dans une phrase française.
 fn generiques() -> Vec<Motif> {
-    [
-        // Un NIR : sexe, année, MOIS 01-12, puis 8 chiffres ; treize chiffres, ou quinze avec la clé. Le mois est restreint
-        // aux valeurs courantes : sans cela, un horodatage « 20260906080000 » se lit comme un NIR. On y perd les
-        // immatriculations à mois 20-42, rares : ce motif n'est qu'un filet, les vraies valeurs à protéger sont lues dans la
-        // configuration (et le verrou de la suite, lui, les voit).
-        (r"\b[12][0-9]{2}(?:0[1-9]|1[0-2])[0-9]{8}(?:[0-9]{2})?\b", "NIR", treize_chiffres as fn(&str) -> bool),
-        (r"\bFR\d{2} ?(?:\d{4} ?){5}\d{3}\b", "IBAN", porte_fr),
+    let formes = [
+        (r"\bFR\d{2} ?(?:\d{4} ?){5}\d{3}\b", "IBAN"),
         // Un BIC est en capitales et porte au moins un chiffre chez nous.
-        (r"\b[A-Z]{4}FR[A-Z0-9]{2}[0-9][A-Z0-9]{0,2}\b", "BIC", porte_fr),
-    ]
-    .into_iter()
-    .map(|(m, quoi, filtre)| Motif::Forme { re: Regex::new(m).unwrap(), quoi, filtre })
-    .collect()
+        (r"\b[A-Z]{4}FR[A-Z0-9]{2}[0-9][A-Z0-9]{0,2}\b", "BIC"),
+    ];
+    std::iter::once(Motif::Nir)
+        .chain(formes.into_iter().map(|(m, quoi)| Motif::Forme { re: Regex::new(m).unwrap(), quoi }))
+        .collect()
 }
 
 /// Une valeur JSON en texte (un nombre en chiffres, une chaîne telle quelle), si elle est
@@ -218,14 +249,14 @@ fn valeur_vraie_en_texte(v: &Value) -> Option<String> {
     }
 }
 
-/// Un fichier de `prive/config/` : `None` s'il n'y est pas ; une erreur s'il y est sans se lire.
-fn lire_config(cfg: &Path, nom: &str) -> R<Option<Value>> {
+/// Un fichier de `prive/config/`, lu par sa forme (`droit::fiche::lire_fichier`) : `None` s'il n'y est pas ; une erreur
+/// s'il y est sans se lire.
+fn lire_config<T: serde::de::DeserializeOwned>(cfg: &Path, nom: &str) -> R<Option<T>> {
     let p = cfg.join(nom);
     if !p.exists() {
         return Ok(None);
     }
-    let t = std::fs::read_to_string(&p).map_err(|e| format!("prive/config/{} illisible ({})", nom, e))?;
-    serde_json::from_str(&t).map(Some).map_err(|e| format!("prive/config/{} illisible ({})", nom, e))
+    droit::fiche::lire_fichier(&p, &format!("prive/config/{}", nom)).map(Some)
 }
 
 fn objet<'a>(v: &'a Value, quoi: &str) -> R<&'a serde_json::Map<String, Value>> {
@@ -251,15 +282,16 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
     if !cfg.is_dir() {
         return Ok(Vec::new());
     }
-    if let Some(ent) = lire_config(&cfg, "entreprise.json")? {
-        let ent = objet(&ent, "prive/config/entreprise.json")?;
-        // Toute valeur qu'une fiche datee a portee, a quelque date que ce soit (`contexte::toutes_les_valeurs`).
+    use crate::routes::fiches::{portees, valeurs_portees};
+    if let Some(ent) = lire_config::<droit::fiche::FicheEntrepriseDatee>(&cfg, "entreprise.json")? {
+        // Toute valeur qu'une fiche datee a portee, a quelque date que ce soit (`routes::fiches::portees`).
+        let ent = portees(&ent);
         for cle in CLES_ENTREPRISE {
-            for v in droit::contexte::toutes_les_valeurs(ent.get(cle)).into_iter().filter_map(valeur_vraie_en_texte) {
+            for v in valeurs_portees(&ent, cle).filter_map(valeur_vraie_en_texte) {
                 poser(v, cle.to_string());
             }
         }
-        for banque in droit::contexte::toutes_les_valeurs(ent.get("banque")).into_iter().filter(|b| valeur_vraie_en_texte(b).is_some()) {
+        for banque in valeurs_portees(&ent, "banque").filter(|b| valeur_vraie_en_texte(b).is_some()) {
             let banque = objet(banque, "prive/config/entreprise.json : banque")?;
             for cle in ["iban", "bic"] {
                 if let Some(v) = banque.get(cle).and_then(valeur_vraie_en_texte) {
@@ -268,20 +300,17 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
             }
         }
     }
-    if let Some(sal) = lire_config(&cfg, "salaries.json")? {
-        for (k, s) in objet(&sal, "prive/config/salaries.json")? {
-            if k.starts_with('_') {
-                continue;
-            }
-            let s = objet(s, "une fiche de prive/config/salaries.json")?;
+    if let Some(sal) = lire_config::<droit::fiche::Salaries>(&cfg, "salaries.json")? {
+        for s in sal.fiches.values() {
+            let s = portees(s);
             for cle in CLES_SALARIE {
-                for v in droit::contexte::toutes_les_valeurs(s.get(cle)).into_iter().filter_map(valeur_vraie_en_texte) {
+                for v in valeurs_portees(&s, cle).filter_map(valeur_vraie_en_texte) {
                     poser(v, format!("salarie.{}", cle));
                 }
             }
             // Le nom seul est trop courant pour être un motif ; le nom ET le prénom collés le sont beaucoup moins.
-            for nom in droit::contexte::toutes_les_valeurs(s.get("nom")).into_iter().filter_map(valeur_vraie_en_texte) {
-                for prenom in droit::contexte::toutes_les_valeurs(s.get("prenom")).into_iter().filter_map(valeur_vraie_en_texte) {
+            for nom in valeurs_portees(&s, "nom").filter_map(valeur_vraie_en_texte) {
+                for prenom in valeurs_portees(&s, "prenom").filter_map(valeur_vraie_en_texte) {
                     poser(format!("{} {}", nom, prenom), "salarie (identite)".to_string());
                 }
             }
@@ -331,7 +360,7 @@ fn extension_texte(rel: &str) -> bool {
 
 /// Ce qui part, relatif à la racine : ce que Git commiterait (`indexes`), ou ce qu'il emporterait du dépôt entier (suivis
 /// et non suivis, les `.gitignore` appliqués par Git lui-même) -- hors de `prive/` dans les deux cas, en texte seulement.
-fn fichiers(racine: &Path, indexes: bool) -> R<Vec<String>> {
+pub fn ce_qui_part(racine: &Path, indexes: bool) -> R<Vec<String>> {
     let args: &[&str] = if indexes {
         &["diff", "--cached", "--name-only", "-z", "--diff-filter=ACM"]
     } else {
@@ -417,17 +446,10 @@ fn utf8_sans_erreurs(mut o: &[u8]) -> String {
     }
 }
 
-/// Une valeur fabriquée : listée dans `FICTIVES`, ou un NIR (générique) qui porte la marque d'invention dans ses treize
-/// premiers chiffres. Un IBAN se compare sans ses espaces (il s'écrit par groupes de quatre).
-fn invente(trouve: &str, quoi: &str) -> bool {
+/// Une valeur listée dans `FICTIVES`. Un IBAN se compare sans ses espaces (il s'écrit par groupes de quatre).
+fn fictive(trouve: &str) -> bool {
     let sans_espaces = trouve.replace(' ', "");
-    if FICTIVES.iter().any(|(f, _)| *f == sans_espaces) {
-        return true;
-    }
-    quoi == "NIR" && {
-        let treize: String = trouve.chars().take(13).collect();
-        INVENTE.iter().any(|m| treize.contains(m))
-    }
+    FICTIVES.iter().any(|(f, _)| *f == sans_espaces)
 }
 
 /// Ce que `motifs` trouvent dans un texte : au plus une trouvaille par ligne, celle du premier motif qui y trouve une
@@ -453,7 +475,7 @@ fn chercher(fichier: &str, o: &[u8], motifs: &[Motif], trouvailles: &mut Vec<Tro
 /// `<racine>/prive/config/`.
 pub fn verifier(racine: &Path, indexes: bool) -> R<Vec<Trouvaille>> {
     let motifs = motifs(racine)?;
-    let noms = fichiers(racine, indexes)?;
+    let noms = ce_qui_part(racine, indexes)?;
     let contenus: Vec<Option<Vec<u8>>> =
         if indexes { contenus_indexes(racine, &noms)? } else { noms.iter().map(|n| std::fs::read(racine.join(n)).ok()).collect() };
     let mut trouvailles = Vec::new();

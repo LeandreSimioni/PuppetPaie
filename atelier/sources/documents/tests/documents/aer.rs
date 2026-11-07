@@ -19,8 +19,8 @@ fn jour(a: i32, m: u32, j: u32) -> Jour {
     Jour::nouveau(a, m, j).unwrap()
 }
 
-fn fiche() -> Value {
-    json!({
+fn fiche() -> droit::fiche::ChampsEntreprise {
+    droit::fiche::lire_champs(&json!({
         "raison_sociale": "Compagnie du Chat Perche",
         "siret": "12345678900019",
         "naf": "9001Z",
@@ -30,7 +30,7 @@ fn fiche() -> Value {
         "licence_spectacle": "PLATESV-R-2026-000000",
         "signataire": {"nom": "MARTIN", "prenom": "Camille", "fonction": "Presidente"},
         "declarant_dsn": {"nom_prenom": "DURAND Lou", "tel": "0102030405", "email": "Lou.Durand@Exemple.TEST"},
-    })
+    }), "fiche").unwrap()
 }
 
 // ------------------------------------------------------------------ le PDF d'essai
@@ -169,7 +169,7 @@ fn paies_fausses() -> Vec<PaieAer> {
     vec![paie("FA1.26.15", jour(2026, 8, 1), jour(2026, 8, 31), 2, 24), paie("MA2.26.15", jour(2026, 8, 5), jour(2026, 8, 6), 1, 0)]
 }
 
-fn signer(pdf: &[u8], ent: &Value, paies: Option<&[PaieAer]>, forcer: bool, signature: Option<&str>, cachet: Option<&str>) -> Result<Vec<u8>, Echec> {
+fn signer(pdf: &[u8], ent: &droit::fiche::ChampsEntreprise, paies: Option<&[PaieAer]>, forcer: bool, signature: Option<&str>, cachet: Option<&str>) -> Result<Vec<u8>, Echec> {
     aer::authentifier(pdf, &Authentification { ent, aujourdhui: jour(2026, 10, 1), signature, paies, forcer, cachet_fichier: cachet })
 }
 

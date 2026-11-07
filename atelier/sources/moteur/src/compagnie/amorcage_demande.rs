@@ -9,6 +9,7 @@
 //! si une demande est partie depuis le dernier taux recu pour lui et que sa reponse est encore attendue (`en_cours`). Ce qui
 //! ne se demande pas se dit : un salarie sans NIR, une demande deja partie.
 
+use droit::fiche::Lue as _;
 use std::path::PathBuf;
 
 use serde_json::Value;
@@ -17,8 +18,7 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::{erreur, R};
-use socle::valeur::valeur_en_texte;
-use socle::fichiers::vrai;
+use documents::valeur::{valeur_en_texte, vrai};
 
 /// Ce qu'on demande de produire (l'outil de l'atelier).
 pub struct Demande<'a> {
@@ -98,23 +98,13 @@ fn jours_ouvres_apres(depart: Jour, combien: i64) -> R<Jour> {
 /// garde.
 pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
     let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
-    let texte = |l: &Value, k: &str| l.get(k).map(valeur_en_texte).unwrap_or_default();
-    let pour_lui = |l: &Value| l["versions"].as_array().is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == cle));
-    let mut derniere: Option<&Value> = None;
-    for l in lignes.iter() {
-        if texte(l, "quoi") == "dsn"
-            && texte(l, "mode") == "reel"
-            && l.get("accepte").is_some_and(vrai)
-            && texte(&l["detail"], "nature") == declarations::amorcage::NATURE
-            && pour_lui(l)
-            && !envois::etats::refuse_par_un_retour(l)?
-        {
-            derniere = Some(l);
-        }
-    }
+    let pour_lui = |l: &envois::journal::Ligne| l.versions().is_some_and(|v| v.iter().any(|x| x.salarie.as_str() == cle));
+    let derniere = envois::journal::filtrer(&lignes, Some(envois::journal::Acte::Dsn), None, true)
+        .filter(|l| l.accepte() && l.nature_dsn() == declarations::amorcage::NATURE && pour_lui(l) && !envois::etats::refuse_par_un_retour(l))
+        .last();
     let Some(l) = derniere else { return Ok(None) };
-    let quand = texte(l, "quand");
-    let dernier_recu = droit::pas::recus(ctx, cle).map_err(|m| erreur("ValueError", m))?.last().map(|r| texte(r, "mis_a_disposition")).unwrap_or_default();
+    let quand = l.quand().to_string();
+    let dernier_recu = droit::pas::recus(ctx, cle).map_err(|m| erreur("ValueError", m))?.last().map(|r| r.mis_a_disposition.portee().unwrap_or_default().to_string()).unwrap_or_default();
     if chiffres(&dernier_recu) >= chiffres(&quand) {
         return Ok(None);
     }
@@ -130,7 +120,7 @@ pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
 pub fn a_combler(ctx: &Contexte, paies: &[Paie], motif: &str, forcer: bool) -> R<Vec<Ligne>> {
     use declarations::amorcage as am;
     let ko = |m: String| erreur("ValueError", m);
-    let cle_de = |p: &Paie| p.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")));
+    let cle_de = |p: &Paie| -> R<String> { Ok(p.salarie.id.to_string()) };
     let mut cles: Vec<String> = Vec::new();
     for p in paies {
         let c = cle_de(p)?;
@@ -143,7 +133,7 @@ pub fn a_combler(ctx: &Contexte, paies: &[Paie], motif: &str, forcer: bool) -> R
     for cle in &cles {
         let mut besoin: Option<(usize, Value)> = None;
         for (i, p) in paies.iter().enumerate().filter(|(_, p)| cle_de(p).is_ok_and(|c| c == *cle)) {
-            let s = droit::pas::situation(ctx, cle, Some(p.engagement.date_du_versement().map_err(ko)?), Some(&p.engagement.mois)).map_err(ko)?;
+            let s = socle::ecriture::en_valeur(&droit::pas::situation(ctx, cle, Some(p.engagement.date_du_versement().map_err(ko)?), Some(&p.engagement.mois)).map_err(ko)?);
             if s["situation"] == droit::pas::SANS_NIR || s.get("a_demander").is_some_and(vrai) {
                 besoin = Some((i, s));
                 break;
@@ -159,7 +149,7 @@ pub fn a_combler(ctx: &Contexte, paies: &[Paie], motif: &str, forcer: bool) -> R
         let mut l = Ligne {
             salarie: cle.clone(),
             libelle: s.get("libelle").map(valeur_en_texte).unwrap_or_default(),
-            contrat: p.engagement.numero.clone().unwrap_or_default(),
+            contrat: p.engagement.numero.as_deref().unwrap_or_default().to_string(),
             pourquoi_pas: String::new(),
             indice: i,
         };
@@ -239,7 +229,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         let raisons: Vec<String> = ecartes.iter().map(|l| format!("{} ({})", l.salarie, l.pourquoi_pas)).collect();
         return Err(erreur("AmorcageImpossible", format!("Taux de PAS non demandé : {}.", raisons.join(" ; "))));
     }
-    let mois = if d.mois.is_empty() { d.constitution.mois_iso() } else { d.mois.to_string() };
+    let mois = if d.mois.is_empty() { d.constitution.mois_civil().to_string() } else { d.mois.to_string() };
     let dossier = ctx.racine.join("sorties").join(&mois);
     let fichiers = ecrire(ctx, paies, &retenus, d.motif, &mois, d.constitution, d.envoi_test)?;
     ecrits.extend(fichiers.iter().cloned());

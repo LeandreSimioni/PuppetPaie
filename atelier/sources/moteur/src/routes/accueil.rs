@@ -20,9 +20,9 @@ use serde_json::{json, Value};
 use crate::compagnie::administrateur;
 use crate::interface::{compagnies, suppression};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Accueil);
@@ -32,7 +32,7 @@ const COMPAGNIE: Champ = Champ { nom: "compagnie", libelle: Affiche::new("Compag
 /// Les routes de l'installation, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "compagnies",
+        route: Route::Compagnies,
         geste: "Dire les compagnies de cette installation, et où est chacune.",
         charge: &[],
         exemple: r#"{}"#,
@@ -44,7 +44,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Lecture,
     },
     Fiche {
-        nom: "compagnie-ajouter",
+        route: Route::CompagnieAjouter,
         geste: "Ajouter une compagnie : neuve, ou venant d'un logiciel précédent.",
         charge: &[
             Champ { nom: "nom", libelle: Affiche::new("Nom de la compagnie"), forme: Forme::Texte, sens: "le nom de la compagnie", avance: false },
@@ -59,7 +59,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "compagnie-couleur",
+        route: Route::CompagnieCouleur,
         geste: "Choisir la couleur d'une compagnie.",
         charge: &[COMPAGNIE, Champ { nom: "couleur", libelle: Affiche::new("Couleur"), forme: Forme::Texte, sens: "#RRGGBB", avance: false }],
         exemple: r##"{"compagnie":"cie:la-compagnie","couleur":"#2E5A7D"}"##,
@@ -71,7 +71,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "compagnie-remettre-a-zero",
+        route: Route::CompagnieRemettreAZero,
         geste: "Remettre une compagnie fictive livrée dans son état d'origine.",
         charge: &[COMPAGNIE],
         exemple: r#"{"compagnie":"fictive:fictive-essai"}"#,
@@ -83,7 +83,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "compagnies-garder",
+        route: Route::CompagniesGarder,
         geste: "Au déblocage : garder les compagnies créées en démo, ou les supprimer.",
         charge: &[
             Champ { nom: "garder", libelle: Affiche::new("À garder"), forme: Forme::Liste, sens: "les identifiants des compagnies à garder (elles deviennent réelles)", avance: false },
@@ -98,7 +98,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "administrateur-tableau",
+        route: Route::AdministrateurTableau,
         geste: "Dire les déclarations à faire de chaque compagnie de l'administrateur.",
         charge: &[
             Champ { nom: "garde", libelle: Affiche::new("Tableau gardé"), forme: Forme::OuiNon, sens: "vrai : le tableau gardé, sans calcul", avance: false },
@@ -113,7 +113,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "administrateur-deposer",
+        route: Route::AdministrateurDeposer,
         geste: "Déposer d'un geste ce qui est prêt dans chaque compagnie de l'administrateur.",
         charge: &[
             Champ { nom: "reel", libelle: Affiche::new("En réel"), forme: Forme::OuiNon, sens: "vrai : en réel (les fichiers testés conformes) ; en test sinon", avance: false },
@@ -128,7 +128,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "portable-completer",
+        route: Route::PortableCompleter,
         geste: "Ajouter au dossier les systèmes qui lui manquent (Windows, Linux, macOS).",
         charge: &[Champ { nom: "portable", libelle: Affiche::new("Rendre ce dossier portable"), forme: Forme::OuiNon, sens: "vrai : faire aussi de ce dossier un dossier portable, pour une clé USB (PORTABLE.json)", avance: false }],
         exemple: r#"{"portable":true}"#,
@@ -162,7 +162,7 @@ fn operation(m: String) -> Echec {
 }
 
 /// Une route de l'installation.
-pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(o: &HashMap<String, String>, nom: Route, charge: &Value) -> R<Value> {
     // `--racine` nomme une compagnie (son dossier porte sa fiche entreprise) : l'installation est la sienne. Un autre
     // dossier n'en est pas une, et son parent n'est pas une installation : rien ne s'y ecrit.
     if let Some(r) = o.get("racine").filter(|r| !r.is_empty()) {
@@ -175,8 +175,8 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
     }
     let inst = installation(o);
     match nom {
-        "compagnies" => Ok(liste(&inst)),
-        "compagnie-ajouter" => {
+        Route::Compagnies => Ok(liste(&inst)),
+        Route::CompagnieAjouter => {
             let venue = compagnies::Venue::lire(charge.get("venue").and_then(Value::as_str).unwrap_or(""));
             let c = compagnies::ajouter_venant(&inst, texte(charge, "nom")?, venue).map_err(operation)?;
             let phrase = if c.reelle {
@@ -187,15 +187,15 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
             let chemin = c.racine.display().to_string();
             Ok(json!({"id": c.id, "nom": c.nom, "chemin": chemin, "phrase": phrase}))
         }
-        "compagnie-couleur" => {
+        Route::CompagnieCouleur => {
             let couleur = compagnies::poser_couleur(&inst, texte(charge, "compagnie")?, texte(charge, "couleur")?).map_err(operation)?;
             Ok(json!({"couleur": couleur, "phrase": format!("Couleur posée : {}.", couleur)}))
         }
-        "compagnie-remettre-a-zero" => {
+        Route::CompagnieRemettreAZero => {
             let (n, deja) = compagnies::remettre_a_zero(&inst, texte(charge, "compagnie")?).map_err(operation)?;
             Ok(json!({"phrase": format!("{} est {}.", n, if deja { "déjà dans son état d'origine" } else { "revenue à son état d'origine" })}))
         }
-        "compagnies-garder" => {
+        Route::CompagniesGarder => {
             let poste = administrateur::Poste::de_ce_poste();
             let mut v = suppression::repondre(&inst, &ids(charge, "garder"), &ids(charge, "ne_pas_garder"), &poste, &|_| {}).map_err(operation)?;
             let n = |k: &str| v[k].as_array().map(Vec::len).unwrap_or(0);
@@ -207,13 +207,13 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
             v["phrase"] = json!(phrase);
             Ok(v)
         }
-        "administrateur-tableau" if charge.get("garde").is_some_and(vrai) => Ok(dire_le_tableau(administrateur::tableau_garde(&inst))),
-        "administrateur-tableau" => Ok(dire_le_tableau(administrateur::tableau(o, &inst, charge.get("relever").is_some_and(vrai)))),
-        "portable-completer" => {
+        Route::AdministrateurTableau if charge.get("garde").is_some_and(vrai) => Ok(dire_le_tableau(administrateur::tableau_garde(&inst))),
+        Route::AdministrateurTableau => Ok(dire_le_tableau(administrateur::tableau(o, &inst, charge.get("relever").is_some_and(vrai)))),
+        Route::PortableCompleter => {
             let cles = crate::compagnie::maj::cles_de_l_editeur();
             crate::compagnie::maj::completer_le_portable(&inst, charge.get("portable").is_some_and(vrai), &cles).map_err(operation)
         }
-        "administrateur-deposer" => {
+        Route::AdministrateurDeposer => {
             let reel = charge.get("reel").is_some_and(vrai);
             let mdp = charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte);
             administrateur::deposer(o, &inst, reel, mdp)

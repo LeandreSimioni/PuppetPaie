@@ -69,3 +69,11 @@ Audiens est un organisme privé : les pages telles que servies (HTML) sont dans 
 L'échéance trimestrielle (moins de onze salariés, sur option : la fiche de paramétrage d'Audiens d'une compagnie dit
 « Periodicite="Mensuel" ») n'est pas modélisée : le moteur verse chaque mois. Une compagnie au trimestre ne verserait
 qu'à la dernière DSN du trimestre (FAQ DSN des organismes complémentaires, `../faq-dsn-organismes-complementaires/`).
+
+- `audiens-fiche-pratique-plafonds-conges-spectacles-202507.txt` : la fiche pratique Audiens des **plafonds de la base Congés Spectacles** (juillet 2025), reçue de Léandre le
+  04/11/2026 (original au privé). Elle dit que la base (« rémunération brute… avant toute déduction forfaitaire ») se
+  plafonne par l'accord de branche (« En application de l'article D.7121-37 du Code du travail ») et, sans plafond
+  négocié, « est limité au triple du montant du salaire minimum de la catégorie professionnelle » ; elle donne les
+  plafonds par branche (entreprises artistiques et culturelles : triple du minimum, metteur en scène 375 €, chef
+  d'orchestre 860 € ; création et évènement : double du minimum dans la limite de 272 € par jour). Où le moteur s'en
+  sert : la base de congé du certificat (`documents/src/conges_spectacles.rs`, ticket #363 du privé), à venir.

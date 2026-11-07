@@ -30,18 +30,22 @@ fn le_repas_et_la_nuitee_au_dela_de_leur_limite_entrent_dans_l_assiette() {
     let (_, c) = rejouer_dossier(&sc, &d);
 
     let jours = json!(["2026-11-20", "2026-11-21"]);
+    // La paie de la carte de FULLER aux lignes `lignes`, ecrites (`enregistrer-saisie`) puis lues par l'apercu.
+    let carte = std::cell::RefCell::new(json!({"neuve": "cddu_spectacle"}));
+    let apercu_de = |lignes: Vec<Value>| -> Value {
+        let changements = json!([{"case": "salarie", "valeur": "FULLER"}, {"case": "spectacle", "valeur": "le-banc-des-menteurs"}, {"case": "lignes", "valeur": lignes}]);
+        let carte_visee = carte.borrow().clone();
+        let r = reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "carte": carte_visee, "changements": changements}), "2026-11-02")).clone();
+        *carte.borrow_mut() = json!({"ecrite": r["engagement"]});
+        reussi(&route(&c, "apercu", json!({"mois": "2026-11", "modifications": []}), "2026-11-02"))["paies"][0].clone()
+    };
     // `frais` : les lignes de frais de la carte (« repas », « nuitee »), chacune avec ses cases cochées.
     let paie = |frais: &[(&str, &[&str])]| -> Value {
-        let mut lignes = vec![json!({"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": jours})];
+        let mut lignes = vec![json!({"rubrique": "cachet", "quantite": 2, "taux": 150, "lieu": null, "dates": jours, "planning": []})];
         for (rubrique, cases) in frais {
-            let mut l = json!({"rubrique": rubrique, "quantite": 2, "taux": "", "dates": jours});
-            for k in *cases {
-                l[*k] = json!(true);
-            }
-            lignes.push(l);
+            lignes.push(json!({"rubrique": rubrique, "quantite": 2, "taux": null, "territoire": null, "cases": cases, "lieu": null, "dates": jours, "planning": []}));
         }
-        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
-        reussi(&route(&c, "apercu", json!({"mois": "2026-11", "cartes": [{"saisie": saisie}]}), "2026-11-02"))["paies"][0].clone()
+        apercu_de(lignes)
     };
     let ligne = |p: &Value, code: &str| p["remuneration"].as_array().and_then(|l| l.iter().find(|x| x["rubrique"] == code)).cloned();
     let n = |v: &Value| dec(v.as_str().unwrap());
@@ -79,17 +83,12 @@ fn le_repas_et_la_nuitee_au_dela_de_leur_limite_entrent_dans_l_assiette() {
 
     // HORS DE LA MÉTROPOLE, le lieu de la ligne (`territoire`) dit la limite. `frais` : (rubrique, taux, lieu, cases).
     let ailleurs = |frais: &[(&str, &str, &str, &[&str])]| -> Value {
-        let mut lignes = vec![json!({"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": jours})];
+        let mut lignes = vec![json!({"rubrique": "cachet", "quantite": 2, "taux": 150, "lieu": null, "dates": jours, "planning": []})];
         for (rubrique, taux, lieu, cases) in frais {
             let q = if *rubrique == "repas" { 4 } else { 2 };
-            let mut l = json!({"rubrique": rubrique, "quantite": q, "taux": taux, "dates": jours, "territoire": lieu});
-            for k in *cases {
-                l[*k] = json!(true);
-            }
-            lignes.push(l);
+            lignes.push(json!({"rubrique": rubrique, "quantite": q, "taux": taux, "territoire": lieu, "cases": cases, "lieu": null, "dates": jours, "planning": []}));
         }
-        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
-        reussi(&route(&c, "apercu", json!({"mois": "2026-11", "cartes": [{"saisie": saisie}]}), "2026-11-02"))["paies"][0].clone()
+        apercu_de(lignes)
     };
     // Outre-mer : arrêté du 3 juillet 2006, art. 1, a)
     // (`atelier/reference/sources/arrete-2006-indemnites-de-mission/legifrance-arrete-20060703-indemnites-de-mission-20261103.txt`,

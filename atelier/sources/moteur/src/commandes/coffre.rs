@@ -67,17 +67,17 @@ fn faire(cadre: &Cadre) -> Result<i32, Echec> {
     }
     dire!();
     for s in c.etat().map_err(vers)? {
-        let mut marque = if s.get("pose").is_some_and(socle::fichiers::vrai) { "pose" } else { "-" };
-        if s.get("dans_environnement").is_some_and(socle::fichiers::vrai) {
+        let mut marque = if s.get("pose").is_some_and(documents::valeur::vrai) { "pose" } else { "-" };
+        if s.get("dans_environnement").is_some_and(documents::valeur::vrai) {
             marque = "environnement";
         }
         let depuis = match s.get("pose_le") {
-            Some(d) if socle::fichiers::vrai(d) => format!("depuis le {}", texte(d)),
+            Some(d) if documents::valeur::vrai(d) => format!("depuis le {}", texte(d)),
             _ => String::new(),
         };
         dire!("  {:<18} {:<14} {}", champ(&s, "service"), marque, depuis);
         dire!("     {}", champ(&s, "sert_a"));
-        if let Some(Value::String(compte)) = s.get("compte").filter(|v| socle::fichiers::vrai(v)) {
+        if let Some(Value::String(compte)) = s.get("compte").filter(|v| documents::valeur::vrai(v)) {
             dire!("     boite : {}", compte);
         }
     }

@@ -13,6 +13,7 @@
 
 pub mod cachet;
 pub mod calcul;
+pub mod carte;
 pub mod conges;
 pub mod cumul;
 pub mod duree;
@@ -22,13 +23,16 @@ pub mod empreinte;
 pub mod heures_en_plus;
 pub mod etats;
 pub mod importe;
+pub mod ligne;
 pub mod imprevus;
 pub mod maintien;
 pub mod minima;
 pub mod periodes;
 pub mod relire;
+pub mod saisie;
 pub mod solde;
 pub mod numeros;
+pub mod paie_ecrite;
 pub mod paies;
 pub mod stock;
 pub mod versions;
@@ -36,31 +40,38 @@ pub mod versions;
 pub mod viser;
 
 use std::collections::{BTreeMap, BTreeSet};
+
+use droit::fiche::Lue;
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::{Map, Value};
+use socle::forme::NombreLu;
 
 use droit::catalogue::rubrique;
-use droit::contexte::Contexte;
+use droit::contexte::{Contexte, IdSalarie, IdSpectacle};
 use droit::natures::{self, Nature};
-use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, forme_ecrite, Jour};
+pub use ligne::{Chiffre, DateDeLigne, LignePaie};
+use socle::date::Jour;
+use socle::mois::Mois;
 use droit::emplois;
-use socle::fichiers::vrai;
-use socle::num::{dec, dec_f64, dec_avec_echelle, div, flottant, nombre, Decimal, Resultat};
+
+use socle::num::{dec_f64, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
 pub struct Engagement {
-    pub salarie: String,
+    /// La clé de la fiche du salarié, telle que la carte l'écrit.
+    pub salarie: IdSalarie,
     /// Le salarié tel qu'une phrase d'écran le nomme (« NOM Prénom »).
     pub nom: String,
-    pub spectacle: Option<String>,
+    /// La clé de la fiche du spectacle, telle que la carte l'écrit ; `None` : un contrat payé au mois n'en a pas.
+    pub spectacle: Option<IdSpectacle>,
     pub dates_travail: Vec<Jour>,
-    pub lignes: Vec<Value>,
+    pub lignes: Vec<LignePaie>,
     pub debut: Jour,
     /// `None` seulement pour un contrat permanent ouvert.
     pub fin: Option<Jour>,
-    pub numero: Option<String>,
+    /// Le numero du contrat (S21.G00.40.009) : `numeros::former` le donne a la validation ; `None` avant.
+    pub numero: Option<numeros::NumeroContrat>,
     pub mois: String,
     pub planning: Vec<Jour>,
     pub planning_lieux: BTreeMap<Jour, String>,
@@ -91,14 +102,15 @@ pub struct Engagement {
     /// L'etablissement (NIC) ou le salarie est rattache pour CE contrat, quand la compagnie en a plusieurs ; `None` : le
     /// principal. La fiche du salarie le porte pour la paie et les declarations du contrat (`calcul::fiche_de_l_engagement`).
     pub etablissement: Option<String>,
-    pub nature: Option<String>,
+    /// La cle de sa nature de contrat (`droit::natures`), toujours dite (regle 6).
+    pub nature: String,
     pub quotite_contrat: Option<f64>,
     pub quotite_reference_saisie: Option<f64>,
     pub modalite_temps_travail_saisie: Option<String>,
     pub motif_recours: Option<String>,
     pub motif_rupture: Option<String>,
     pub notification_rupture: Option<String>,
-    pub preavis: Option<Value>,
+    pub preavis: Option<saisie::Preavis>,
     /// Le dernier jour travaille et paye au salaire habituel que la saisie dit (`dernier_jour_paye`, AAAA-MM-JJ) ;
     /// ce que la DSN en declare se lit par `fctu::dernier_jour_paye`.
     pub dernier_jour_paye: Option<String>,
@@ -108,200 +120,146 @@ pub struct Engagement {
     /// la nouvelle valeur.
     pub date_modification: Option<String>,
     pub transaction: Option<String>,
-    pub suspensions: Vec<Value>,
+    pub suspensions: Vec<imprevus::Suspension>,
     /// Les termes du contrat AVANT l'avenant que `date_modification` date en cours de mois (`salaire_mensuel`,
     /// `quotite_contrat`), quand la saisie les dit : la paie du mois se decoupe alors au jour de l'avenant
     /// (`periodes::bornes`). Comme `date_modification`, il ne se recopie pas d'un mois a l'autre.
-    pub avant: Option<Value>,
+    pub avant: Option<saisie::Avant>,
     /// Une periode elementaire de paie : les bornes de CE calcul quand la paie du mois est decoupee
     /// (`periodes`) ; `None` : la periode de paie entiere (le contrat borne au mois).
     pub periode: Option<(Jour, Jour)>,
-    /// Ce que la saisie dit du contrat ECRIT et que rien d'autre ne porte (`CHAMPS_DU_CONTRAT_ECRIT`) : la periode
+    /// Ce que la saisie dit du contrat ECRIT et que rien d'autre ne porte (`ContratEcrit`) : la periode
     /// d'essai (L1242-12, 6° ; R1221-34, 7°), la personne remplacee (L1242-12, 1°), la repartition des horaires d'un
     /// temps partiel (L3123-6, 1°), les clauses particulieres de ce contrat. Vide : rien n'est dit.
-    pub ecrit: Map<String, Value>,
+    pub ecrit: ContratEcrit,
 }
 
-/// Les champs de la saisie que seul le contrat ecrit lit (`Engagement::ecrit`).
-pub const CHAMPS_DU_CONTRAT_ECRIT: [&str; 4] = ["periode_essai_jours", "personne_remplacee", "repartition_horaire", "clauses_particulieres"];
+/// CE QUE LA SAISIE DIT DU CONTRAT ECRIT et que seul le contrat ecrit lit (`Engagement::ecrit`), chaque champ seulement
+/// quand il est dit.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContratEcrit {
+    pub periode_essai_jours: Option<Chiffre>,
+    pub personne_remplacee: Option<String>,
+    pub repartition_horaire: Option<String>,
+    pub clauses_particulieres: Option<String>,
+}
 
-// ------------------------------------------------------------------ lecture
-
-/// Une valeur facultative lue comme texte (`None` et absent se confondent).
-fn chaine(v: Option<&Value>) -> Option<String> {
-    match v {
-        None | Some(Value::Null) => None,
-        Some(Value::String(s)) => Some(s.clone()),
-        Some(autre) => Some(en_texte(autre)),
+impl ContratEcrit {
+    /// Rien n'est dit.
+    pub fn est_vide(&self) -> bool {
+        *self == ContratEcrit::default()
     }
 }
 
-fn flottant_opt(v: Option<&Value>) -> Resultat<Option<f64>> {
-    match v {
-        None | Some(Value::Null) => Ok(None),
-        Some(x) => flottant(x).map(Some),
-    }
+/// CE DONT UN ENGAGEMENT SE FABRIQUE (`Engagement::nouveau`) : la carte du mois telle que `engagements` l'assemble (le
+/// metier resolu, les jours tires des lignes, les lignes deduites d'un contrat paye au mois), ou telle qu'un oracle la
+/// donne. Chaque cle s'ecrit ; `null` : rien n'est dit.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Assemble {
+    pub salarie: Option<IdSalarie>,
+    pub spectacle: Option<IdSpectacle>,
+    pub dates_travail: Vec<DateDeLigne>,
+    pub planning: Vec<DateDeLigne>,
+    pub lignes: Option<Vec<LignePaie>>,
+    pub mois: Option<String>,
+    pub debut: Option<String>,
+    pub fin: Option<String>,
+    pub numero: Option<String>,
+    pub nature: Option<String>,
+    pub taux_cachet: Option<Chiffre>,
+    pub jours: Option<Chiffre>,
+    pub jours_contrat: Option<Chiffre>,
+    pub date_paiement: Option<String>,
+    pub lieu: Option<String>,
+    pub emploi: Option<String>,
+    pub emploi_affichage: Option<String>,
+    pub pcs_ese: Option<String>,
+    pub code_emploi_ft: Option<String>,
+    pub statut: Option<String>,
+    pub statut_conventionnel: Option<String>,
+    pub statut_categoriel_rc: Option<String>,
+    pub etablissement: Option<String>,
+    pub quotite_contrat: Option<Chiffre>,
+    pub quotite_reference_saisie: Option<Chiffre>,
+    pub modalite_temps_travail_saisie: Option<String>,
+    pub motif_recours: Option<String>,
+    pub motif_rupture: Option<String>,
+    pub notification_rupture: Option<String>,
+    pub preavis: Option<saisie::Preavis>,
+    pub dernier_jour_paye: Option<String>,
+    pub date_modification: Option<String>,
+    pub transaction: Option<String>,
+    pub avant: Option<saisie::Avant>,
+    pub periode_essai_jours: Option<Chiffre>,
+    pub personne_remplacee: Option<String>,
+    pub repartition_horaire: Option<String>,
+    pub clauses_particulieres: Option<String>,
 }
 
-fn entier_opt(v: Option<&Value>, nom: &str) -> Resultat<Option<i64>> {
+/// Un texte dit et non vide.
+fn dit(x: &Option<String>) -> bool {
+    x.as_deref().is_some_and(|s| !s.is_empty())
+}
+
+/// Un entier dit (un nombre sans decimale) ; un autre nombre, ou un texte, se refuse.
+fn entier_dit(v: &Option<Chiffre>, nom: &str) -> Resultat<Option<i64>> {
     match v {
-        None | Some(Value::Null) => Ok(None),
-        Some(Value::Number(n)) => n
+        None => Ok(None),
+        Some(Chiffre::Nombre(n)) => n
             .as_i64()
             .or_else(|| n.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64))
             .map(Some)
             .ok_or_else(|| socle::echec::a_la_cle("Un nombre entier est attendu.", nom, n)),
-        Some(autre) => Err(socle::echec::a_la_cle("Un nombre entier est attendu.", nom, forme_ecrite(autre))),
+        Some(autre) => Err(socle::echec::a_la_cle("Un nombre entier est attendu.", nom, socle::date::repr_texte(&autre.en_texte()))),
     }
 }
 
-fn truthy(v: Option<&Value>) -> bool {
-    v.map_or(false, vrai)
-}
-
-/// Le lieu en texte, sans blancs aux bords ; vide s'il manque.
-fn lieu_texte(v: Option<&Value>) -> String {
-    match v {
-        Some(x) if vrai(x) => en_texte(x).trim().to_string(),
-        _ => String::new(),
-    }
-}
-
-/// `x or y` sur deux valeurs facultatives, rendu comme texte.
-fn ou(a: Option<&Value>, b: Option<&Value>) -> Option<String> {
-    if truthy(a) {
-        chaine(a)
-    } else {
-        chaine(b)
-    }
-}
-
-/// Une ligne saisie en pourcentage (`base` x `taux_majoration` %) rendue en `quantite` x `taux`.
-pub(crate) fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
-    let o = match l {
-        Value::Object(o) if o.contains_key("base") || o.contains_key("taux_majoration") => o,
-        _ => return Ok(l.clone()),
-    };
-    let rub = o.get("rubrique").map_or("None".to_string(), en_texte);
-    let (base, pct) = match (o.get("base"), o.get("taux_majoration")) {
-        (Some(b), Some(p)) => (dec_avec_echelle(b)?, dec_avec_echelle(p)?),
-        _ => {
-            return Err(socle::echec::a_la_cle(
-                &format!("La ligne « {} » est en pourcentage : elle dit sa base (en euros) et son pourcentage.", rub),
-                "taux_majoration",
-                forme_ecrite(l),
-            ))
-        }
-    };
-    if base.is_sign_negative() && !base.is_zero() || pct.is_sign_negative() && !pct.is_zero() {
-        return Err(format!("Ligne << {} >> : base et pourcentage sont positifs.", rub));
-    }
-    // Decimal(pct) / Decimal(100) : le quotient exact, a l'exposant ideal.
-    let mut taux = div(pct, Decimal::ONE_HUNDRED).normalize();
-    if taux.scale() < pct.scale() {
-        taux.rescale(pct.scale());
-    }
-    for (champ, attendu) in [("quantite", base), ("taux", taux)] {
-        if let Some(x) = o.get(champ) {
-            let vide = x.is_null() || x.as_str() == Some("");
-            if !vide && dec_avec_echelle(x)? != attendu {
-                return Err(socle::echec::cle(
-                    format!(
-                        "La ligne « {} » : sa quantité ou son taux ({}) contredit sa base et son pourcentage ({} x {} %). N'écrire que la base et le pourcentage.",
-                        rub,
-                        en_texte(x),
-                        base,
-                        pct
-                    ),
-                    champ,
-                ));
-            }
-        }
-    }
-    let mut sortie = o.clone();
-    sortie.insert("quantite".into(), Value::String(base.to_string()));
-    sortie.insert("taux".into(), Value::String(taux.to_string()));
-    Ok(Value::Object(sortie))
-}
-
-/// Les jours d'une liste (dates jouees ou planning), avec leurs lieux.
-/// `strict` : l'ecriture detaillee sans `jour` est refusee avec son message
-/// (dates jouees) ; sinon c'est le `KeyError` de `x["jour"]` (planning).
-fn jours_et_lieux(liste: &[Value], strict: bool) -> Resultat<(Vec<Jour>, BTreeMap<Jour, String>)> {
+/// Les jours d'une liste de dates, et les lieux qu'elles disent (sans blancs aux bords).
+fn jours_et_lieux(liste: &[DateDeLigne]) -> Resultat<(Vec<Jour>, BTreeMap<Jour, String>)> {
     let (mut jours, mut lieux) = (Vec::new(), BTreeMap::new());
     for x in liste {
-        let jour = match x {
-            Value::Object(m) => {
-                let Some(j) = m.get("jour") else {
-                    return Err(if strict {
-                        format!(
-                            "Une date ecrite en detail doit dire son `jour` : \
-                             {{\"jour\": \"2026-10-02\", \"lieu\": \"Berlin\"}}. Recu : {}",
-                            forme_ecrite(x)
-                        )
-                    } else {
-                        socle::fichiers::absent("jour")
-                    });
-                };
-                let jour = d(j)?;
-                let l = lieu_texte(m.get("lieu"));
-                if !l.is_empty() {
-                    lieux.insert(jour, l);
-                }
-                jour
-            }
-            autre => d(autre)?,
-        };
+        let jour = x.lu()?;
+        if let Some(l) = x.lieu().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()) {
+            lieux.insert(jour, l);
+        }
         jours.push(jour);
     }
     Ok((jours, lieux))
 }
 
-fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
-    match v {
-        None | Some(Value::Null) => Ok(&[]),
-        Some(Value::Array(a)) => Ok(a),
-        Some(autre) => Err(socle::echec::a_la_cle("Une liste est attendue.", nom, forme_ecrite(autre))),
-    }
-}
-
 impl Engagement {
     /// « NOM Prénom, contrat N » : qui une phrase de refus désigne.
     pub fn qui(&self) -> String {
-        format!("{}, contrat {}", self.nom, self.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"))
+        match self.numero.as_deref() {
+            Some(n) => format!("{}, contrat {}", self.nom, n),
+            None => format!("{}, contrat sans numero", self.nom),
+        }
     }
 
-    /// L'engagement que `v` décrit (`salarie`,
-    /// `spectacle`, `dates_travail`, `lignes`, `debut`, ...). `racine` est
-    /// celle des donnees de la compagnie, pour le catalogue des rubriques. `qui` : le salarie tel qu'un refus le nomme
-    /// (`salarie_nomme`).
-    pub fn nouveau(racine: &Path, v: &Value, qui: &str) -> Resultat<Engagement> {
-        let o = v.as_object().ok_or("un engagement est un objet")?;
-        let get = |k: &str| o.get(k);
-
-        // Les deux ecritures d'une date se rejoignent ici.
-        let mut lieux: BTreeMap<Jour, String> = BTreeMap::new();
-        if let Some(Value::Object(m)) = get("lieux") {
-            for (k, x) in m {
-                lieux.insert(d(&Value::String(k.clone()))?, en_texte(x));
-            }
-        }
-        let (mut jours_joues, lieux_dates) = jours_et_lieux(liste(get("dates_travail"), "dates_travail")?, true)?;
-        lieux.extend(lieux_dates);
+    /// L'engagement que `v` décrit (`Assemble`). `racine` est celle des donnees de la compagnie, pour le catalogue des
+    /// rubriques. `qui` : le salarie tel qu'un refus le nomme (`salarie_nomme`).
+    pub fn nouveau(racine: &Path, v: &Assemble, qui: &str) -> Resultat<Engagement> {
+        let (mut jours_joues, mut lieux) = jours_et_lieux(&v.dates_travail)?;
         jours_joues.sort();
         let presents: BTreeSet<Jour> = jours_joues.iter().copied().collect();
         lieux.retain(|j, _| presents.contains(j));
 
-        let Some(Value::Array(lignes_brutes)) = get("lignes").filter(|x| !x.is_null()) else {
+        let Some(lignes_brutes) = &v.lignes else {
             return Err(socle::echec::cle("Un engagement se saisit en lignes de paie, et celui-ci n'en porte pas.", "lignes"));
         };
-        let lignes: Vec<Value> = lignes_brutes.iter().map(ligne_en_pourcentage).collect::<Resultat<_>>()?;
+        for l in lignes_brutes {
+            l.verifier_pourcentage()?;
+        }
+        let lignes: Vec<LignePaie> = lignes_brutes.clone();
 
         // Un refus nomme le salarie : c'est lui que la personne voit sur la carte.
         let qui = qui.to_string();
-        let mois_saisi = ou(get("mois"), None).unwrap_or_default();
-        let debut_saisi = truthy(get("debut"));
-        let fin_saisie = truthy(get("fin"));
+        // Le mois dit ; vide, il n'est pas dit.
+        let mois_saisi: String = v.mois.iter().cloned().collect();
+        let debut_saisi = dit(&v.debut);
+        let fin_saisie = dit(&v.fin);
         if lignes.is_empty() && !(debut_saisi && fin_saisie) {
             return Err(socle::echec::cle(
                 "Un engagement sans aucune ligne de paie est un mois du contrat sans cachet : il dit le début et la fin du contrat, rien ne permet de les déduire.",
@@ -313,10 +271,13 @@ impl Engagement {
         }
 
         // Un contrat permanent ne se deduit pas de ses dates.
-        let nature = chaine(get("nature"));
-        let nat = natures::nature(nature.as_deref())?;
+        // Une nature se dit, elle ne se devine pas (regle 6).
+        let Some(nature) = v.nature.clone().filter(|n| !n.trim().is_empty()) else {
+            return Err(socle::echec::cle(format!("{}{}", qui, PAS_DE_NATURE), "nature"));
+        };
+        let nat = natures::nature(&nature)?;
         let mensuel = nat.mensuelle();
-        let planning_brut = liste(get("planning"), "planning")?;
+        let planning_brut = &v.planning;
         if mensuel {
             if !jours_joues.is_empty() || !planning_brut.is_empty() {
                 return Err(format!(
@@ -356,18 +317,17 @@ impl Engagement {
         // Ce que la declaration compte : cachets et heures, derives des lignes.
         let mut cachets_somme = 0.0;
         let mut autres = 0.0;
-        let mut premier_cachet: Option<&Value> = None;
+        let mut premier_cachet: Option<&LignePaie> = None;
         // Les rubriques se lisent a la fin du mois paye (le mois dit, sinon celui de la premiere date jouee). Un mois
         // illisible se refuse plus loin, avec ce qui ne va pas : d'ici la, les rubriques se lisent au jour du moteur.
-        let jour_lu = dernier_du_mois(&mois_saisi)
-            .ok()
-            .or_else(|| jours_joues.first().and_then(|j| dernier_du_mois(&j.mois_iso()).ok()))
-            .unwrap_or_else(droit::contexte::jour_reel);
+        let jour_lu = match (Mois::du_texte(&mois_saisi), jours_joues.first()) {
+            (Some(m), _) => m.dernier_jour(),
+            (None, Some(j)) => j.mois_civil().dernier_jour(),
+            (None, None) => droit::contexte::jour_reel(),
+        };
         for l in &lignes {
-            let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
-            let code = code.as_str().map_or_else(|| en_texte(code), String::from);
-            let r = rubrique(racine, &code, &jour_lu)?;
-            let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
+            let r = rubrique(racine, l.rubrique(), &jour_lu)?;
+            let q = socle::num::flottant(l.quantite().ok_or_else(|| socle::fichiers::absent("quantite"))?);
             if r.unite == "cachet" {
                 cachets_somme += q;
                 premier_cachet.get_or_insert(l);
@@ -376,7 +336,7 @@ impl Engagement {
                 // (`calcul::lignes_brut`) : une absence en retire. Un acompte,
                 // au forfait et sans heures, n'en retire aucune.
                 let signe = if r.sens == "-" { -1.0 } else { 1.0 };
-                autres += signe * r.heures(q, flottant_opt(l.get("heures"))?);
+                autres += signe * r.heures(q, l.heures_lues());
             }
         }
         let cachets = cachets_somme as i64;
@@ -390,16 +350,16 @@ impl Engagement {
         let heures = if autres != 0.0 { Some(autres) } else { None };
         // Le taux du cachet : celui de la premiere ligne de cachet ; sans cachet, celui qui est ecrit ; sinon aucun. Un
         // contrat qui ne paie aucun cachet n'a pas de taux de cachet, et le moteur n'en invente pas (regle 1).
-        let mut taux_cachet = match get("taux_cachet") {
-            None | Some(Value::Null) => None,
-            Some(x) => Some(flottant(x)?),
-        };
+        let mut taux_cachet = v.taux_cachet.as_ref().map(Chiffre::flottant).transpose()?;
         if let Some(l) = premier_cachet {
-            taux_cachet = Some(flottant(l.get("taux").ok_or_else(|| socle::fichiers::absent("taux"))?)?);
+            taux_cachet = Some(socle::num::flottant(l.taux().ok_or_else(|| socle::fichiers::absent("taux"))?));
         }
 
         // Les jours travailles : un fait qui se saisit, sinon les dates distinctes.
-        let jours = entier_opt(get("jours"), "jours")?.unwrap_or(presents.len() as i64);
+        let jours = match entier_dit(&v.jours, "jours")? {
+            Some(j) => j,
+            None => presents.len() as i64,
+        };
         if jours < 0 || (!lignes.is_empty() && !mensuel && jours == 0) {
             return Err(format!(
                 "{} : {} jour(s) travaillé(s) pour {} ligne(s) de paie. Cochez les jours de ses lignes.\n\
@@ -412,7 +372,7 @@ impl Engagement {
         }
 
         // Le planning se lit comme les dates jouees, et se range a part.
-        let (brut, planning_lieux) = jours_et_lieux(planning_brut, false)?;
+        let (brut, planning_lieux) = jours_et_lieux(planning_brut)?;
         let mut planning: Vec<Jour> = Vec::new();
         for j in brut {
             if !planning.contains(&j) {
@@ -420,18 +380,18 @@ impl Engagement {
             }
         }
         planning.sort();
-        let debut = if debut_saisi {
-            d(get("debut").unwrap())?
+        let debut = if let (true, Some(t)) = (debut_saisi, &v.debut) {
+            Jour::lire(t)?
         } else {
             *jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?
         };
-        let fin = if fin_saisie {
-            Some(d(get("fin").unwrap())?)
+        let fin = if let (true, Some(t)) = (fin_saisie, &v.fin) {
+            Some(Jour::lire(t)?)
         } else if mensuel {
             None
         } else {
             let derniere = *jours_joues.last().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?;
-            Some(derniere.max(planning.last().copied().unwrap_or(derniere)))
+            Some(planning.iter().copied().fold(derniere, Jour::max))
         };
         // LA FIN D'UN CONTRAT SANS TERME est sa rupture, et elle ne vaut qu'a sa date : le mois paye avant celui ou elle
         // tombe ne la connait pas. Un CDI n'a pas de date de fin previsionnelle (S21.G00.40.010 n'est exigee que d'un
@@ -439,12 +399,12 @@ impl Engagement {
         // fin se declare dans la DSN du mois ou il finit (bloc S21.G00.62). La paie d'un mois d'avant ne change donc pas
         // quand la rupture se saisit.
         let fin = match fin {
-            Some(f) if nat.duree_indeterminee && dernier_du_mois(&mois_saisi).is_ok_and(|m| f > m) => None,
+            Some(f) if nat.duree_indeterminee && f > Mois::lire(&mois_saisi)?.dernier_jour() => None,
             autre => autre,
         };
 
-        let debut_mois_de = |m: &str| premier_du_mois(m);
-        let fin_mois_de = |m: &str| dernier_du_mois(m);
+        let debut_mois_de = |m: &str| Mois::lire(m).map(Mois::premier_jour);
+        let fin_mois_de = |m: &str| Mois::lire(m).map(Mois::dernier_jour);
         if !mensuel && lignes.is_empty() {
             let fin = fin.unwrap();
             if !(debut < debut_mois_de(&mois_saisi)? || fin > fin_mois_de(&mois_saisi)?) {
@@ -472,17 +432,17 @@ impl Engagement {
         // Les dates jouees tiennent dans le mois, quand le mois est dit.
         let hors: Vec<Jour> = jours_joues
             .iter()
-            .filter(|j| !mois_saisi.is_empty() && j.mois_iso() != mois_saisi)
+            .filter(|j| !mois_saisi.is_empty() && j.mois_civil().to_string() != mois_saisi)
             .copied()
             .collect();
         let mois = if mois_saisi.is_empty() {
-            jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?.mois_iso()
+            jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?.mois_civil().to_string()
         } else {
             mois_saisi
         };
         let mut dates_contrat: Vec<Jour> = jours_joues.clone();
         dates_contrat.extend(&planning);
-        let jours_contrat = match entier_opt(get("jours_contrat"), "jours_contrat")? {
+        let jours_contrat = match entier_dit(&v.jours_contrat, "jours_contrat")? {
             Some(n) => n,
             None => dates_contrat.iter().collect::<BTreeSet<_>>().len() as i64,
         };
@@ -530,52 +490,55 @@ impl Engagement {
         }
 
         Ok(Engagement {
-            salarie: chaine(get("salarie")).unwrap_or_default(),
+            salarie: v.salarie.clone().ok_or_else(|| socle::fichiers::absent("salarie"))?,
             nom: qui.to_string(),
-            spectacle: chaine(get("spectacle")),
+            spectacle: v.spectacle.clone(),
             dates_travail: jours_joues,
             lignes,
             debut,
             fin,
-            numero: chaine(get("numero")),
+            numero: numeros::NumeroContrat::du_texte(v.numero.as_deref())?,
             mois,
             planning,
             planning_lieux,
             jours,
             jours_contrat,
-            date_paiement: chaine(get("date_paiement")),
+            date_paiement: v.date_paiement.clone(),
             versement: Default::default(),
             taux_cachet,
             cachets,
             heures,
-            lieu: chaine(get("lieu")).unwrap_or_default(),
+            // Le lieu dit ; vide, il n'est pas dit.
+            lieu: v.lieu.iter().cloned().collect(),
             lieux,
-            emploi: chaine(get("emploi")),
-            emploi_affichage: chaine(get("emploi_affichage")),
-            pcs_ese: chaine(get("pcs_ese")),
-            code_emploi_ft: chaine(get("code_emploi_ft")),
-            statut: chaine(get("statut")),
-            statut_conventionnel: chaine(get("statut_conventionnel")),
-            statut_categoriel_rc: chaine(get("statut_categoriel_rc")),
-            etablissement: chaine(get("etablissement")).filter(|t| !t.trim().is_empty()),
+            emploi: v.emploi.clone(),
+            emploi_affichage: v.emploi_affichage.clone(),
+            pcs_ese: v.pcs_ese.clone(),
+            code_emploi_ft: v.code_emploi_ft.clone(),
+            statut: v.statut.clone(),
+            statut_conventionnel: v.statut_conventionnel.clone(),
+            statut_categoriel_rc: v.statut_categoriel_rc.clone(),
+            etablissement: v.etablissement.clone().filter(|t| !t.trim().is_empty()),
             nature,
-            quotite_contrat: flottant_opt(get("quotite_contrat"))?,
-            quotite_reference_saisie: flottant_opt(get("quotite_reference_saisie"))?,
-            modalite_temps_travail_saisie: chaine(get("modalite_temps_travail_saisie")),
-            motif_recours: chaine(get("motif_recours")),
-            motif_rupture: chaine(get("motif_rupture")),
-            notification_rupture: chaine(get("notification_rupture")),
-            preavis: get("preavis").filter(|x| !x.is_null()).cloned(),
-            dernier_jour_paye: chaine(get("dernier_jour_paye")).filter(|t| !t.is_empty()),
-            date_modification: chaine(get("date_modification")).filter(|t| !t.trim().is_empty()),
-            transaction: chaine(get("transaction")),
-            suspensions: liste(get("suspensions"), "suspensions")?.to_vec(),
-            avant: get("avant").filter(|x| !x.is_null()).cloned(),
+            quotite_contrat: v.quotite_contrat.as_ref().map(Chiffre::flottant).transpose()?,
+            quotite_reference_saisie: v.quotite_reference_saisie.as_ref().map(Chiffre::flottant).transpose()?,
+            modalite_temps_travail_saisie: v.modalite_temps_travail_saisie.clone(),
+            motif_recours: v.motif_recours.clone(),
+            motif_rupture: v.motif_rupture.clone(),
+            notification_rupture: v.notification_rupture.clone(),
+            preavis: v.preavis.clone(),
+            dernier_jour_paye: v.dernier_jour_paye.clone().filter(|t| !t.is_empty()),
+            date_modification: v.date_modification.clone().filter(|t| !t.trim().is_empty()),
+            transaction: v.transaction.clone(),
+            suspensions: Vec::new(),
+            avant: v.avant.clone(),
             periode: None,
-            ecrit: CHAMPS_DU_CONTRAT_ECRIT
-                .iter()
-                .filter_map(|k| get(k).filter(|x| truthy(Some(x))).map(|x| (k.to_string(), x.clone())))
-                .collect(),
+            ecrit: ContratEcrit {
+                periode_essai_jours: v.periode_essai_jours.clone().filter(Chiffre::vrai),
+                personne_remplacee: v.personne_remplacee.clone().filter(|t| !t.is_empty()),
+                repartition_horaire: v.repartition_horaire.clone().filter(|t| !t.is_empty()),
+                clauses_particulieres: v.clauses_particulieres.clone().filter(|t| !t.is_empty()),
+            },
         })
     }
 
@@ -583,15 +546,15 @@ impl Engagement {
 
     /// La nature de contrat, relue a chaque acces.
     pub fn nat(&self) -> Resultat<Arc<Nature>> {
-        natures::nature(self.nature.as_deref())
+        natures::nature(&self.nature)
     }
 
     pub fn debut_mois(&self) -> Resultat<Jour> {
-        premier_du_mois(&self.mois)
+        Mois::lire(&self.mois).map(Mois::premier_jour)
     }
 
     pub fn fin_mois(&self) -> Resultat<Jour> {
-        dernier_du_mois(&self.mois)
+        Mois::lire(&self.mois).map(Mois::dernier_jour)
     }
 
     /// Un mois du contrat sans aucun cachet : DSN oui, bulletin non.
@@ -624,7 +587,7 @@ impl Engagement {
         }
         Ok(match self.quotite_reference_saisie {
             Some(q) if q != 0.0 => Some(q),
-            _ => nat.quotite_reference_defaut,
+            _ => nat.quotite_reference_defaut(),
         })
     }
 
@@ -642,7 +605,7 @@ impl Engagement {
             return Ok(m.clone());
         }
         let nat = self.nat()?;
-        let reference = match (self.quotite_reference()?, nat.quotite_reference_defaut.filter(|_| nat.mensuelle())) {
+        let reference = match (self.quotite_reference()?, nat.quotite_reference_defaut().filter(|_| nat.mensuelle())) {
             (Some(r), Some(legale)) => Some(r.min(legale)),
             (r, _) => r,
         };
@@ -684,7 +647,7 @@ impl Engagement {
             return Ok(f);
         }
         let fin_mois = self.fin_mois()?;
-        Ok(self.fin.map_or(fin_mois, |f| f.min(fin_mois)))
+        Ok(self.fin.into_iter().fold(fin_mois, Jour::min))
     }
 
     /// Le jour du versement de ce que l'engagement paie (S21.G00.50.001, la « date de paiement » du bulletin) : celui que
@@ -693,7 +656,7 @@ impl Engagement {
     /// donc celui ou se lit le taux de PAS du salarie.
     pub fn date_du_versement(&self) -> Resultat<Jour> {
         match self.date_paiement.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
-            Some(d) => Jour::lire(d.get(..10).unwrap_or(d)),
+            Some(d) => Jour::lire(d.chars().take(10).collect::<String>().as_str()),
             None => self.versement.jour(&self.mois, self.fin_periode()?),
         }
     }
@@ -704,19 +667,17 @@ impl Engagement {
             Some(f) => f,
             None => self.fin_mois()?,
         };
-        Ok(mois_entre(&self.debut, &fin))
+        Ok(Mois::entre(&self.debut, &fin).iter().map(Mois::to_string).collect())
     }
 
     // ------------------------------------------------------------ les lieux
 
     /// Ou se joue CE jour-la : la date, puis le planning, puis l'engagement.
     pub fn lieu_de(&self, jour: &Jour) -> String {
-        [self.lieux.get(jour), self.planning_lieux.get(jour)]
-            .into_iter()
-            .flatten()
-            .find(|l| !l.is_empty())
-            .cloned()
-            .unwrap_or_else(|| self.lieu.clone())
+        match [self.lieux.get(jour), self.planning_lieux.get(jour)].into_iter().flatten().find(|l| !l.is_empty()) {
+            Some(l) => l.clone(),
+            None => self.lieu.clone(),
+        }
     }
 
     /// Tous les jours connus du contrat : ceux du mois, puis le planning.
@@ -759,193 +720,207 @@ impl Engagement {
     // -------------------------------------------------------- forme canonique
 
     /// La forme canonique d'un engagement : une ecriture stable, pour les empreintes et les oracles.
-    pub fn canon(&self) -> Resultat<Value> {
-        let iso = |j: &Jour| Value::String(j.iso());
-        let jours = |v: &[Jour]| Value::Array(v.iter().map(iso).collect());
-        let lieux = |m: &BTreeMap<Jour, String>| {
-            Value::Object(m.iter().map(|(j, l)| (j.iso(), Value::String(l.clone()))).collect::<Map<_, _>>())
-        };
-        let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
-        let nombre_f = |x: f64| dec_f64(x).map(|v| Value::String(nombre(v)));
-        let optionnel = |o: Option<f64>| o.map_or(Ok(Value::Null), nombre_f);
-        let entier = |n: i64| Value::String(n.to_string());
-        let mut m = Map::new();
-        m.insert("salarie".into(), Value::String(self.salarie.clone()));
-        m.insert("spectacle".into(), texte(&self.spectacle));
-        m.insert("dates_travail".into(), jours(&self.dates_travail));
-        m.insert("lignes".into(), canon_valeur(&Value::Array(self.lignes.clone()))?);
-        m.insert("debut".into(), iso(&self.debut));
-        m.insert("fin".into(), self.fin.as_ref().map_or(Value::Null, iso));
-        m.insert("numero".into(), texte(&self.numero));
-        m.insert("mois".into(), Value::String(self.mois.clone()));
-        m.insert("planning".into(), jours(&self.planning));
-        m.insert("planning_lieux".into(), lieux(&self.planning_lieux));
-        m.insert("jours".into(), entier(self.jours));
-        m.insert("jours_contrat".into(), entier(self.jours_contrat));
-        m.insert("date_paiement".into(), texte(&self.date_paiement));
-        m.insert("taux_cachet".into(), optionnel(self.taux_cachet)?);
-        m.insert("cachets".into(), entier(self.cachets));
-        m.insert("heures".into(), optionnel(self.heures)?);
-        m.insert("lieu".into(), Value::String(self.lieu.clone()));
-        m.insert("lieux".into(), lieux(&self.lieux));
-        m.insert("emploi".into(), texte(&self.emploi));
-        // Ecrit seulement quand il est dit.
-        if let Some(a) = &self.emploi_affichage {
-            m.insert("emploi_affichage".into(), Value::String(a.clone()));
-        }
-        m.insert("pcs_ese".into(), texte(&self.pcs_ese));
-        m.insert("code_emploi_ft".into(), texte(&self.code_emploi_ft));
-        m.insert("statut".into(), texte(&self.statut));
-        m.insert("statut_conventionnel".into(), texte(&self.statut_conventionnel));
-        m.insert("statut_categoriel_rc".into(), texte(&self.statut_categoriel_rc));
-        // Ecrit seulement quand il est dit.
-        if let Some(n) = &self.etablissement {
-            m.insert("etablissement".into(), Value::String(n.clone()));
-        }
-        m.insert("nature".into(), Value::String(self.nat()?.cle.clone()));
-        m.insert("quotite_contrat".into(), optionnel(self.quotite_contrat)?);
-        m.insert("quotite_reference_saisie".into(), optionnel(self.quotite_reference_saisie)?);
-        m.insert("modalite_temps_travail_saisie".into(), texte(&self.modalite_temps_travail_saisie));
-        m.insert("motif_recours".into(), texte(&self.motif_recours));
-        m.insert("motif_rupture".into(), texte(&self.motif_rupture));
-        m.insert("notification_rupture".into(), texte(&self.notification_rupture));
-        m.insert(
-            "preavis".into(),
-            match &self.preavis {
-                Some(p) => canon_valeur(p)?,
-                None => Value::Null,
+    pub fn canon(&self) -> Resultat<paie_ecrite::FormeDEngagement> {
+        let nombre_f = |x: Option<f64>| x.map(dec_f64).transpose();
+        Ok(paie_ecrite::FormeDEngagement {
+            salarie: self.salarie.clone(),
+            spectacle: self.spectacle.clone(),
+            dates_travail: self.dates_travail.clone(),
+            lignes: self.lignes.iter().map(LignePaie::canon).collect::<Resultat<Vec<_>>>()?,
+            debut: self.debut,
+            fin: self.fin,
+            numero: self.numero.clone(),
+            mois: self.mois.clone(),
+            planning: self.planning.clone(),
+            planning_lieux: self.planning_lieux.clone(),
+            jours: self.jours,
+            jours_contrat: self.jours_contrat,
+            date_paiement: self.date_paiement.clone(),
+            taux_cachet: nombre_f(self.taux_cachet)?,
+            cachets: self.cachets,
+            heures: nombre_f(self.heures)?,
+            lieu: self.lieu.clone(),
+            lieux: self.lieux.clone(),
+            emploi: self.emploi.clone(),
+            // Ecrit seulement quand il est dit.
+            emploi_affichage: self.emploi_affichage.clone(),
+            pcs_ese: self.pcs_ese.clone(),
+            code_emploi_ft: self.code_emploi_ft.clone(),
+            statut: self.statut.clone(),
+            statut_conventionnel: self.statut_conventionnel.clone(),
+            statut_categoriel_rc: self.statut_categoriel_rc.clone(),
+            // Ecrit seulement quand il est dit.
+            etablissement: self.etablissement.clone(),
+            nature: self.nat()?.cle.clone(),
+            quotite_contrat: nombre_f(self.quotite_contrat)?,
+            quotite_reference_saisie: nombre_f(self.quotite_reference_saisie)?,
+            modalite_temps_travail_saisie: self.modalite_temps_travail_saisie.clone(),
+            motif_recours: self.motif_recours.clone(),
+            motif_rupture: self.motif_rupture.clone(),
+            notification_rupture: self.notification_rupture.clone(),
+            preavis: self.preavis.clone(),
+            transaction: self.transaction.clone(),
+            suspensions: self.suspensions.clone(),
+            // Ecrit seulement quand la saisie le dit.
+            contrat_ecrit: if self.ecrit.est_vide() {
+                None
+            } else {
+                Some(ContratEcrit { periode_essai_jours: self.ecrit.periode_essai_jours.as_ref().map(Chiffre::canon).transpose()?, ..self.ecrit.clone() })
             },
-        );
-        m.insert("transaction".into(), texte(&self.transaction));
-        m.insert("suspensions".into(), canon_valeur(&Value::Array(self.suspensions.clone()))?);
-        // Ecrit seulement quand la saisie le dit.
-        if !self.ecrit.is_empty() {
-            m.insert("contrat_ecrit".into(), canon_valeur(&Value::Object(self.ecrit.clone()))?);
-        }
-        // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
-        m.insert("debut_periode".into(), iso(&self.debut_periode()?));
-        m.insert("fin_periode".into(), iso(&self.fin_periode()?));
-        m.insert("quotite".into(), Value::String(nombre(self.quotite()?)));
-        m.insert("sans_paie".into(), Value::Bool(self.sans_paie()));
-        m.insert("premier_mois".into(), Value::Bool(self.premier_mois()?));
-        m.insert("dernier_mois".into(), Value::Bool(self.dernier_mois()?));
-        m.insert(
-            "mois_du_contrat".into(),
-            Value::Array(self.mois_du_contrat()?.into_iter().map(Value::String).collect()),
-        );
-        Ok(Value::Object(m))
+            // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
+            debut_periode: self.debut_periode()?,
+            fin_periode: self.fin_periode()?,
+            quotite: self.quotite()?,
+            sans_paie: self.sans_paie(),
+            premier_mois: self.premier_mois()?,
+            dernier_mois: self.dernier_mois()?,
+            mois_du_contrat: self.mois_du_contrat()?,
+        })
     }
-}
-
-/// La forme canonique d'une valeur JSON : nombres en chaines normalisees, cles
-/// en `_` retirees (sauf `_cle`).
-pub fn canon_valeur(v: &Value) -> Resultat<Value> {
-    Ok(match v {
-        Value::Number(_) => Value::String(nombre(dec(v)?)),
-        Value::Array(a) => Value::Array(a.iter().map(canon_valeur).collect::<Resultat<_>>()?),
-        Value::Object(o) => Value::Object(
-            o.iter()
-                .filter(|(k, _)| !k.starts_with('_') || *k == "_cle")
-                .map(|(k, x)| canon_valeur(x).map(|c| (k.clone(), c)))
-                .collect::<Resultat<Map<_, _>>>()?,
-        ),
-        autre => autre.clone(),
-    })
 }
 
 // ------------------------------------------------------- depuis un fichier
 
-/// Un avertissement pose sur la paie ; `info` : renseigne sans rien demander.
-#[derive(Debug, Clone, PartialEq)]
+/// Un avertissement pose sur la paie ; `info` : renseigne sans rien demander. Il s'ecrit `{texte, info}` dans la paie
+/// ecrite et son compteur de conges.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Avis {
-    pub info: bool,
     pub texte: String,
+    pub info: bool,
 }
 
-/// UNE LIGNE DE FRAIS NE FAIT PAS LES JOURS DE L'ENGAGEMENT : sa rubrique est de nature `frais` au catalogue de la
-/// compagnie (lu au premier jour de la ligne). Un remboursement de frais professionnels n'est pas un revenu d'activite
+/// UNE LIGNE DE FRAIS NE FAIT PAS LES JOURS DE L'ENGAGEMENT (`ligne::Frais`, rangee comme telle a la porte : sa rubrique
+/// est de nature `frais`). Un remboursement de frais professionnels n'est pas un revenu d'activite
 /// (CSS L136-1-1, `atelier/reference/sources/code-de-la-securite-sociale/articles-20260923.md`, l. 47) : ce qui fait le
 /// debut, la fin et les jours d'un engagement, ce sont ses lignes de travail. Le frais d'un voyage pour rejoindre le
 /// lieu de travail, ou en revenir, est a la charge de l'employeur (CCN 1285, art. VIII.5.1, KALIARTI000005808081,
 /// `atelier/reference/sources/kali-entrepot/articles.jsonl.gz`) : il se paie avec l'engagement qui le porte, au mois de
 /// celui-ci, quel que soit son jour. Le temps du trajet, lui, est du travail ou une servitude qui se compte (art.
-/// VIII.1, KALIARTI000023306777) : il se saisit sur une ligne de travail, qui fait son jour. Une rubrique que le catalogue
-/// ne connait pas compte comme du travail : le calcul la refuse en la nommant.
-pub fn ligne_de_frais(racine: &Path, l: &Value) -> bool {
-    let Some(code) = l.get("rubrique").filter(|c| vrai(c)).map(en_texte) else { return false };
-    let premier = ["dates", "planning"].iter().find_map(|k| l.get(*k).and_then(Value::as_array).and_then(|a| a.first()).cloned());
-    let Some(jour) = premier.and_then(|x| d(x.get("jour").unwrap_or(&x)).ok()) else { return false };
-    rubrique(racine, &code, &jour).is_ok_and(|r| r.nature == "frais")
-}
-
-/// `dates_engagement` (`cle` = "dates") et `planning_engagement` (`cle` =
-/// "planning") : la reunion, dedoublonnee, des jours des lignes de travail (`ligne_de_frais`), chacun nu ou
-/// detaille `{jour, lieu}` quand une ligne dit ou elle se joue.
-fn jours_des_lignes(racine: &Path, e: &Value, cle: &str) -> Vec<Value> {
+/// VIII.1, KALIARTI000023306777) : il se saisit sur une ligne de travail, qui fait son jour.
+///
+/// Les jours des lignes de travail, ceux du mois (`planning` faux) ou ceux du planning : leur reunion, dedoublonnee,
+/// chacun nu ou detaille `{jour, lieu}` quand une ligne dit ou elle se joue.
+pub(crate) fn jours_des_lignes(lignes: &[LignePaie], planning: bool) -> Vec<DateDeLigne> {
     let (mut out, mut vus) = (Vec::new(), BTreeSet::new());
-    let lignes = e.get("lignes").and_then(|l| l.as_array()).map_or(&[][..], |a| &a[..]);
-    for l in lignes.iter().filter(|l| !ligne_de_frais(racine, l)) {
-        let Some(Value::Array(js)) = l.get(cle) else { continue };
-        for j in js {
-            let jour = match j {
-                Value::Object(m) => m.get("jour").cloned().unwrap_or(Value::Null),
-                autre => autre.clone(),
-            };
-            if !vus.insert(jour.to_string()) {
+    for l in lignes.iter().filter(|l| l.frais().is_none()) {
+        for j in if planning { l.planning() } else { l.dates() } {
+            if !vus.insert(j.jour().to_string()) {
                 continue;
             }
-            let lieu_ligne = || l.get("lieu").filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-            let ou = match j {
-                Value::Object(m) => m.get("lieu").filter(|x| vrai(x)).map(en_texte).unwrap_or_else(lieu_ligne),
-                _ => lieu_ligne(),
-            };
-            out.push(if ou.is_empty() {
-                jour
-            } else {
-                let mut m = Map::new();
-                m.insert("jour".into(), jour);
-                m.insert("lieu".into(), Value::String(ou));
-                Value::Object(m)
-            });
+            // Le lieu de la date, sinon celui de la ligne ; ni l'un ni l'autre : la date est nue.
+            let ou: String = j.lieu().or_else(|| l.lieu().map(String::from)).into_iter().collect();
+            out.push(DateDeLigne::au(j.jour().to_string(), ou));
         }
     }
     out
 }
 
-pub fn dates_engagement(racine: &Path, e: &Value) -> Vec<Value> {
-    jours_des_lignes(racine, e, "dates")
+/// LES LIGNES D'UN MOIS SANS FAITS d'un contrat d'usage, tirees des lignes `source` du dernier mois qui en dit
+/// (`stock::Objet::lignes_du_planning`) : une ligne par ligne qui a des jours au planning de `mois` ou apres, a la meme
+/// rubrique, au meme taux et au meme lieu, ses jours de `mois` en dates et ceux d'apres au planning ; un cachet, une
+/// journee ou un service par date (une autre unite, des heures, ne se deduit pas d'un nombre de jours : quantite 0, a
+/// completer).
+pub(crate) fn lignes_du_planning(racine: &Path, source: &[LignePaie], mois: &str) -> Resultat<Vec<LignePaie>> {
+    let mut lignes = Vec::new();
+    for l in source {
+        let dedans: Vec<DateDeLigne> = l.planning().iter().filter(|x| x.jour().starts_with(mois)).cloned().collect();
+        let apres: Vec<DateDeLigne> = l.planning().iter().filter(|x| x.jour().get(..7).is_some_and(|m| m > mois)).cloned().collect();
+        if dedans.is_empty() && apres.is_empty() {
+            continue;
+        }
+        let unite = rubrique(racine, l.rubrique(), &Mois::lire(mois)?.dernier_jour())?.unite;
+        let par_date = matches!(unite.as_str(), "cachet" | "jour" | "service");
+        let quantite = Some(Decimal::from(if par_date { dedans.len() as i64 } else { 0 }));
+        lignes.push(match l.avec_les_jours(dedans, apres) {
+            LignePaie::Unites(x) => LignePaie::Unites(ligne::Unites { quantite, ..x }),
+            LignePaie::UnitesEtHeures(x) => {
+                let heures = x.heures.filter(|h| par_date && !h.is_zero());
+                LignePaie::UnitesEtHeures(ligne::UnitesEtHeures { quantite, heures, ..x })
+            }
+            LignePaie::Frais(x) => LignePaie::Frais(ligne::Frais { quantite, ..x }),
+            autre => return Err(format!("la ligne {} n'a pas de planning : le signaler au développeur", autre.rubrique())),
+        });
+    }
+    Ok(lignes)
 }
 
-pub fn planning_engagement(racine: &Path, e: &Value) -> Vec<Value> {
-    jours_des_lignes(racine, e, "planning")
-}
-
-/// Les jours du contrat entier qu'un engagement brut connait : ses dates
-/// jouees et son planning, sans doublon.
-pub fn jours_du_contrat(racine: &Path, e: &Value) -> usize {
-    let cle = |j: &Value| match j {
-        Value::Object(m) => m.get("jour").map_or(String::new(), |x| x.to_string()),
-        autre => autre.to_string(),
-    };
-    let mut vus: BTreeSet<String> = dates_engagement(racine, e).iter().map(cle).collect();
-    vus.extend(planning_engagement(racine, e).iter().map(cle));
+/// Les jours, sans doublon, que des lignes jouent ou planifient.
+pub(crate) fn jours_de_lignes(lignes: &[LignePaie]) -> usize {
+    let mut vus: BTreeSet<String> = jours_des_lignes(lignes, false).iter().map(|j| j.jour().to_string()).collect();
+    vus.extend(jours_des_lignes(lignes, true).iter().map(|j| j.jour().to_string()));
     vus.len()
 }
 
 /// Le salarie qu'un refus nomme en tete, tel que l'ecran le nomme partout (`Contexte::nomme` : « NOM Prénom ») ;
 /// « Cet engagement » quand la carte n'a pas encore de salarie.
-pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&Value>) -> String {
-    chaine(salarie).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
+pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&str>) -> String {
+    match salarie.filter(|s| !s.trim().is_empty()) {
+        Some(c) => ctx.nomme(c),
+        None => "Cet engagement".to_string(),
+    }
 }
 
-/// La nature de l'engagement `e` ; un refus nomme son salarie.
-fn nature_de(ctx: &Contexte, e: &Value) -> Resultat<Arc<Nature>> {
-    natures::nature(chaine(e.get("nature")).as_deref()).map_err(|m| format!("{} : {}", salarie_nomme(ctx, e.get("salarie")), m))
+/// CE QUE LA NATURE DECIDE D'UN ENGAGEMENT, lu de la variante de sa carte valide par un `match` exhaustif : un CDDU joue
+/// un spectacle et se paie au cachet, au taux du mois quand sa carte n'en dit pas ; un contrat paye au mois dit ses heures
+/// (et un CDD son motif). Ce qu'une nature n'a pas n'est rien.
+struct Termes {
+    spectacle: Option<IdSpectacle>,
+    taux_cachet: Option<Chiffre>,
+    quotite_contrat: Option<Chiffre>,
+    quotite_reference: Option<Chiffre>,
+    modalite_temps_travail: Option<String>,
+    motif_recours: Option<String>,
+    personne_remplacee: Option<String>,
+    repartition_horaire: Option<String>,
+}
+
+impl Termes {
+    fn de(v: &carte::CarteValide, cachet_du_mois: &Option<Chiffre>) -> Termes {
+        let n = |x: &NombreLu| Chiffre::Nombre(x.clone());
+        match v {
+            carte::CarteValide::CdduSpectacle(c) => Termes {
+                spectacle: Some(c.spectacle.clone()),
+                taux_cachet: match &c.taux_cachet {
+                    Some(t) => Some(n(t)),
+                    None => cachet_du_mois.clone(),
+                },
+                quotite_contrat: None,
+                quotite_reference: None,
+                modalite_temps_travail: None,
+                motif_recours: None,
+                personne_remplacee: None,
+                repartition_horaire: None,
+            },
+            // Un contrat payé au mois ne prend pas le cachet par défaut du mois : son calcul ne le lit pas, et sa paie ne
+            // se recalcule pas quand il change.
+            carte::CarteValide::Cdi(c) => Termes {
+                spectacle: None,
+                taux_cachet: None,
+                quotite_contrat: Some(n(&c.quotite_contrat)),
+                quotite_reference: c.quotite_reference.as_ref().map(n),
+                modalite_temps_travail: c.modalite_temps_travail.clone(),
+                motif_recours: None,
+                personne_remplacee: None,
+                repartition_horaire: c.repartition_horaire.clone(),
+            },
+            carte::CarteValide::Cdd(c) => Termes {
+                spectacle: None,
+                taux_cachet: None,
+                quotite_contrat: Some(n(&c.quotite_contrat)),
+                quotite_reference: c.quotite_reference.as_ref().map(n),
+                modalite_temps_travail: c.modalite_temps_travail.clone(),
+                motif_recours: Some(c.motif_recours.code().to_string()),
+                personne_remplacee: c.motif_recours.personne_remplacee().cloned(),
+                repartition_horaire: c.repartition_horaire.clone(),
+            },
+        }
+    }
 }
 
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
 /// au mois : les lignes de paie du mois, ce qu'il y a a en dire, et ses jours travailles (`None` : la saisie les dit).
-pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)>;
+pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &saisie::Carte, &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)>;
 
 /// Les engagements d'un fichier de mois,
 /// construits avant tout calcul. `lignes_permanent` fournit les lignes d'un
@@ -953,40 +928,28 @@ pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(
 /// engagement (vide hors des permanents).
 pub(crate) fn engagements(
     ctx: &Contexte,
-    data: &Value,
+    data: &saisie::VueDuMois,
     lignes_permanent: LignesPermanent,
 ) -> Resultat<(Vec<Engagement>, Vec<Vec<Avis>>)> {
-    let mois_dit = data.get("mois").map_or("?".to_string(), en_texte);
+    let mois_dit = data.mois.to_string();
     // Le taux du mois, s'il en ecrit un ; sinon rien (regle 1).
-    let defaut_taux = data.get("taux_cachet").cloned().unwrap_or(Value::Null);
-    let sans_taux = Value::Null;
+    let defaut_taux = data.taux_cachet.clone().map(Chiffre::Nombre);
     let (mut out, mut dits) = (Vec::new(), Vec::new());
-    let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
-    let tous = tous.as_array().ok_or_else(|| socle::echec::cle("Une liste est attendue.", "engagements"))?;
-    for e in tous {
-        let qui = salarie_nomme(ctx, e.get("salarie"));
-        let nat = nature_de(ctx, e)?;
-        let au_tarif = if nat.mensuelle() { None } else { lignes_au_tarif(ctx, e, &mois_dit)? };
-        let e = au_tarif.as_ref().unwrap_or(e);
-        let mut spectacle = ou(e.get("spectacle"), None);
-        // Les heures en plus sont des faits d'un contrat paye au mois (`heures_en_plus`) : ceux d'un contrat d'usage ne
-        // seraient payes par rien.
-        if !nat.mensuelle() {
-            let dites: Vec<&str> = [heures_en_plus::HEURES_SUPPLEMENTAIRES, heures_en_plus::HEURES_SUPPLEMENTAIRES_A_50, heures_en_plus::HEURES_COMPLEMENTAIRES]
-                .into_iter()
-                .filter(|k| truthy(e.get(*k)))
-                .collect();
-            if !dites.is_empty() {
-                return Err(format!(
-                    "{} : {} est un fait d'un contrat payé au mois ; un {} paie ses heures par ses lignes (une ligne « Heure de \
-                     travail », ou « Majoration » pour leur majoration). Retirer {}. Rien n'est écrit.",
-                    qui,
-                    dites.join(", "),
-                    nat.libelle,
-                    if dites.len() > 1 { "ces champs" } else { "ce champ" }
-                ));
+    for carte in &data.engagements {
+        let qui = salarie_nomme(ctx, carte.salarie.as_deref());
+        // Seule une carte valide entre dans le calcul : sa nature dite, ses cases obligatoires remplies, aucune case que
+        // sa nature n'a pas (`carte::CarteValide::depuis`). Ce qui depend de la nature se lit de sa variante.
+        let valide = carte::CarteValide::depuis(carte, &qui)?;
+        let nat = droit::natures::nature(valide.nature()).map_err(|m| format!("{} : {}", qui, m))?;
+        let termes = Termes::de(&valide, &defaut_taux);
+        let tarifee;
+        let carte = match if nat.mensuelle() { None } else { lignes_au_tarif(ctx, carte.lignes(), &mois_dit)? } {
+            Some(lignes) => {
+                tarifee = saisie::Carte { lignes: Some(lignes), ..carte.clone() };
+                &tarifee
             }
-        }
+            None => carte,
+        };
         if nat.mensuelle() {
             // Employer des permanents se declare.
             if !ctx.emploie_des_permanents() {
@@ -998,165 +961,125 @@ pub(crate) fn engagements(
                      complémentaire santé de chaque permanent (obligatoire, art. L911-7, le logiciel ne paie pas sans \
                      elle) et, pour un non-cadre de moins d'un an dans l'entreprise, son entrée dans la branche.\n\
                      \x20 Si ce n'était pas voulu : la nature se change sur la carte ; un intermittent au cachet est \
-                     un « CDD d'usage du spectacle », et c'est ce que vaut un engagement qui ne dit pas sa nature.",
+                     un « CDDU ».",
                     qui, nat.libelle
                 ));
             }
-            // Un permanent ne joue pas un spectacle (S21.G00.40.050, CCH-11).
-            if spectacle.as_deref().map_or(false, |s| !s.is_empty()) && truthy(e.get("spectacle")) {
-                return Err(format!(
-                    "{} : retirez le spectacle ({}) de cet engagement, ou choisissez le CDD d'usage si ce contrat est \
-                     celui d'un spectacle.\n\
-                     Le numéro d'objet spectacle est interdit sur un {} (S21.G00.40.050, CCH-11).",
-                    qui,
-                    spectacle.as_deref().unwrap_or(""),
-                    nat.libelle
-                ));
-            }
-            spectacle = None;
-        } else if spectacle.as_deref().map_or(true, str::is_empty) {
-            // Un salaire au mois sans nature : c'est la nature qui manque, pas le spectacle (un engagement muet est un
-            // contrat d'usage aux cachets, qui n'a pas de salaire au mois).
-            if !truthy(e.get("nature")) && ["salaire_mensuel", "quotite_contrat"].iter().any(|k| truthy(e.get(*k))) {
-                return Err(format!(
-                    "{}{}\nUn engagement qui ne la dit pas est un {}, payé aux cachets ; un salaire au mois est celui d'un \
-                     CDI ou d'un CDD.",
-                    qui, PAS_DE_NATURE, nat.libelle
-                ));
-            }
-            return Err(format!(
-                "{}{}\n\
-                 Le spectacle porte le numéro d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne \
-                 se devine pas.",
-                qui, PAS_DE_SPECTACLE
-            ));
         }
-        if ["dates", "cachets", "heures", "taux_horaire"].iter().any(|k| e.get(*k).is_some()) {
-            return Err(format!(
-                "{} : l'engagement porte des jours, des cachets, des heures ou un taux horaire à part, que le logiciel ne lit pas : tout se porte sur les lignes de paie.",
-                qui
-            ));
-        }
-        let jours = if nat.mensuelle() { Vec::new() } else { dates_engagement(&ctx.racine, e) };
+        let jours = if nat.mensuelle() { Vec::new() } else { carte.dates() };
         // `lignes: []` ecrit est un mois du contrat sans cachet ; une ligne sans date est incomplete.
-        if jours.is_empty() && !nat.mensuelle() && e.get("lignes") != Some(&Value::Array(Vec::new())) {
+        if jours.is_empty() && !nat.mensuelle() && !carte.lignes().is_empty() {
             return Err(format!("{}{} Sans eux il n'y a ni début, ni fin, ni contrat.", qui, PAS_DE_JOUR));
         }
         if nat.mensuelle() {
-            frais_d_un_mois_paye(ctx, e, &qui)?;
+            frais_d_un_mois_paye(ctx, carte.lignes(), &qui)?;
         }
-        lignes_dites(ctx, e, &qui)?;
+        lignes_dites(ctx, carte.lignes(), &qui)?;
         // Le metier de ce contrat : six champs declares, que l'engagement
         // ecrit par-dessus, et son libelle lisible (`emploi_affichage`).
-        let mut declare = Value::Object(Map::new());
-        if truthy(e.get("metier")) {
-            let code = en_texte(e.get("metier").unwrap());
-            let cadre = match e.get("cadre") {
-                Some(Value::Bool(b)) => Some(*b),
-                _ => None,
-            };
-            let salarie = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
-            let feminin = sexe(&salarie) == "2";
-            declare = emplois::resoudre(&code, cadre, feminin)
-                .map_err(|m| format!("{} : {}", qui, m))?;
-        }
+        let declare = match carte.metier.as_deref().filter(|m| !m.is_empty()) {
+            Some(code) => {
+                let salarie = fiche_du_salarie(ctx, carte.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+                let feminin = sexe(&salarie).as_deref() == Some("2");
+                Some(emplois::resoudre(code, carte.cadre, feminin, ctx.entreprise.idcc.texte()).map_err(|m| format!("{} : {}", qui, m))?)
+            }
+            None => None,
+        };
         // Les jours travailles d'un contrat paye au mois : ceux que le moteur tire du mois (`conges::lignes_du_mois`).
-        let mut jours_du_mois: Option<Value> = None;
+        let mut jours_du_mois: Option<Chiffre> = None;
         let lignes = if nat.mensuelle() {
-            let (lignes, avis, jours_travailles) =
-                lignes_permanent(ctx, e, data.get("mois").and_then(|m| m.as_str()).unwrap_or(""))?;
+            let (lignes, avis, jours_travailles) = lignes_permanent(ctx, carte, &mois_dit)?;
             dits.push(avis);
-            jours_du_mois = jours_travailles.map(Value::from);
-            Some(Value::Array(lignes))
+            jours_du_mois = jours_travailles.map(Chiffre::entier);
+            Some(lignes)
         } else {
-            match e.get("lignes") {
-                Some(Value::Array(l)) => {
-                    let (lignes, avis) = frais_au_dela(ctx, e, l.clone(), &mois_dit, &qui)?;
+            match &carte.lignes {
+                Some(l) => {
+                    let (lignes, avis) = frais_au_dela(ctx, carte.salarie.as_ref(), l.clone(), &mois_dit, &qui)?;
                     dits.push(avis);
-                    Some(Value::Array(lignes))
+                    Some(lignes)
                 }
-                autre => {
+                None => {
                     dits.push(Vec::new());
-                    autre.cloned()
+                    None
                 }
             }
         };
-        let mut champs = Map::new();
-        let mut poser = |k: &str, v: Option<&Value>| {
-            if let Some(v) = v {
-                champs.insert(k.to_string(), v.clone());
-            }
-        };
-        poser("salarie", e.get("salarie"));
-        poser("spectacle", spectacle.as_ref().map(|s| Value::String(s.clone())).as_ref());
-        poser("dates_travail", Some(&Value::Array(jours)));
-        // Un contrat payé au mois ne prend pas le cachet par défaut du mois : son calcul ne le lit pas, et sa paie ne se
-        // recalcule pas quand il change.
-        poser("taux_cachet", Some(e.get("taux_cachet").unwrap_or(if nat.mensuelle() { &sans_taux } else { &defaut_taux })));
-        poser("debut", e.get("debut"));
-        poser("fin", e.get("fin"));
-        poser("numero", e.get("numero"));
-        poser("mois", Some(data.get("mois").ok_or_else(|| socle::fichiers::absent("mois"))?));
-        poser("jours", e.get("jours").or(jours_du_mois.as_ref()));
+        let nombre = |x: &Option<NombreLu>| x.clone().map(Chiffre::Nombre);
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
-        let continue_ = match (e.get("jours_contrat"), e.as_object()) {
-            (None, Some(o)) if !nat.mensuelle() && crate::debut_brut(&ctx.racine, e).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
-                crate::importe::continue_par(&ctx.racine, o)?.and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(&ctx.racine, e))).map(Value::from)
+        let continue_ = match &carte.jours_contrat {
+            None if !nat.mensuelle() && carte.debut_lu().get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
+                match crate::importe::continue_par(&ctx.racine, carte)? {
+                    Some(i) => i.jours_du_contrat_continue(carte.jours_du_contrat())?.map(Chiffre::entier),
+                    None => None,
+                }
             }
             _ => None,
         };
-        poser("jours_contrat", e.get("jours_contrat").or(continue_.as_ref()));
-        poser("planning", Some(&Value::Array(planning_engagement(&ctx.racine, e))));
-        poser("lignes", lignes.as_ref());
-        poser("date_paiement", e.get("date_paiement"));
-        poser("lieu", e.get("lieu"));
-        for champ in ["emploi", "pcs_ese", "code_emploi_ft", "statut", "statut_conventionnel", "statut_categoriel_rc"] {
-            let v = ou(e.get(champ), declare.get(champ));
-            poser(champ, v.map(Value::String).as_ref());
-        }
-        // Le libelle que `resoudre` a donne a CE metier, feminin compris ; un
-        // `emploi` ecrit a la main dirait un autre metier que lui.
-        if !truthy(e.get("emploi")) {
-            poser("emploi_affichage", declare.get("emploi_affichage"));
-        }
-        poser("nature", e.get("nature"));
-        poser("quotite_contrat", e.get("quotite_contrat"));
-        let q = if truthy(e.get("quotite_reference")) {
-            e.get("quotite_reference")
-        } else {
-            ctx.entreprise.get("quotite_reference")
+        // Ce que la carte ecrit du metier passe avant ce que le catalogue en dit.
+        let d = declare.as_ref();
+        let ecrit = |x: &Option<String>| x.clone().filter(|s| !s.is_empty());
+        let assemble = Assemble {
+            salarie: carte.salarie.clone(),
+            spectacle: termes.spectacle,
+            dates_travail: jours,
+            taux_cachet: termes.taux_cachet,
+            debut: carte.debut.clone(),
+            fin: carte.fin.clone(),
+            numero: carte.numero.clone(),
+            mois: Some(mois_dit.clone()),
+            jours: nombre(&carte.jours).or(jours_du_mois),
+            jours_contrat: nombre(&carte.jours_contrat).or(continue_),
+            planning: carte.planning(),
+            lignes,
+            date_paiement: carte.date_paiement.clone(),
+            lieu: carte.lieu.clone(),
+            emploi: ecrit(&carte.emploi).or_else(|| d.map(|d| d.emploi.clone())),
+            pcs_ese: ecrit(&carte.pcs_ese).or_else(|| d.and_then(|d| d.pcs_ese.clone())),
+            code_emploi_ft: ecrit(&carte.code_emploi_ft).or_else(|| d.and_then(|d| d.code_emploi_ft.clone())),
+            statut: ecrit(&carte.statut).or_else(|| d.map(|d| d.statut.clone())),
+            statut_conventionnel: ecrit(&carte.statut_conventionnel).or_else(|| d.and_then(|d| d.statut_conventionnel.clone())),
+            statut_categoriel_rc: ecrit(&carte.statut_categoriel_rc).or_else(|| d.map(|d| d.statut_categoriel_rc.to_string())),
+            // Le libelle que `resoudre` a donne a CE metier, feminin compris ; un `emploi` ecrit a la main dirait un autre
+            // metier que lui.
+            emploi_affichage: if ecrit(&carte.emploi).is_none() { d.map(|d| d.emploi_affichage.clone()) } else { None },
+            nature: Some(valide.nature().to_string()),
+            quotite_contrat: termes.quotite_contrat,
+            quotite_reference_saisie: termes.quotite_reference.filter(Chiffre::vrai),
+            modalite_temps_travail_saisie: termes.modalite_temps_travail,
+            motif_recours: termes.motif_recours,
+            etablissement: carte.etablissement.clone(),
+            motif_rupture: carte.motif_rupture.clone(),
+            // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
+            // (`fctu::dernier_jour_paye`).
+            preavis: carte.preavis.clone(),
+            dernier_jour_paye: carte.dernier_jour_paye.clone(),
+            date_modification: carte.date_modification.clone(),
+            avant: carte.avant.clone(),
+            periode_essai_jours: nombre(&carte.periode_essai_jours),
+            personne_remplacee: termes.personne_remplacee,
+            repartition_horaire: termes.repartition_horaire,
+            clauses_particulieres: carte.clauses_particulieres.clone(),
+            notification_rupture: None,
+            transaction: None,
         };
-        poser("quotite_reference_saisie", q);
-        poser("modalite_temps_travail_saisie", e.get("modalite_temps_travail"));
-        poser("motif_recours", e.get("motif_recours"));
-        poser("etablissement", e.get("etablissement"));
-        poser("motif_rupture", e.get("motif_rupture"));
-        // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
-        // (`fctu::dernier_jour_paye`).
-        poser("preavis", e.get("preavis"));
-        poser("dernier_jour_paye", e.get("dernier_jour_paye"));
-        poser("date_modification", e.get("date_modification"));
-        poser("avant", e.get("avant"));
-        for k in CHAMPS_DU_CONTRAT_ECRIT {
-            poser(k, e.get(k));
-        }
-        let mut eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
-        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&dernier_du_mois(&eng.mois)?)?, &*eng.nat()?)?;
+        let mut eng = Engagement::nouveau(&ctx.racine, &assemble, &qui)?;
+        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&Mois::lire(&eng.mois)?.dernier_jour()), &*eng.nat()?)?;
         // Ce que l'ancien logiciel a verse est un fait : seul ce que la compagnie va verser se juge.
-        if e.get(crate::importe::IMPORTE).is_none() {
+        if carte.importe.is_none() {
             if let Some(refus) = versement_refuse(ctx, &eng, &qui)? {
                 return Err(refus);
             }
         }
-        notifiee_pendant_le_contrat(e, &eng)?;
+        notifiee_pendant_le_contrat(carte, &eng)?;
         // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
-        if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
+        if !nat.mensuelle() || carte.lignes.is_some() {
             heures_dites(ctx, &eng, &qui)?;
         }
         // Ce que l'ancien logiciel a paye est un fait : seul un engagement neuf se juge.
-        if e.get(crate::importe::IMPORTE).is_none() {
+        if carte.importe.is_none() {
             unites_du_statut(ctx, &eng, &qui)?;
         }
         out.push(eng);
@@ -1176,22 +1099,22 @@ fn versement_refuse(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<Opt
     let fin_mois = eng.fin_mois()?;
     let fin_cirque = match eng.fin.filter(|f| *f <= fin_mois) {
         Some(f) if !eng.nat()?.duree_indeterminee && droit::versement::au_plus_tard_cirque_1285(&f)? < verse => {
-            let ent = ctx.entreprise_au(&fin_mois)?;
+            let ent = ctx.entreprise_au(&fin_mois);
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
-            let code = fiche.get("code_emploi_ft").filter(|c| vrai(c)).map(en_texte).unwrap_or_default();
-            let metier = emplois::metier(&code)?.unwrap_or(Value::Null);
-            let cirque = metier.get("minima").and_then(|m| m.get("1285")).and_then(Value::as_str) == Some("cirque");
-            (ent.get("idcc").map(en_texte).as_deref() == Some("1285") && cirque).then_some(f)
+            let code = fiche.code_emploi_ft.texte().to_string();
+            let metier = emplois::metier(&code)?;
+            let cirque = metier.as_ref().and_then(|m| m.au_catalogue()).and_then(|f| f.minima.ccn_1285.as_deref()) == Some("cirque");
+            (ent.idcc.texte() == "1285" && cirque).then_some(f)
         }
         _ => None,
     };
     droit::versement::refus(qui, &verse, &eng.mois, fin_cirque.as_ref())
 }
 
-fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
-    let Some(t) = e.get("notification_rupture").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) else { return Ok(()) };
+fn notifiee_pendant_le_contrat(e: &saisie::Carte, eng: &Engagement) -> Resultat<()> {
+    let Some(t) = e.notification_rupture.as_deref().filter(|t| !t.trim().is_empty()) else { return Ok(()) };
     let n = Jour::lire(t).map_err(|_| format!("{} : « Notifiée le » {} n'est pas une date.", eng.nom, t))?;
-    if n >= eng.debut && eng.fin.map_or(true, |f| n <= f) {
+    if n >= eng.debut && eng.fin.is_none_or(|f| n <= f) {
         return Ok(());
     }
     let bornes = match eng.fin {
@@ -1211,66 +1134,60 @@ fn notifiee_pendant_le_contrat(e: &Value, eng: &Engagement) -> Resultat<()> {
 /// rien. L'ecran enregistre a chaque frappe, et ces refus montent sous `SaisieIncomplete`
 /// (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message s'ouvre sur le
 /// salarie, puis dit quoi faire.
-const PAS_DE_SPECTACLE: &str = " : choisissez le spectacle que joue cet engagement, sur sa carte.";
-const PAS_DE_NATURE: &str = " : choisissez la nature du contrat, sur sa carte (`nature`).";
+pub(crate) const PAS_DE_NATURE: &str = " : choisissez la nature du contrat, sur sa carte.";
 const PAS_DE_JOUR: &str = " : cochez les jours joués sur sa ligne de paie.";
 const LIGNE_A_DIRE: &str = " : saisissez ";
 const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro";
 /// Une journee de plus de 24 heures (`duree::plus_d_une_journee`) : une faute de frappe, a corriger comme une saisie pas finie.
 pub(crate) const JOURNEE_DE_PLUS_DE_24: &str = ", et une journée n'a que 24 heures";
 const SAISIE_INCOMPLETE: [&str; 7] =
-    [PAS_DE_SPECTACLE, PAS_DE_NATURE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24, crate::maintien::IJ_A_DIRE];
+    [carte::A_REMPLIR, PAS_DE_NATURE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24, crate::maintien::IJ_A_DIRE];
 
 /// LE TARIF DE LA CONVENTION d'une rubrique a ce jour (`tarifs_conventionnels.<code>` de la couche de la convention du
 /// bareme, liste datee : l'avenant qui le fixe et sa date d'effet y sont cites). `None` : la convention n'en fixe pas, ou
 /// pas encore a ce jour ; le taux se saisit.
-pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<Option<Value>> {
+pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<Option<Decimal>> {
     let bar = ctx.bareme(jour)?;
-    Ok(bar.get("tarifs_conventionnels").and_then(|t| t.get(code)).filter(|v| v.is_number()).cloned())
+    Ok(bar.tarifs_conventionnels.as_ref().and_then(|t| match code {
+        "repas" => t.repas.and_then(|n| n.0),
+        "nuitee" => t.nuitee.and_then(|n| n.0),
+        _ => None,
+    }))
 }
 
 /// Les lignes d'un engagement au cachet dont la rubrique a un tarif de la convention (`tarif_conventionnel`) et qui ne
 /// disent pas leur taux le prennent, au premier jour de la ligne (a defaut, au premier jour du mois saisi). Le
 /// bareme ne se lit que pour une telle ligne.
-fn lignes_au_tarif(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Option<Value>> {
-    let vide = |v: Option<&Value>| matches!(v, None | Some(Value::Null)) || v.and_then(Value::as_str).is_some_and(|s| s.trim().is_empty());
-    let Some(lignes) = e.get("lignes").and_then(Value::as_array) else { return Ok(None) };
-    let mut neuves = lignes.clone();
+fn lignes_au_tarif(ctx: &Contexte, lignes: &[LignePaie], mois: &str) -> Resultat<Option<Vec<LignePaie>>> {
+    let mut neuves = lignes.to_vec();
     let mut change = false;
     for l in neuves.iter_mut() {
-        let Some(code) = l.get("rubrique").and_then(Value::as_str) else { continue };
-        if !vide(l.get("taux")) || !matches!(rubrique(&ctx.racine, code, &ctx.lue_au), Ok(r) if r.saisie.iter().any(|s| s == "taux")) {
+        // Une ligne dont le taux est une case (`Unites`, `UnitesEtHeures`, `Frais`), et vide.
+        if !matches!(l, LignePaie::Unites(_) | LignePaie::UnitesEtHeures(_) | LignePaie::Frais(_)) || l.taux().is_some() {
             continue;
         }
-        let premier = l.get("dates").and_then(Value::as_array).and_then(|a| a.first()).map(|x| d(x.get("jour").unwrap_or(x)));
-        let jour = match premier {
-            Some(j) => j?,
-            None => premier_du_mois(mois)?,
+        let jour = match l.dates().first() {
+            Some(j) => j.lu()?,
+            None => Mois::lire(mois)?.premier_jour(),
         };
-        if let Some(t) = tarif_conventionnel(ctx, code, &jour)? {
-            l["taux"] = t;
+        if let Some(t) = tarif_conventionnel(ctx, l.rubrique(), &jour)? {
+            l.poser_taux(t)?;
             change = true;
         }
     }
-    if !change {
-        return Ok(None);
-    }
-    let mut e = e.clone();
-    e["lignes"] = Value::Array(neuves);
-    Ok(Some(e))
+    Ok(change.then_some(neuves))
 }
 
 /// Les engagements au cachet d'une saisie de mois, leurs lignes au tarif de la convention (`lignes_au_tarif`).
 #[cfg(feature = "ecran")]
-pub(crate) fn saisie_au_tarif(ctx: &Contexte, data: &mut Value) -> Resultat<()> {
-    let mois = data.get("mois").map_or(String::new(), en_texte);
-    let Some(Value::Array(tous)) = data.get_mut("engagements") else { return Ok(()) };
-    for e in tous.iter_mut() {
-        if nature_de(ctx, e)?.mensuelle() {
+pub(crate) fn saisie_au_tarif(ctx: &Contexte, data: &mut saisie::VueDuMois) -> Resultat<()> {
+    let mois = data.mois.to_string();
+    for e in data.engagements.iter_mut() {
+        if e.nature_lue()?.mensuelle() {
             continue;
         }
-        if let Some(neuf) = lignes_au_tarif(ctx, e, &mois)? {
-            *e = neuf;
+        if let Some(neuves) = lignes_au_tarif(ctx, e.lignes(), &mois)? {
+            e.lignes = Some(neuves);
         }
     }
     Ok(())
@@ -1282,20 +1199,12 @@ pub const NUITEE: &str = "nuitee";
 pub const NUITEE_AU_DELA: &str = "nuitee_au_dela";
 pub const REPAS: &str = "repas";
 pub const REPAS_AU_DELA: &str = "repas_au_dela";
-/// Les cases d'une ligne de frais : la compagnie garde le justificatif de la depense ; la nuit est a Paris ou en petite
-/// couronne ; le salarie est contraint de prendre son repas au restaurant.
-pub const JUSTIFICATIF: &str = "justificatif";
-pub const PARIS: &str = "paris";
-pub const RESTAURANT: &str = "restaurant";
-/// La marque, sur une ligne de frais calculee, des cases qui ont lieu d'etre (`cases` de l'apercu).
-pub const CASES: &str = "_cases";
-/// Le taux de la ligne avant que sa part au-dela de la limite s'en detache : celui que la saisie montre.
-pub const TAUX_SAISI: &str = "_taux_saisi";
+use ligne::CaseDeFrais::{Justificatif as JUSTIFICATIF, Loge as LOGE, Paris as PARIS, Restaurant as RESTAURANT};
+pub use ligne::CaseDeFrais;
 
-/// Le lieu d'une ligne de nuitee ou de repas (le choix « Lieu », sous « Avancé ») : absent, la metropole ; sinon un
-/// territoire de `frais_hors_metropole` du bareme (`dom`, `pacifique`, `monaco`), les Terres australes et antarctiques
-/// (`taaf`), ou un lieu a l'etranger, par son code de la table des missions (`droit::missions`).
-pub const TERRITOIRE: &str = "territoire";
+/// Le lieu d'une ligne de nuitee ou de repas (`LignePaie::territoire`, le choix « Lieu », sous « Avancé ») : absent, la
+/// metropole ; sinon un territoire de `frais_hors_metropole` du bareme (`dom`, `pacifique`, `monaco`), les Terres
+/// australes et antarctiques (`taaf`), ou un lieu a l'etranger, par son code de la table des missions (`droit::missions`).
 /// Les territoires hors metropole que le choix « Lieu » propose, avant les lieux a l'etranger : la cle du bareme
 /// (`frais_hors_metropole`), et ce que le choix dit.
 pub const TERRITOIRES: [(&str, &str); 4] = [
@@ -1304,34 +1213,37 @@ pub const TERRITOIRES: [(&str, &str); 4] = [
     ("taaf", "Outre-mer : Terres australes et antarctiques françaises"),
     ("monaco", "Monaco"),
 ];
-/// La case d'un repas a l'etranger un jour sans nuitee de l'engagement : la compagnie a paye l'hotel.
-pub const LOGE: &str = "loge";
-/// L'aide de chaque case d'une ligne de frais, les montants de son annee (`{case: aide}`, avec `CASES`).
-pub const AIDES: &str = "_aides";
-/// Le rang d'une ligne de frais parmi les lignes de la carte : les cases de l'ecran le lisent (`CASES`). Les lignes d'un
-/// contrat paye au mois suivent celles que le moteur compose.
-pub const RANG: &str = "_rang";
 
 /// Les deux limites d'une rubrique de frais au barème, et la case de la ligne qui choisit la plus haute.
 struct Limites {
     rubrique: &'static str,
     au_dela: &'static str,
     cle: &'static str,
-    case: &'static str,
-    haute: &'static str,
-    basse: &'static str,
-    /// La cle de `frais_hors_metropole` qui porte sa limite hors de la metropole.
-    hors_metropole: &'static str,
+    case: CaseDeFrais,
+    /// Les limites de la metropole au bareme (la haute, la basse).
+    metropole: fn(&droit::forme_bareme::Pile) -> Option<(Decimal, Decimal)>,
+    /// Sa limite hors de la metropole (`frais_hors_metropole`), et son nom.
+    hors_metropole: fn(&droit::forme_bareme::LogementEtRepas) -> Decimal,
+    nom_hors_metropole: &'static str,
 }
 
 const FRAIS_LIMITES: [Limites; 2] = [
-    Limites { rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS, haute: "paris", basse: "autres", hors_metropole: "logement" },
-    Limites { rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT, haute: "restaurant", basse: "hors_restaurant", hors_metropole: "repas" },
+    Limites {
+        rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS,
+        metropole: |b| b.logement_grand_deplacement.as_ref().map(|f| (f.paris, f.autres)),
+        hors_metropole: |z| z.logement, nom_hors_metropole: "logement",
+    },
+    Limites {
+        rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT,
+        metropole: |b| b.repas_deplacement.as_ref().map(|f| (f.restaurant, f.hors_restaurant)),
+        hors_metropole: |z| z.repas, nom_hors_metropole: "repas",
+    },
 ];
 
-/// Une ligne de cette rubrique se saisit-elle sur la carte d'un contrat paye au mois ? Ses repas et ses nuitees, aux
-/// memes limites que ceux de tout salarie ; le reste de sa paie se compose de ses faits.
-pub fn se_saisit_au_mois(code: &str) -> bool {
+/// Une limite d'exoneration (`FRAIS_LIMITES`) est-elle attachee a cette rubrique ? Seuls ses repas et ses nuitees disent
+/// un lieu et des cases, et se saisissent sur la carte d'un contrat paye au mois, aux memes limites que ceux de tout
+/// salarie (le reste de sa paie se compose de ses faits).
+pub fn a_une_limite(code: &str) -> bool {
     FRAIS_LIMITES.iter().any(|x| x.rubrique == code)
 }
 
@@ -1340,7 +1252,7 @@ pub fn se_saisit_au_mois(code: &str) -> bool {
 const REDUCTION_LOGE: Decimal = Decimal::from_parts(65, 0, 0, false, 2);
 
 /// L'aide d'une case, avec les limites de l'annee (`haute`, `basse`).
-fn aide_de_case(case: &str, rubrique: &str, limites: Option<(Decimal, Decimal)>) -> Option<String> {
+fn aide_de_case(case: CaseDeFrais, rubrique: &str, limites: Option<(Decimal, Decimal)>) -> Option<String> {
     let eur = socle::texte::euros;
     match (case, limites) {
         (PARIS, Some((h, b))) if rubrique == NUITEE => Some(format!("Paris ou petite couronne : la nuitée est exonérée jusqu'à {} au lieu de {}.", eur(h), eur(b))),
@@ -1355,15 +1267,11 @@ fn aide_de_case(case: &str, rubrique: &str, limites: Option<(Decimal, Decimal)>)
     }
 }
 
-/// Le jour d'une date de ligne (`"AAAA-MM-JJ"` ou `{"jour": …}`).
-fn jour_de(x: &Value) -> Resultat<Jour> {
-    d(x.get("jour").unwrap_or(x))
-}
 
 /// LES FRAIS DE DEPLACEMENT AU-DELA DE LEUR LIMITE. Au-dela, la fraction excedentaire entre dans l'assiette, sauf si
 /// l'employeur prouve qu'elle a ete utilisee conformement a son objet (BOSS § 270 ; § 1280) : une ligne soumise
 /// (`au_dela`), sauf quand la ligne dit que la compagnie garde le justificatif (`JUSTIFICATIF`). La ligne de frais garde
-/// la limite, hors assiette. Le lieu de la ligne (`TERRITOIRE`) dit la limite :
+/// la limite, hors assiette. Le lieu de la ligne (`LignePaie::territoire`) dit la limite :
 /// - EN METROPOLE (arrete du 4 septembre 2025,
 ///   `atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md`, montants revalorises chaque
 ///   1er janvier, art. 10 ; BOSS, Frais professionnels, `atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt` ;
@@ -1385,47 +1293,51 @@ fn jour_de(x: &Value) -> Resultat<Jour> {
 ///   profession (I, 2° et 5°, `atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt`
 ///   l. 8 et 11 ; bareme, `frais_hors_assiette`) le sont entiers : « en cas de déduction forfaitaire spécifique » (l. 5).
 ///   Tout autre salarie suit les limites.
-pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
-    let limites_de = |l: &Value| FRAIS_LIMITES.iter().find(|x| l.get("rubrique").and_then(Value::as_str) == Some(x.rubrique));
-    if !lignes.iter().any(|l| limites_de(l).is_some()) {
+pub(crate) fn frais_au_dela(ctx: &Contexte, salarie: Option<&IdSalarie>, lignes: Vec<LignePaie>, mois: &str, qui: &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>)> {
+    let limites_de = |l: &ligne::Frais| FRAIS_LIMITES.iter().find(|x| l.rubrique == x.rubrique);
+    if !lignes.iter().any(|l| l.frais().and_then(limites_de).is_some()) {
         return Ok((lignes, Vec::new()));
     }
-    let sal = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
-    let cochee = |l: &Value, k: &str| l.get(k).is_some_and(vrai);
-    let territoire = |l: &Value| l.get(TERRITOIRE).and_then(Value::as_str).filter(|t| !t.is_empty()).map(String::from);
-    let a_l_etranger = |l: &Value| territoire(l).is_some_and(|t| !TERRITOIRES.iter().any(|(k, _)| *k == t));
+    let sal = fiche_du_salarie(ctx, salarie.ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+    let cochee = |l: &ligne::Frais, k: CaseDeFrais| l.cochee(k);
+    let territoire = |l: &ligne::Frais| l.territoire.clone();
+    let a_l_etranger = |l: &ligne::Frais| l.territoire.as_deref().is_some_and(|t| !TERRITOIRES.iter().any(|(k, _)| *k == t));
     // Les nuits payees en nuitee : le salarie y est en grand deplacement.
     let mut nuits: Vec<Jour> = Vec::new();
-    for l in lignes.iter().filter(|l| l.get("rubrique").and_then(Value::as_str) == Some(NUITEE)) {
-        for x in l.get("dates").and_then(Value::as_array).into_iter().flatten() {
-            nuits.push(jour_de(x)?);
-        }
+    for l in lignes.iter().filter(|l| l.rubrique() == NUITEE) {
+        nuits.extend(l.jours()?);
     }
     let (mut out, mut au_dela, mut avis) = (Vec::new(), Vec::new(), Vec::new());
     // Les lignes a l'etranger se comptent ensemble, jour par jour, apres les autres : leur rang dans `out`.
     let mut etrangeres: Vec<usize> = Vec::new();
-    for (rang, mut l) in lignes.into_iter().enumerate() {
-        let Some(lim) = limites_de(&l) else {
-            out.push(l);
-            continue;
+    for (rang, l) in lignes.into_iter().enumerate() {
+        let (mut l, lim) = match l {
+            LignePaie::Frais(f) => match limites_de(&f) {
+                Some(lim) => (f, lim),
+                None => {
+                    out.push(LignePaie::Frais(f));
+                    continue;
+                }
+            },
+            autre => {
+                out.push(autre);
+                continue;
+            }
         };
-        l[RANG] = Value::from(rang);
-        let mut cases: Vec<&str> = Vec::new();
-        let taux = match l.get("taux") {
-            Some(t) if !t.is_null() && !t.as_str().is_some_and(|s| s.trim().is_empty()) => Some(dec(t)?),
-            _ => None,
-        };
-        let dates: Vec<Value> = l.get("dates").and_then(Value::as_array).cloned().unwrap_or_default();
+        l.marques.rang = Some(rang);
+        let mut cases: Vec<CaseDeFrais> = Vec::new();
+        let taux = l.taux;
+        let dates: Vec<DateDeLigne> = l.dates.clone();
         let jour = match dates.first() {
-            Some(x) => jour_de(x)?,
-            None => premier_du_mois(mois)?,
+            Some(x) => x.lu()?,
+            None => Mois::lire(mois)?.premier_jour(),
         };
         let bar = ctx.bareme(&jour)?;
-        let ent = ctx.entreprise_au(&jour)?;
+        let ent = ctx.entreprise_au(&jour);
         let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
         let ou = territoire(&l);
         // Les deux limites de la metropole, quand le bareme les porte : les cases et leurs aides les disent.
-        let metropole = bar.get(lim.cle).and_then(|x| Some((dec(x.get(lim.haute)?).ok()?, dec(x.get(lim.basse)?).ok()?)));
+        let metropole = (lim.metropole)(&bar);
         let mut part = None;
         if a_l_etranger(&l) && !de_l_annexe {
             etrangeres.push(out.len());
@@ -1447,7 +1359,7 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
                     let en_grand_deplacement = lim.rubrique == REPAS
                         && !dates.is_empty()
                         && dates.iter().try_fold(true, |tout, x| -> Resultat<bool> {
-                            let j = jour_de(x)?;
+                            let j = x.lu()?;
                             Ok(tout && (nuits.contains(&j) || nuits.contains(&j.plus_jours(-1)?)))
                         })?;
                     if taux > basse && !en_grand_deplacement {
@@ -1457,8 +1369,15 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
                 }
                 Some("taaf") => Decimal::ZERO,
                 Some(t) => {
-                    let cle = format!("frais_hors_metropole.{}.{}", t, lim.hors_metropole);
-                    bar.get("frais_hors_metropole").and_then(|x| x.get(t)).and_then(|x| x.get(lim.hors_metropole)).map(dec).transpose()?.ok_or_else(|| erreur_bareme(&cle))?
+                    let cle = format!("frais_hors_metropole.{}.{}", t, lim.nom_hors_metropole);
+                    let zones = bar.frais_hors_metropole.as_ref();
+                    let zone = match t {
+                        "dom" => zones.map(|z| &z.dom),
+                        "pacifique" => zones.map(|z| &z.pacifique),
+                        "monaco" => zones.map(|z| &z.monaco),
+                        _ => None,
+                    };
+                    zone.map(lim.hors_metropole).ok_or_else(|| erreur_bareme(&cle))?
                 }
             };
             if taux > limite {
@@ -1475,14 +1394,15 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
         }
         marquer_les_cases(&mut l, &cases, lim.rubrique, metropole);
         if let Some((taux, limite)) = part {
-            let mut p = Map::new();
-            p.insert("rubrique".into(), Value::String(lim.au_dela.into()));
-            p.insert("quantite".into(), l.get("quantite").cloned().unwrap_or(Value::Null));
-            p.insert("taux".into(), nombre_dec(taux - limite));
-            if !dates.is_empty() {
-                p.insert("dates".into(), Value::Array(dates));
-            }
-            au_dela.push(Value::Object(p));
+            let quantite = l.quantite.ok_or_else(|| socle::fichiers::absent("quantite"))?;
+            au_dela.push(LignePaie::Composee(ligne::Composee {
+                rubrique: lim.au_dela.into(),
+                quantite,
+                taux: (taux - limite).normalize(),
+                heures: None,
+                precision: None,
+                dates,
+            }));
             // LA LIGNE COUPEE SE DIT : la limite, ce qui entre dans le brut, et la case qui l'eviterait.
             let haute = metropole.map(|m| m.0);
             let (quoi, unite, case) = if lim.rubrique == NUITEE {
@@ -1503,10 +1423,10 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
                     case
                 ),
             });
-            l[TAUX_SAISI] = nombre_dec(taux);
-            l["taux"] = nombre_dec(limite);
+            l.marques.taux_saisi = Some(taux.normalize());
+            l.taux = Some(limite.normalize());
         }
-        out.push(l);
+        out.push(LignePaie::Frais(l));
     }
     let (parts, dits) = frais_a_l_etranger(&mut out, &etrangeres, &nuits, qui)?;
     avis.extend(dits);
@@ -1516,14 +1436,13 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
     Ok((out, avis))
 }
 
-/// Pose sur la ligne `l` les cases qui ont lieu d'etre (`CASES`) et leurs aides (`AIDES`).
-fn marquer_les_cases(l: &mut Value, cases: &[&str], rubrique: &str, metropole: Option<(Decimal, Decimal)>) {
+/// Pose sur la ligne `l` les cases qui ont lieu d'etre et leurs aides (`ligne::Marques`).
+fn marquer_les_cases(l: &mut ligne::Frais, cases: &[CaseDeFrais], rubrique: &str, metropole: Option<(Decimal, Decimal)>) {
     if cases.is_empty() {
         return;
     }
-    l[CASES] = Value::Array(cases.iter().map(|k| Value::String(k.to_string())).collect());
-    let aides: Map<String, Value> = cases.iter().filter_map(|k| aide_de_case(k, rubrique, metropole).map(|a| (k.to_string(), Value::String(a)))).collect();
-    l[AIDES] = Value::Object(aides);
+    l.marques.cases = cases.to_vec();
+    l.marques.aides = cases.iter().filter_map(|k| aide_de_case(*k, rubrique, metropole).map(|a| (*k, a))).collect();
 }
 
 /// LES LIGNES A L'ETRANGER (`etrangeres`, leurs rangs dans `lignes`), jour par jour : le montant du jour de chaque ligne
@@ -1532,15 +1451,19 @@ fn marquer_les_cases(l: &mut Value, cases: &[&str], rubrique: &str, metropole: O
 /// Ce qui depasse s'impute sur la nuitee du jour, puis sur les repas, hors des lignes au justificatif conserve : une
 /// part soumise par ecart d'un jour, et la ligne garde ce qui reste exonere sur toute sa quantite. Rend les parts
 /// soumises et les avis.
-fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour], qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
-    let cochee = |l: &Value, k: &str| l.get(k).is_some_and(vrai);
+fn frais_a_l_etranger(lignes: &mut [LignePaie], etrangeres: &[usize], nuits: &[Jour], qui: &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>)> {
+    let cochee = |l: &LignePaie, k: CaseDeFrais| l.cochee(k);
+    // Une ligne a l'etranger est une ligne de frais (`frais_au_dela`).
+    fn frais(l: &mut LignePaie) -> Resultat<&mut ligne::Frais> {
+        l.frais_mut().ok_or_else(|| "une ligne à l'étranger qui n'est pas une ligne de frais : le signaler au développeur".to_string())
+    }
     if etrangeres.is_empty() {
         return Ok((Vec::new(), Vec::new()));
     }
     // Pour chaque ligne : ses jours, et ce qu'elle paie un jour (taux x quantite d'un jour).
     struct Etrangere {
         rang: usize,
-        jours: Vec<(Jour, Value)>,
+        jours: Vec<(Jour, DateDeLigne)>,
         par_jour: Decimal,
         unites: Decimal,
         taux: Decimal,
@@ -1549,21 +1472,18 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
     let mut es: Vec<Etrangere> = Vec::new();
     for &i in etrangeres {
         let l = &lignes[i];
-        let taux = match l.get("taux") {
-            Some(t) if !t.is_null() && !t.as_str().is_some_and(|s| s.trim().is_empty()) => dec(t)?,
-            _ => continue,
-        };
-        let quantite = l.get("quantite").map(dec).transpose()?.unwrap_or(Decimal::ONE);
-        let dates: Vec<Value> = l.get("dates").and_then(Value::as_array).cloned().unwrap_or_default();
-        if dates.is_empty() {
+        let Some(taux) = l.taux() else { continue };
+        // La quantite d'une ligne saisie est dite (`lignes_dites`).
+        let quantite = l.quantite().ok_or_else(|| socle::fichiers::absent("quantite"))?;
+        if l.dates().is_empty() {
             return Err(format!("{} : une ligne de frais à l'étranger dit ses jours : l'indemnité de mission est celle d'un jour. Rien n'est calculé.", qui));
         }
         let mut jours = Vec::new();
-        for x in &dates {
-            jours.push((jour_de(x)?, x.clone()));
+        for x in l.dates() {
+            jours.push((x.lu()?, x.clone()));
         }
         let unites = quantite / Decimal::from(jours.len() as u64);
-        es.push(Etrangere { rang: i, jours, par_jour: taux * unites, unites, taux, nuitee: l.get("rubrique").and_then(Value::as_str) == Some(NUITEE) });
+        es.push(Etrangere { rang: i, jours, par_jour: taux * unites, unites, taux, nuitee: l.rubrique() == NUITEE });
     }
     // Les cases d'une ligne a l'etranger : le justificatif quand elle depasse, l'hotel paye d'un repas un jour sans nuitee.
     let mut tous_les_jours: Vec<Jour> = es.iter().flat_map(|e| e.jours.iter().map(|(j, _)| *j)).collect();
@@ -1575,8 +1495,9 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
     for j in &tous_les_jours {
         let du_jour: Vec<(usize, usize)> = es.iter().enumerate().filter_map(|(k, e)| e.jours.iter().position(|(x, _)| x == j).map(|p| (k, p))).collect();
         let nuitee = du_jour.iter().find(|(k, _)| es[*k].nuitee);
-        let lieu_de = |k: usize| lignes[es[k].rang].get(TERRITOIRE).and_then(Value::as_str).unwrap_or("").to_string();
-        let lieu = lieu_de(nuitee.or(du_jour.first()).map_or(0, |x| x.0));
+        // Une ligne a l'etranger dit son territoire (`a_l_etranger`) ; un jour de `tous_les_jours` a au moins une ligne.
+        let (k, _) = nuitee.or(du_jour.first()).ok_or("un jour à l'étranger sans ligne : le signaler au développeur")?;
+        let lieu = lignes[es[*k].rang].territoire_dit().map(String::from).ok_or_else(|| socle::fichiers::absent("territoire"))?;
         let indemnite = droit::missions::du_jour(&lieu, j).map_err(|m| format!("{} : {}", qui, m))?;
         socle::fichiers::noter_valeur(&format!("mission {} {}", lieu, j.iso()), indemnite.empreinte());
         let loge = nuitee.is_none() && !nuits.contains(j) && du_jour.iter().any(|(k, _)| cochee(&lignes[es[*k].rang], LOGE));
@@ -1593,13 +1514,18 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
             ecarts[k][p] = pris;
             reste -= pris;
         }
-        limites_du_jour.push((*j, limite, droit::missions::nom(&lieu)?.unwrap_or(lieu)));
+        // Le lieu se dit par son nom quand la table des lieux le nomme (`droit::missions::lieux`), sinon par son code.
+        let dit = match droit::missions::nom(&lieu)? {
+            Some(nom) => nom,
+            None => lieu,
+        };
+        limites_du_jour.push((*j, limite, dit));
     }
     let (mut parts, mut avis) = (Vec::new(), Vec::new());
     for (k, e) in es.iter().enumerate() {
         let rubrique = if e.nuitee { NUITEE } else { REPAS };
         let au_dela = if e.nuitee { NUITEE_AU_DELA } else { REPAS_AU_DELA };
-        let mut cases: Vec<&str> = Vec::new();
+        let mut cases: Vec<CaseDeFrais> = Vec::new();
         // Le justificatif, sur la ligne qui porte un ecart (ou qui l'a deja coche).
         let depasse_un_jour = ecarts[k].iter().any(|x| *x > Decimal::ZERO);
         if !e.nuitee && e.jours.iter().any(|(j, _)| !nuits.contains(j)) || cochee(&lignes[e.rang], LOGE) {
@@ -1608,10 +1534,10 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
         if depasse_un_jour || cochee(&lignes[e.rang], JUSTIFICATIF) {
             cases.push(JUSTIFICATIF);
         }
-        marquer_les_cases(&mut lignes[e.rang], &cases, rubrique, None);
+        marquer_les_cases(frais(&mut lignes[e.rang])?, &cases, rubrique, None);
         // Les jours groupes par ecart : une part soumise par groupe ; la ligne garde ce qui reste exonere, sur toute sa
         // quantite.
-        let mut groupes: Vec<(Decimal, Vec<Value>)> = Vec::new();
+        let mut groupes: Vec<(Decimal, Vec<DateDeLigne>)> = Vec::new();
         for ((_, x), ecart) in e.jours.iter().zip(&ecarts[k]) {
             match groupes.iter_mut().find(|(g, _)| g == ecart) {
                 Some((_, v)) => v.push(x.clone()),
@@ -1621,19 +1547,21 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
         let soumis: Decimal = ecarts[k].iter().sum();
         if soumis > Decimal::ZERO {
             let quantite_ligne = e.unites * Decimal::from(e.jours.len() as u64);
-            let l = &mut lignes[e.rang];
-            l[TAUX_SAISI] = nombre_dec(e.taux);
-            l["taux"] = nombre_dec(e.taux - soumis / quantite_ligne);
+            let l = frais(&mut lignes[e.rang])?;
+            l.marques.taux_saisi = Some(e.taux.normalize());
+            l.taux = Some((e.taux - soumis / quantite_ligne).normalize());
         }
         for (ecart, dates) in groupes.into_iter().filter(|(g, _)| *g > Decimal::ZERO) {
             let quantite = e.unites * Decimal::from(dates.len() as u64);
-            let mut p = Map::new();
-            p.insert("rubrique".into(), Value::String(au_dela.into()));
-            p.insert("quantite".into(), nombre_dec(quantite));
-            p.insert("taux".into(), nombre_dec(ecart / e.unites));
-            p.insert("dates".into(), Value::Array(dates.clone()));
-            parts.push(Value::Object(p));
-            let premier = dates.first().map(jour_de).transpose()?;
+            let premier = dates.first().map(DateDeLigne::lu).transpose()?;
+            parts.push(LignePaie::Composee(ligne::Composee {
+                rubrique: au_dela.into(),
+                quantite: quantite.normalize(),
+                taux: (ecart / e.unites).normalize(),
+                heures: None,
+                precision: None,
+                dates,
+            }));
             if let Some((j0, lim, lieu)) = limites_du_jour.iter().find(|(j, _, _)| Some(*j) == premier) {
                 avis.push(Avis {
                     info: true,
@@ -1652,20 +1580,15 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
     Ok((parts, avis))
 }
 
-/// Un montant en nombre JSON.
-fn nombre_dec(x: Decimal) -> Value {
-    serde_json::from_str(&x.normalize().to_string()).unwrap_or(Value::Null)
-}
-
 /// LES LIGNES DE LA CARTE D'UN CONTRAT PAYE AU MOIS : ses repas et ses nuitees (`FRAIS_LIMITES`). Le reste de sa paie se
 /// compose de ses faits (`conges::lignes_du_mois`) : une autre ligne se refuse.
-fn frais_d_un_mois_paye(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
-    for (i, l) in e.get("lignes").and_then(Value::as_array).into_iter().flatten().enumerate() {
-        let code = l.get("rubrique").map(|c| c.as_str().map_or_else(|| en_texte(c), String::from)).unwrap_or_default();
-        if se_saisit_au_mois(&code) {
+fn frais_d_un_mois_paye(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<()> {
+    for (i, l) in lignes.iter().enumerate() {
+        let code = l.rubrique();
+        if a_une_limite(code) {
             continue;
         }
-        let libelle = rubrique(&ctx.racine, &code, &ctx.lue_au).map(|r| r.libelle).unwrap_or(code);
+        let libelle = rubrique(&ctx.racine, code, &ctx.lue_au)?.libelle;
         return Err(format!(
             "{} : retirez sa ligne {} (« {} ») : un contrat payé au mois ne porte en ligne qu'un repas ou une nuitée ; son \
              salaire, ses congés et ses primes se disent dans ses cases.",
@@ -1685,54 +1608,56 @@ fn frais_d_un_mois_paye(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
 /// quantite positive : c'est sa rubrique qui retire). L'une et l'autre se refusent, en disant la ligne. Seule une ligne
 /// qui ne porte que des jours a venir (`planning`, sans jour de ce mois) a une quantite nulle : elle ne paie rien ce
 /// mois-ci.
-fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
-    let vide = |v: Option<&Value>| matches!(v, None | Some(Value::Null)) || v.and_then(Value::as_str).is_some_and(|s| s.trim().is_empty());
-    for (i, l) in e.get("lignes").and_then(Value::as_array).into_iter().flatten().enumerate() {
-        let Some(code) = l.get("rubrique") else { continue };
-        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
-        let pourcentage = r.saisie.iter().any(|s| s == "taux_majoration");
-        let (quantite, taux) = if pourcentage { ("base", "taux_majoration") } else { ("quantite", "taux") };
+fn lignes_dites(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<()> {
+    for (i, l) in lignes.iter().enumerate() {
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         let ligne = format!("sa ligne {} (« {} »)", i + 1, r.libelle);
-        // UNE LIGNE QUE LE MOTEUR POSE (`saisie` vide : la part d'une nuitée au-delà de la limite) ne se saisit pas.
-        if r.saisie.is_empty() {
-            return Err(format!("{} : {} ne se saisit pas : le moteur la pose lui-même. Retirez-la.", qui, ligne));
-        }
-        if vide(l.get(quantite)) {
-            let quoi = if pourcentage { "la base" } else { "la quantité" };
-            return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
-        }
-        let n = flottant_opt(l.get(quantite)).ok().flatten();
-        let a_venir_seulement = l.get("dates").and_then(Value::as_array).is_none_or(Vec::is_empty)
-            && l.get("planning").and_then(Value::as_array).is_some_and(|p| !p.is_empty());
-        if n.is_some_and(|n| n < 0.0 || (n == 0.0 && !a_venir_seulement)) {
-            let quoi = if pourcentage { "la base" } else { "la quantité" };
-            // La ligne dit ses jours et le mois ou elle se saisit : la ligne d'un mois suivant d'un contrat a cheval
-            // (`stock::Objet::vue`) porte les jours de son planning, et ses heures se disent sur la carte de ce mois.
-            let jours: Vec<Jour> = l.get("dates").and_then(Value::as_array).into_iter().flatten().filter_map(|x| d(x.get("jour").unwrap_or(x)).ok()).collect();
-            let (ou, carte) = match jours.first() {
-                Some(j) => (
-                    format!(", {} {}", if jours.len() > 1 { "les" } else { "le" }, jours.iter().map(Jour::jj_mm_aaaa).collect::<Vec<_>>().join(", ")),
-                    format!(" sur sa carte {}", socle::texte::de(&libelle_mois(&j.mois_iso()))),
-                ),
-                None => (String::new(), String::new()),
+        // Ce que la ligne dit qu'elle paie (une quantite, une base, ou rien a compter : un montant), et son prix.
+        let (quantite, taux, quoi, prix) = match l {
+            LignePaie::Unites(x) => (Some(x.quantite), x.taux, "la quantité", "le montant"),
+            LignePaie::UnitesEtHeures(x) => (Some(x.quantite), x.taux, "la quantité", "le montant"),
+            LignePaie::Frais(x) => (Some(x.quantite), x.taux, "la quantité", "le montant"),
+            LignePaie::Pourcentage(x) => (Some(x.base), x.taux_majoration, "la base", "le pourcentage"),
+            LignePaie::Montant(x) => (None, x.montant, "", "le montant"),
+            LignePaie::AvantageEnNature(x) => (None, x.montant, "", "le montant"),
+            // UNE LIGNE QUE LE MOTEUR POSE ne se saisit pas.
+            LignePaie::Composee(_) | LignePaie::RetenueArret(_) | LignePaie::IndemniteJournaliere(_) | LignePaie::Maintien(_) | LignePaie::Importee(_) => {
+                return Err(format!("{} : {} ne se saisit pas : le moteur la pose lui-même. Retirez-la.", qui, ligne));
+            }
+        };
+        if let Some(quantite) = quantite {
+            let Some(dite) = quantite else {
+                return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
             };
-            return Err(format!(
-                "{} : {} de {}{} est {}{}{}, ou retirez la ligne (×).",
-                qui,
-                quoi,
-                ligne.trim_end_matches(')'),
-                if ou.is_empty() { ")".to_string() } else { format!("{})", ou) },
-                en_texte(l.get(quantite).unwrap_or(&Value::Null)),
-                QUANTITE_SANS_COMPTE,
-                carte
-            ));
+            let a_venir_seulement = l.dates().is_empty() && !l.planning().is_empty();
+            if dite < Decimal::ZERO || (dite.is_zero() && !a_venir_seulement) {
+                // La ligne dit ses jours et le mois ou elle se saisit : la ligne d'un mois suivant d'un contrat a cheval
+                // (`stock::Objet::vue`) porte les jours de son planning, et ses heures se disent sur la carte de ce mois.
+                let jours: Vec<Jour> = l.jours()?;
+                let (ou, carte) = match jours.first() {
+                    Some(j) => (
+                        format!(", {} {}", if jours.len() > 1 { "les" } else { "le" }, jours.iter().map(Jour::jj_mm_aaaa).collect::<Vec<_>>().join(", ")),
+                        format!(" sur sa carte {}", socle::texte::de(&j.mois_civil().libelle(socle::mois::Graphie::Accentuee))),
+                    ),
+                    None => (String::new(), String::new()),
+                };
+                return Err(format!(
+                    "{} : {} de {}{} est {}{}{}, ou retirez la ligne (×).",
+                    qui,
+                    quoi,
+                    ligne.trim_end_matches(')'),
+                    if ou.is_empty() { ")".to_string() } else { format!("{})", ou) },
+                    dite,
+                    QUANTITE_SANS_COMPTE,
+                    carte
+                ));
+            }
         }
-        if vide(l.get(taux)) {
-            let quoi = if pourcentage { "le pourcentage" } else { "le montant" };
-            return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
+        if taux.is_none() {
+            return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, prix, ligne));
         }
     }
-    match duree::plus_d_une_journee(ctx, e, qui)? {
+    match duree::plus_d_une_journee(ctx, lignes, qui)? {
         Some(refus) => Err(refus),
         None => Ok(()),
     }
@@ -1740,8 +1665,7 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
 
 /// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ? Sa premiere ligne le dit.
 pub fn saisie_incomplete(message: &str) -> bool {
-    let tete = message.lines().next().unwrap_or("");
-    SAISIE_INCOMPLETE.iter().any(|p| tete.contains(p))
+    message.lines().next().is_some_and(|tete| SAISIE_INCOMPLETE.iter().any(|p| tete.contains(p)))
 }
 
 /// REGLE 1 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
@@ -1751,13 +1675,12 @@ pub fn saisie_incomplete(message: &str) -> bool {
 /// de quantite nulle ne paie rien et ne compte rien : elle n'a pas d'heures a dire.
 fn heures_dites(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
     for (i, l) in eng.lignes.iter().enumerate() {
-        let Some(code) = l.get("rubrique") else { continue };
-        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         if !r.heures_a_saisir() {
             continue;
         }
-        let quantite = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
-        if quantite == 0.0 || flottant_opt(l.get("heures"))?.map_or(false, |h| h != 0.0) {
+        let quantite = l.quantite().ok_or_else(|| socle::fichiers::absent("quantite"))?;
+        if quantite.is_zero() || l.heures().is_some_and(|h| !h.is_zero()) {
             continue;
         }
         return Err(format!(
@@ -1776,18 +1699,17 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
 
 /// Une ligne dont la rubrique est reservee a un statut (`Rubrique::reservee_au_statut` : le service et le cachet, unites
 /// de paie des seuls artistes) ne paie qu'un salarie de ce statut, lu comme la paie le lit
-/// (`calcul::fiche_de_l_engagement` ; vide, un artiste). Sinon l'engagement se refuse, en disant comment le payer.
+/// (`calcul::fiche_de_l_engagement`, `calcul::statut_de`). Sinon l'engagement se refuse, en disant comment le payer.
 fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
-    let mut statut: Option<String> = None;
+    let mut statut: Option<&str> = None;
     for (i, l) in eng.lignes.iter().enumerate() {
-        let Some(code) = l.get("rubrique") else { continue };
-        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         let Some(voulu) = r.reservee_au_statut() else { continue };
         if statut.is_none() {
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
-            statut = Some(fiche.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into()));
+            statut = Some(crate::calcul::statut_de(&fiche)?);
         }
-        if statut.as_deref() != Some(voulu) {
+        if statut != Some(voulu) {
             // Les heures d'un service se lisent sur lui ; celles d'un cachet sont celles du travail fait.
             let combien = if r.unite == "service" { " (4 pour un service de 4 heures)" } else { "" };
             return Err(format!(
@@ -1805,60 +1727,52 @@ fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()>
     Ok(())
 }
 
-/// "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).
-fn sexe(fiche: &Value) -> String {
-    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-    let nir = texte("nir");
-    let nir = nir.trim();
+/// "1", "2", ou `None` si la fiche ne le dit pas (le NIR d'abord).
+fn sexe(fiche: &droit::fiche::ChampsSalarie) -> Option<String> {
+    let nir = fiche.nir.texte().trim();
     if nir.starts_with('1') || nir.starts_with('2') {
-        return nir[..1].to_string();
+        return Some(nir[..1].to_string());
     }
-    let v = texte("sexe");
-    let v = v.trim();
-    if v == "1" || v == "2" {
-        v.to_string()
-    } else {
-        String::new()
-    }
+    fiche.sexe.dite().map(|s| s.as_str().to_string())
 }
 
 // ------------------------------------------- le contrat qui deborde du mois
 
-/// `libelle_mois` : '2026-12' -> 'décembre 2026', le mois en toutes lettres, avec ses accents, des phrases et des documents
-/// qui l'appellent. Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
-/// s'ecrit tel quel (« 2026-00 »), jamais sous le nom de janvier.
-pub fn libelle_mois(mois: &str) -> String {
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
+/// Le debut de l'engagement ecrit `e`, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour
+/// joue (`Carte::debut_lu`).
+pub fn debut_brut(e: &stock::Ecrit) -> String {
+    e.saisie.carte.debut_lu()
 }
 
-/// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
-/// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
-pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
-    let nom = e.get("salarie").and_then(Value::as_str)?;
-    ctx.cle_du_salarie(nom).ok()
-}
-/// Le debut d'un engagement brut, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour joue.
-pub fn debut_brut(racine: &Path, e: &Value) -> String {
-    let cle = |j: &Value| match j {
-        Value::Object(m) => m.get("jour").map_or(String::new(), en_texte),
-        autre => en_texte(autre),
-    };
-    if truthy(e.get("debut")) {
-        return en_texte(e.get("debut").unwrap());
+/// Le debut dit, sinon le premier jour joue des lignes ; vide quand ni l'un ni l'autre n'est dit (une carte neuve).
+pub(crate) fn debut_de(dit: Option<String>, lignes: &[LignePaie]) -> String {
+    if let Some(d) = dit.filter(|d| !d.is_empty()) {
+        return d;
     }
-    let mut jours: Vec<String> = dates_engagement(racine, e).iter().map(cle).collect();
-    jours.sort();
-    jours.into_iter().next().unwrap_or_default()
+    jours_des_lignes(lignes, false).iter().map(|j| j.jour().to_string()).min().into_iter().collect()
+}
+
+/// LA FICHE DU SALARIE de cle `cle`, par sa cle exacte : celle que la carte et l'engagement portent. Le calcul ne cherche
+/// jamais un salarie par un nom (c'est l'affaire des portes : `Contexte::cle_du_salarie`) ; une cle sans fiche se refuse
+/// en la nommant.
+pub(crate) fn fiche_du_salarie(ctx: &Contexte, cle: &IdSalarie) -> Resultat<droit::fiche::FicheSalarie> {
+    ctx.salaries.get(cle).cloned().ok_or_else(|| format!("Salarie inconnu : {}.", socle::fichiers::repr(cle)))
+}
+
+/// LA FICHE DU SPECTACLE de cle `cle`, par sa cle exacte (`fiche_du_salarie`) ; une cle sans fiche se refuse en la nommant.
+pub(crate) fn fiche_du_spectacle(ctx: &Contexte, cle: &IdSpectacle) -> Resultat<droit::fiche::Spectacle> {
+    let champs = ctx.spectacles.get(cle).ok_or_else(|| format!("Spectacle inconnu : {}.", socle::fichiers::repr(cle)))?;
+    Ok(droit::fiche::Spectacle { cle: cle.clone(), champs: champs.clone() })
 }
 
 /// Le salarie d'une fiche, tel que l'ecran le nomme (`socle::texte::salarie_nomme`).
-fn qui_de(fiche: &Value) -> Resultat<String> {
-    socle::texte::salarie_nomme(fiche).ok_or_else(|| socle::fichiers::absent("nom"))
+pub(crate) fn qui_de(fiche: &droit::fiche::ChampsSalarie) -> Resultat<String> {
+    fiche.nomme().ok_or_else(|| socle::fichiers::absent("nom"))
 }
 
 /// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.
 fn numero_dit(eng: &Engagement) -> String {
-    eng.numero.as_deref().filter(|n| !n.is_empty()).map_or_else(String::new, |n| format!(" (n° {})", n))
+    eng.numero.iter().map(|n| format!(" (n° {})", n)).collect()
 }
 
 /// LE CONTRAT DE CET ENGAGEMENT SE FAIT-IL SIGNER PAR LE LOGICIEL ? Oui quand sa nature a un contrat ecrit (`contrat_ecrit`
@@ -1875,22 +1789,22 @@ pub fn contrat_a_signer(racine: &Path, eng: &Engagement) -> Resultat<bool> {
 /// document indiquant ces modifications », `atelier/reference/sources/code-du-travail/xml/R1221-40.xml`), qui ne connait
 /// pas son texte et dit en clair ce qui change (`documents::avenant::changements_en_clair`).
 pub fn signe_ailleurs(racine: &Path, eng: &Engagement) -> Resultat<bool> {
-    signe_ailleurs_de(racine, &*eng.nat()?, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or(""), &eng.mois)
+    signe_ailleurs_de(racine, &*eng.nat()?, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref(), &eng.mois)
 }
 
 /// `signe_ailleurs`, de ce que l'engagement dit : sa nature, son salarie, son debut, son numero, et le mois d'ou on le
 /// regarde.
-pub fn signe_ailleurs_de(racine: &Path, nat: &Nature, salarie: &str, debut: &str, numero: &str, mois: &str) -> Resultat<bool> {
+pub fn signe_ailleurs_de(racine: &Path, nat: &Nature, salarie: &str, debut: &str, numero: Option<&str>, mois: &str) -> Resultat<bool> {
     if nat.modele_contrat().is_none() {
         return Ok(false);
     }
-    Ok(stock::commence_avant_le_logiciel(racine, debut, mois)? || importe::vient_d_un_ancien_logiciel(racine, salarie, debut, numero))
+    Ok(stock::commence_avant_le_logiciel(racine, debut, mois)? || importe::vient_d_un_ancien_logiciel(racine, salarie, debut, numero)?)
 }
 
 /// Un contrat permanent court d'un bout a l'autre, son numero est celui de l'engagement, et le dernier mois le dit.
 fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>> {
     let mut avis = Vec::new();
-    let fiche = ctx.salarie(&eng.salarie)?;
+    let fiche = fiche_du_salarie(ctx, &eng.salarie)?;
     let qui = qui_de(&fiche)?;
     let libelle = eng.nat()?.libelle.clone();
     if eng.dernier_mois()? {
@@ -1923,7 +1837,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
     if !eng.a_cheval()? {
         return Ok(avis);
     }
-    let fiche = ctx.salarie(&eng.salarie)?;
+    let fiche = fiche_du_salarie(ctx, &eng.salarie)?;
     let qui = qui_de(&fiche)?;
     let fin = eng.fin.ok_or("contrat a cheval sans fin")?;
     let bornes = format!("du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa());
@@ -1936,7 +1850,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
                  la DPAE sont faits avec son premier mois, ce mois-ci n'a que son bulletin.",
                 qui,
                 bornes,
-                libelle_mois(&mois_du_contrat[0]),
+                Mois::en_clair(&mois_du_contrat[0]),
                 numero_dit(eng)
             ),
         });
@@ -1962,8 +1876,8 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
                  entier.{}",
                 qui,
                 bornes,
-                libelle_mois(suivant),
-                libelle_mois(suivant),
+                Mois::en_clair(suivant),
+                Mois::en_clair(suivant),
                 fin_de_phrase
             ),
         });
@@ -1980,7 +1894,7 @@ pub struct Saisie {
 }
 
 /// La saisie de `mois` telle que l'ecran la montre (`stock::vue_du_mois`) ; refus quand aucun engagement ne le touche.
-pub fn vue_requise(racine: &Path, mois: &str) -> Resultat<Value> {
+pub fn vue_requise(racine: &Path, mois: &str) -> Resultat<saisie::VueDuMois> {
     stock::vue_du_mois(racine, mois)?.ok_or_else(|| socle::echec::cle(format!("Aucun engagement ne touche le mois {}.", mois), stock::DOSSIER))
 }
 
@@ -1991,8 +1905,8 @@ pub fn vue_requise(racine: &Path, mois: &str) -> Resultat<Value> {
 fn un_numero_un_salarie(paies: &[crate::calcul::Paie], mois: &str) -> Resultat<()> {
     let mut vus: BTreeMap<String, String> = BTreeMap::new();
     for p in paies {
-        let Some(n) = p.engagement.numero.as_deref().filter(|n| !n.is_empty()) else { continue };
-        let cle = p.salarie.get("_cle").map(en_texte).unwrap_or_default();
+        let Some(n) = p.engagement.numero.as_deref() else { continue };
+        let cle = p.salarie.id.to_string();
         match vus.get(n) {
             Some(autre) if *autre != cle => {
                 return Err(format!(
@@ -2013,16 +1927,16 @@ fn un_numero_un_salarie(paies: &[crate::calcul::Paie], mois: &str) -> Resultat<(
 
 /// Les engagements de la saisie `data` lus et ses paies calculees, sans numeroter les contrats ; les minima et le SMIC
 /// y portent leurs avertissements. La validation (`etats`) et l'ecran (`pour_l_ecran`) passent par lui.
-pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
+pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resultat<Saisie> {
     // Une derivation pour tout le mois : le brut d'un mois anterieur se
     // recalcule une fois, pas une fois par salarie (meme resultat).
     let _derivation = crate::conges::Derivation::ouvrir();
     // Un engagement en saisie se calcule comme sa validation le calculera : ses propres mois d'avant comptent.
-    let mois_vu = data.get("mois").map(en_texte).unwrap_or_default();
-    let _comme_a_la_validation = crate::etats::CommeALaValidation::ouvrir(ctx, &mois_vu);
+    let mois_vu = data.mois.to_string();
+    let _comme_a_la_validation = crate::etats::CommeALaValidation::ouvrir(ctx, &mois_vu)?;
     let lignes: LignesPermanent = &crate::conges::lignes_du_mois;
     let (engs, dits) = engagements(ctx, data, lignes)?;
-    let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
+    let mois = mois_vu.clone();
     let mut paies = Vec::new();
     for e in &engs {
         let p = crate::calcul::calculer_apres(ctx, e, &paies)?;
@@ -2046,19 +1960,27 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
         p.ecrire().avertissements.extend(avis);
     }
     // La case cadre decochee sur un metier habituellement cadre : on le dit.
-    let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| socle::fichiers::absent("engagements"))?;
+    let tous = &data.engagements;
     for (p, e) in paies.iter_mut().zip(tous) {
-        let metier = e.get("metier").filter(|m| vrai(m)).map(en_texte).unwrap_or_default();
-        let m = emplois::metier(&metier)?.unwrap_or(Value::Null);
-        if e.get("cadre") == Some(&Value::Bool(false)) && m.get("cadre_par_defaut").map_or(false, vrai) {
-            let texte = |c: &str| p.salarie.get(c).filter(|x| vrai(x)).map(en_texte);
-            let libelle = m.get("libelle").filter(|x| vrai(x)).map(en_texte).unwrap_or_else(|| metier.clone());
+        let m = match &e.metier {
+            Some(metier) => emplois::metier(metier)?.map(|m| (metier, m)),
+            None => None,
+        };
+        if let Some((metier, m)) = m.filter(|(_, m)| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.texte()) == Some(true)) {
+            fn texte<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
+                c.remplie().map(str::to_string)
+            }
+            // Le metier se nomme par son libelle, ou par son code quand il n'en a pas.
+            let libelle = match Some(m.libelle()).filter(|l| !l.is_empty()) {
+                Some(l) => l,
+                None => metier.clone(),
+            };
             let msg = format!(
                 "{} {}, {} : case cadre decochee, alors que ce metier est \
                  habituellement cadre. Si c'est voulu, rien a faire ; sinon, \
                  la cocher -- la retraite complementaire en depend.",
-                texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?,
-                texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?,
+                texte(&p.salarie.nom).ok_or_else(|| socle::fichiers::absent("nom"))?,
+                texte(&p.salarie.prenom_affichage).or_else(|| texte(&p.salarie.prenom)).ok_or_else(|| socle::fichiers::absent("prenom"))?,
                 libelle
             );
             p.ecrire().avertissements.push(Avis { info: false, texte: msg });
@@ -2076,7 +1998,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
             p.ecrire().avertissements.push(Avis { info: true, texte });
         }
         // Une journee au-dela de la duree quotidienne maximale : on le dit, l'employeur en repond.
-        if let Some(texte) = duree::au_dela_du_maximum(ctx, e, &qui_de(&p.salarie)?)? {
+        if let Some(texte) = duree::au_dela_du_maximum(ctx, e.lignes(), &qui_de(&p.salarie)?)? {
             p.ecrire().avertissements.push(Avis { info: false, texte });
         }
     }
@@ -2096,7 +2018,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
 /// prelevement a la source (`etats::prelevement`). Rien ne s'ecrit et rien ne part d'elles : un document ne lit que les
 /// paies ecrites d'un engagement valide (`etats`), sauf le bulletin modele de l'ecran, qui imprime celles-ci.
 #[cfg(feature = "ecran")]
-pub fn pour_l_ecran(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
+pub fn pour_l_ecran(ctx: &Contexte, data: &saisie::VueDuMois) -> Resultat<Saisie> {
     let mut s = charger_donnees(ctx, data)?;
     for p in s.paies.iter_mut() {
         let pas = etats::prelevement(ctx, p)?;
@@ -2107,14 +2029,14 @@ pub fn pour_l_ecran(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
 
 /// Les engagements de la saisie `data`, lus tels que l'ecran les montre (les lignes d'un permanent deduites de ses
 /// conges et de sa fin de contrat), sans paie.
-pub fn engagements_de_la_saisie(ctx: &Contexte, data: &Value) -> Resultat<Vec<Engagement>> {
+pub fn engagements_de_la_saisie(ctx: &Contexte, data: &saisie::VueDuMois) -> Resultat<Vec<Engagement>> {
     let _derivation = conges::Derivation::ouvrir();
     Ok(engagements(ctx, data, &conges::lignes_du_mois)?.0)
 }
 
 /// Le refus que donne la lecture de la saisie `data` quand elle est encore incomplete (`saisie_incomplete`), lignes
 /// d'un permanent mises a part ; `None` si elle se lit, ou si elle refuse pour une autre raison.
-pub fn refus_de_saisie_incomplete(ctx: &Contexte, data: &Value) -> Option<String> {
+pub fn refus_de_saisie_incomplete(ctx: &Contexte, data: &saisie::VueDuMois) -> Option<String> {
     let vide: LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new(), None));
     match engagements(ctx, data, vide) {
         Err(m) if saisie_incomplete(&m) => Some(m),
@@ -2128,9 +2050,9 @@ pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
     let nat = eng.nat()?;
     let sal = calcul::fiche_de_l_engagement(ctx, eng)?;
     let spec = if nat.mensuelle() {
-        Value::Null
+        None
     } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
+        Some(fiche_du_spectacle(ctx, eng.spectacle.as_ref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     let zero = Decimal::new(0, 2);
     let tp = calcul::plafond_temps_partiel(&ctx.entreprise, eng, &sal)?;
@@ -2142,7 +2064,7 @@ pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
 /// numero de son premier mois) ; et les lignes de remuneration de chaque engagement paye au cachet telles que le calcul
 /// les comprend (elles ne dependent que de l'engagement). Rien ne se calcule au-dela.
 #[cfg(feature = "ecran")]
-pub fn lue_sans_paie(ctx: &Contexte, data: &Value) -> Resultat<Vec<calcul::Paie>> {
+pub fn lue_sans_paie(ctx: &Contexte, data: &saisie::VueDuMois) -> Resultat<Vec<calcul::Paie>> {
     let mut paies = Vec::new();
     for e in &engagements_de_la_saisie(ctx, data)? {
         paies.push(embauche(ctx, e)?);
@@ -2160,6 +2082,38 @@ pub fn lue_sans_paie(ctx: &Contexte, data: &Value) -> Resultat<Vec<calcul::Paie>
 /// Le preavis de l'engagement `e` (sa saisie), pour une anciennete et un motif de rupture : la loi (L1234-1) et la
 /// convention, et laquelle s'applique (`solde::duree_du_preavis`).
 #[cfg(feature = "ecran")]
-pub fn preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<solde::Preavis> {
+pub fn preavis(ctx: &Contexte, e: &saisie::Carte, anciennete: Decimal, motif: Option<&str>) -> Resultat<solde::Preavis> {
     solde::duree_du_preavis(ctx, e, anciennete, motif)
+}
+
+/// LES LIGNES `presentes` SONT-ELLES CELLES DE `partie` ARRETEES A LA `fin` (AAAA-MM-JJ) d'un contrat rompu
+/// (`etats::seule_la_rupture`) : une ligne garde ses jours jusqu'a la fin, celle qui n'en a plus disparait, et la quantite
+/// d'une ligne coupee ne croit pas.
+pub(crate) fn lignes_coupees_a_la_fin(partie: &[LignePaie], presentes: &[LignePaie], fin: &str) -> bool {
+    let mut attendues: Vec<(LignePaie, bool)> = Vec::new();
+    for l in partie {
+        let gardes: Vec<DateDeLigne> = l.dates().iter().filter(|j| j.jour() <= fin).cloned().collect();
+        if !l.dates().is_empty() && gardes.is_empty() {
+            continue;
+        }
+        let coupee = gardes.len() != l.dates().len();
+        attendues.push((l.avec_les_jours(gardes, l.planning().to_vec()), coupee));
+    }
+    presentes.len() == attendues.len()
+        && presentes.iter().zip(&attendues).all(|(p, (a, coupee))| if *coupee { p.sans_quantite() == a.sans_quantite() && p.quantite() <= a.quantite() } else { p == a })
+}
+
+/// CE QU'UN REFUS DU CALCUL PORTE A PART (`socle::echec::avec`) : le champ a dire, quand il y en a un, et le detail, pour
+/// le developpeur.
+#[derive(serde::Serialize)]
+pub(crate) struct Detail {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cle: Option<&'static str>,
+    detail: String,
+}
+
+impl Detail {
+    pub(crate) fn du(cle: Option<&'static str>, detail: String) -> Detail {
+        Detail { cle, detail }
+    }
 }

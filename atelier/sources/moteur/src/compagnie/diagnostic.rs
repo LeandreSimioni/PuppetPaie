@@ -227,20 +227,10 @@ fn signature(p: &Path) -> Option<(SystemTime, u64)> {
     Some((m.modified().ok()?, m.len()))
 }
 
-fn lire_json(p: &Path) -> Option<Value> {
-    serde_json::from_slice(&std::fs::read(p).ok()?).ok()
-}
-
 /// Le numero d'un salarie : son `code_salarie` (celui des bulletins), sinon son rang dans les fiches.
 /// La fiche datee, chaque champ a sa derniere valeur.
-fn derniere_valeur(datee: &Value) -> Value {
-    let mut out = serde_json::Map::new();
-    for (k, v) in datee.as_object().into_iter().flatten() {
-        if let Some(x) = droit::contexte::toutes_les_valeurs(Some(v)).last() {
-            out.insert(k.clone(), (*x).clone());
-        }
-    }
-    Value::Object(out)
+fn derniere_valeur(datee: &[(&'static str, Vec<crate::routes::fiches::Portee>)]) -> Value {
+    Value::Object(datee.iter().filter_map(|(k, l)| l.last().map(|x| (k.to_string(), x.valeur.clone()))).collect())
 }
 
 fn numero_de(fiche: &Value, rang: usize) -> String {
@@ -277,17 +267,18 @@ fn construire(racine: &Path) -> Personnes {
             une.push((r, quoi));
         }
     };
-    if let Some(Value::Object(fiches)) = lire_json(&racine.join(droit::contexte::SALARIES)) {
-        for (rang, (cle, datee)) in fiches.iter().filter(|(k, _)| !k.starts_with('_')).enumerate() {
-            let mut noms = vec![cle.clone()];
+    if let Ok(fiches) = droit::fiche::lire_fichier::<droit::fiche::Salaries>(&racine.join(droit::contexte::SALARIES), droit::contexte::SALARIES) {
+        for (rang, (cle, datee)) in fiches.fiches.iter().enumerate() {
+            let datee = crate::routes::fiches::portees(datee);
+            let mut noms = vec![cle.to_string()];
             for c in CHAMPS_QUI_NOMMENT {
-                for v in droit::contexte::toutes_les_valeurs(datee.get(c)) {
+                for v in crate::routes::fiches::valeurs_portees(&datee, c) {
                     if let Value::String(s) = v {
                         noms.push(s.clone());
                     }
                 }
             }
-            let fiche = &derniere_valeur(datee);
+            let fiche = &derniere_valeur(&datee);
             // Le prenom et le nom ensemble, dans les deux ordres : « Fanchon Brioche » devient un seul « [salarie n°1] ».
             let texte = |c: &str| fiche.get(c).and_then(Value::as_str).unwrap_or("").trim().to_string();
             for (p, n) in [("prenom", "nom"), ("prenom_affichage", "nom_affichage"), ("prenom_affichage", "nom_usage")] {
@@ -300,10 +291,11 @@ fn construire(racine: &Path) -> Personnes {
             ajouter(noms, format!("salarié n°{}", numero_de(fiche, rang)));
         }
     }
-    if let Some(e @ Value::Object(_)) = lire_json(&racine.join(droit::contexte::ENTREPRISE)) {
+    if let Ok(e) = droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&racine.join(droit::contexte::ENTREPRISE), droit::contexte::ENTREPRISE) {
+        let e = crate::routes::fiches::portees(&e);
         let mut noms = Vec::new();
         for c in CHAMPS_DE_LA_COMPAGNIE {
-            for s in droit::contexte::toutes_les_valeurs(e.get(c)).into_iter().filter_map(Value::as_str) {
+            for s in crate::routes::fiches::valeurs_portees(&e, c).filter_map(Value::as_str) {
                 noms.push(s.to_string());
                 // « Compagnie du Fil de Fer (démonstration) » : le nom sans sa parenthese aussi.
                 if let Some((avant, _)) = s.split_once(" (") {
@@ -654,7 +646,7 @@ pub fn fil(maintenant: u64) -> Vec<String> {
 
 /// Une route servie par la fenetre : `source` « page » (la page l'a demandee) ou « fond » (la veille, le filet, l'etat des
 /// mois...) ; sa charge mise en forme, sa duree, son issue.
-pub fn noter_route(racine: &Path, source: &str, nom: &str, charge: &Value, duree: Duration, issue: Result<(), (&str, &str)>) {
+pub fn noter_route(racine: &Path, source: &str, nom: crate::routes::catalogue::Route, charge: &Value, duree: Duration, issue: Result<(), (&str, &str)>) {
     let forme = en_forme(Some(racine), charge);
     let ch = match &forme {
         Value::Object(o) if o.is_empty() => String::new(),
@@ -681,7 +673,7 @@ pub fn noter_route(racine: &Path, source: &str, nom: &str, charge: &Value, duree
         let issue_texte = fin.rsplit_once(", ").map_or(fin.clone(), |(a, _)| a.to_string());
         // La meme route, la meme charge, la meme issue que la derniere : le fil la compte, elle ne se garde qu'une fois.
         match e.back_mut() {
-            Some(d) if d.1 == nom && d.2 == forme && d.3 == issue_texte => d.0 = t,
+            Some(d) if d.1 == nom.nom() && d.2 == forme && d.3 == issue_texte => d.0 = t,
             _ => e.push_back((t, nom.to_string(), forme.clone(), issue_texte)),
         }
     }
@@ -998,17 +990,10 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
         let depots = &journal.lignes;
         let du_mois: Vec<Value> = depots
             .iter()
-            .filter(|d| d.get("mois").and_then(Value::as_str) == Some(mois))
+            .filter(|d| d.mois().is_some_and(|m| m.to_string() == mois))
             .map(|d| {
-                let mut x = Map::new();
-                for k in ["quoi", "quand", "mode", "accepte", "nature", "annule_et_remplace", "type_envoi"] {
-                    if let Some(v) = d.get(k) {
-                        x.insert(k.into(), v.clone());
-                    }
-                }
-                let verdicts: Vec<Value> = d.get("retours").and_then(Value::as_array).into_iter().flatten().map(|r| json!(format!("{} {}", r["nature"].as_str().unwrap_or("?"), r["verdict"].as_str().unwrap_or("?")))).collect();
-                x.insert("retours".into(), Value::Array(verdicts));
-                Value::Object(x)
+                let verdicts: Vec<String> = d.retours_organisme().iter().map(|r| format!("{} {}", r.nature, r.verdict.as_deref().unwrap_or("?"))).collect();
+                json!({"quoi": d.acte().nom(), "quand": d.quand(), "mode": d.mode().nom(), "accepte": d.accepte(), "retours": verdicts})
             })
             .collect();
         let n = du_mois.len();

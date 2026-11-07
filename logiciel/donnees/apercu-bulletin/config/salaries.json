@@ -1,5 +1,5 @@
 {
-  "_source": "COMPAGNIE FICTIVE de l'apercu du bulletin : une personne inventee, sans NIR. Chaque valeur vaut de tout temps (configuration datee).",
+  "note": "COMPAGNIE FICTIVE de l'apercu du bulletin : une personne inventee, sans NIR. Chaque valeur vaut de tout temps (configuration datee).",
   "APERCU": {
     "code_salarie": [{"valeur": "1"}],
     "initiales_contrat": [{"valeur": "AP"}],

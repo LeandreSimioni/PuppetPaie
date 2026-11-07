@@ -1,0 +1,29 @@
+Transcription (extraits : intitulé, considérant 11, articles 4 et 5) de eurlex-reglement-1103-97-introduction-euro-19970619.html,
+tel que servi par l'Office des publications le 07/11/2026. Le reste du texte est dans le .html.
+
+Règlement (CE) n° 1103/97 du Conseil du 17 juin 1997 fixant certaines dispositions relatives à l'introduction de l'euro
+Journal officiel n° L 162 du 19/06/1997 p. 0001 - 0003 (CELEX 31997R1103)
+
+(11) considérant que l'introduction de l'euro requiert d'arrondir les sommes d'argent; qu'il est nécessaire que les règles pour
+arrondir les sommes d'argent soient connues rapidement dans le fonctionnement du marché commun et afin de permettre une bonne
+préparation de l'union économique et monétaire et d'assurer une transition harmonieuse; que lesdites règles ne portent pas
+atteinte aux pratiques, conventions ou dispositions nationales relatives aux arrondis qui assurent un degré plus élevé de
+précision pour les calculs intermédiaires;
+
+Article 4
+1. Les taux de conversion qui sont arrêtés sont exprimés pour la contre-valeur d'un euro dans chacune des monnaies nationales
+des États membres participants. Ils comportent six chiffres significatifs.
+2. Les taux de conversion ne peuvent pas être en arrondis ou tronqués lors des conversions.
+3. Les taux de conversion sont utilisés pour les conversions entre l'unité euro et les unités monétaires nationales et
+vice-versa. Il est interdit d'utiliser des taux inverses calculés à partir des taux de conversion.
+4. Toute somme d'argent à convertir d'une unité monétaire nationale dans une autre doit d'abord être convertie dans un montant
+exprimé dans l'unité euro; ce montant ne pouvant être arrondi à moins de trois décimales est ensuite converti dans l'autre
+unité monétaire nationale. Aucune autre méthode de calcul ne peut être utilisée, sauf si elle produit les mêmes résultats.
+
+Article 5
+Les sommes d'argent à payer ou à comptabiliser, lorsqu'il y a lieu de les arrondir après conversion dans l'unité euro
+conformément à l'article 4, sont arrondies au cent supérieur ou inférieur le plus proche. Les sommes d'argent à payer ou à
+comptabiliser qui sont converties dans une unité monétaire nationale sont arrondies à la subdivision supérieure ou inférieure
+la plus proche ou, à défaut de subdivision, à l'unité la plus proche ou, selon les lois ou pratiques nationales, à un multiple
+ou à une fraction de la subdivision ou de l'unité monétaire nationale. Si l'application du taux de conversion donne un résultat
+qui se situe exactement au milieu, la somme est arrondie au chiffre supérieur.

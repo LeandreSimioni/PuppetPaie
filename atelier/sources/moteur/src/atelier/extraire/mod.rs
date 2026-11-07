@@ -7,7 +7,7 @@
 //! dans le `moteur` livre parce que c'est ce programme-la que le poste de l'editeur fait tourner, mais il n'apparait que dans
 //! l'aide de bas niveau (`moteur` sans argument), avec les autres outils d'atelier.
 //!
-//! Chaque releve redonne, a l'octet, le referentiel livre, hors le `_source` (qui nomme la commande, le fichier depose et
+//! Chaque releve redonne, a l'octet, le referentiel livre, hors la `note` (qui nomme la commande, le fichier depose et
 //! la date du releve). La preuve : `tests/fichiers/extraction.rs`, qui rejoue chaque releve sur `atelier/reference/`.
 //!
 //! UN REFERENTIEL NE S'ECRASE PAS PAR ACCIDENT. La sortie se nomme toujours (pas de cible par defaut) ; elle finit en `.json` ; un fichier deja la n'est
@@ -295,7 +295,7 @@ pub(crate) fn propre(c: &Option<socle::lecture_xlsx::Cellule>) -> String {
     }
 }
 
-/// La date du releve, comme le `_source` l'ecrit (`JJ/MM/AAAA`).
+/// La date du releve, comme la `note` l'ecrit (`JJ/MM/AAAA`).
 pub(crate) fn date_du_releve(jour: &Jour) -> String {
     jour.jj_mm_aaaa()
 }

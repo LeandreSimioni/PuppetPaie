@@ -49,7 +49,10 @@ impl Departs {
 
     /// Les departs de cet engagement, dans l'ordre ou ils sont partis.
     pub fn de(&self, cle: &str, numero: &str) -> &[Depart] {
-        self.par_engagement.get(&(cle.to_string(), numero.to_string())).map_or(&[], Vec::as_slice)
+        match self.par_engagement.get(&(cle.to_string(), numero.to_string())) {
+            Some(d) => d,
+            None => &[],
+        }
     }
 
     /// Les engagements dont quelque chose est parti : `(cle du salarie, numero)`.

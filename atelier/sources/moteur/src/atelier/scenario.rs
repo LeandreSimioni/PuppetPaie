@@ -55,6 +55,8 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 use socle::date::Jour;
 
+use crate::routes::catalogue::Route;
+
 /// Le fichier des gestes, dans le dossier du scenario.
 pub const GESTES: &str = "gestes.jsonl";
 /// Le dossier des pieces deposees, par empreinte.
@@ -69,8 +71,8 @@ const CLES_DE_DEPOT: [&str; 4] = ["dossier", "export", "fichier", "chemin"];
 
 /// Les routes dont la cle `dossier` vide (ou absente) veut dire `import/` de la compagnie (`crate::routes::import::dossier_import`).
 #[cfg(feature = "atelier")]
-fn lit_la_boite_aux_lettres(route: &str) -> bool {
-    route.starts_with("importation") || route == "importer"
+fn lit_la_boite_aux_lettres(route: Route) -> bool {
+    route == Route::Importer || route.nom().starts_with("importation")
 }
 
 /// LE MARQUEUR D'UNE FICTIVE AUX ENVOIS SIMULES, pose sur une fictive ajoutee (le geste `simuler`) : `copie_de` dit
@@ -88,7 +90,7 @@ pub fn rendre_simulee(racine: &Path) -> Result<(), String> {
         &json!({
             "copie_de": format!("{} {} sur le banc d'essai", crate::interface::compagnies::MARQUE_FICTIVE, nom),
             "quand": socle::paris::maintenant(),
-            "_quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part.",
+            "quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part.",
         }),
         2,
     )
@@ -417,7 +419,9 @@ fn rejouer_les_gestes(
             }
             Some(_) => {}
             None => {
-                let route = g.get("route").and_then(Value::as_str).ok_or(format!("geste {} : ni `geste` ni `route`", n))?;
+                let nom = g.get("route").and_then(Value::as_str).ok_or(format!("geste {} : ni `geste` ni `route`", n))?;
+                // Un nom qui n'est celui d'aucune route (une route d'avant, retiree) se rejoue comme le moteur le refuse.
+                let route = Route::lire(nom);
                 let Some(racine) = racines.get(compagnie) else {
                     r.autres_compagnies += 1;
                     continue;
@@ -429,17 +433,20 @@ fn rejouer_les_gestes(
                 let charge = poser_les_pieces(scenario, racine, travail, n, g)?;
                 let mut o = std::collections::HashMap::new();
                 o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
-                let rep = crate::routes::dans_la_fenetre(&o, route, &charge);
+                let rep = match route {
+                    Some(route) => crate::routes::dans_la_fenetre(&o, route, &charge),
+                    None => json!({"ok": false, "erreur": crate::routes::catalogue::ROUTE_INCONNUE, "route": nom}),
+                };
                 r.routes_rejouees += 1;
                 let ok = rep.get("ok") == Some(&Value::Bool(true));
                 // Ce que l'horloge de la fictive a joue (la route `horloge-rattraper`, ou la veille par `ouverture`), date du geste.
                 let jouees = match route {
-                    "horloge-rattraper" => rep.pointer("/resultat"),
-                    "ouverture" => rep.pointer("/resultat/horloge"),
+                    Some(Route::HorlogeRattraper) => rep.pointer("/resultat"),
+                    Some(Route::Ouverture) => rep.pointer("/resultat/horloge"),
                     _ => None,
                 };
                 for p in jouees.and_then(Value::as_array).into_iter().flatten() {
-                    r.horloge.push(format!("{} {}", heure(t), socle::valeur::valeur_en_texte(p)));
+                    r.horloge.push(format!("{} {}", heure(t), documents::valeur::valeur_en_texte(p)));
                 }
                 let attendu = g.get("ok") != Some(&Value::Bool(false));
                 if ok != attendu {
@@ -447,10 +454,10 @@ fn rejouer_les_gestes(
                         "geste {} ({} {}) : {} au rejeu, {} a l'enregistrement{}",
                         n,
                         heure(t),
-                        route,
+                        nom,
                         if ok { "reussit" } else { "refuse" },
                         if attendu { "reussi" } else { "refuse" },
-                        rep.get("erreur").map(|e| format!(" : {}", socle::valeur::valeur_en_texte(e))).unwrap_or_default()
+                        rep.get("erreur").map(|e| format!(" : {}", documents::valeur::valeur_en_texte(e))).unwrap_or_default()
                     ));
                 }
             }
@@ -460,20 +467,16 @@ fn rejouer_les_gestes(
     Ok(r)
 }
 
-/// CE QUI SE SAISIT D'UN GESTE : une carte (`enregistrer-saisie` ; `valider-engagement` sans sa validation), une fiche
-/// (`enregistrer-fiche`), reussies a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le
-/// calendrier : `None`.
+/// CE QUI SE SAISIT D'UN GESTE : une case d'une carte (`enregistrer-saisie`), une fiche (`enregistrer-fiche`), reussies
+/// a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le calendrier : `None`.
 fn saisie_d_un_geste(g: &Value) -> Option<Value> {
-    let carte = match g.get("route").and_then(Value::as_str)? {
-        "valider-engagement" | "enregistrer-saisie" => "enregistrer-saisie",
-        "enregistrer-fiche" => "enregistrer-fiche",
-        _ => return None,
-    };
+    if !matches!(g.get("route").and_then(Value::as_str).and_then(Route::lire)?, Route::EnregistrerSaisie | Route::EnregistrerFiche) {
+        return None;
+    }
     if g.get("ok") == Some(&Value::Bool(false)) || g.get("ecrit") == Some(&Value::Bool(false)) {
         return None;
     }
     let mut s = g.clone();
-    s["route"] = json!(carte);
     for cle in ["quand", "heure"] {
         s.as_object_mut()?.remove(cle);
     }
@@ -658,7 +661,7 @@ fn poser_livree(racine: &Path, dest: &Path, fin: Option<f64>) -> Result<(), Stri
         &json!({
             "copie_de": format!("{} {}", crate::interface::compagnies::MARQUE_FICTIVE, nom),
             "quand": fin.map(heure),
-            "_quoi": "Compagnie FICTIVE de reference, livree avec le logiciel : le rejeu de son scenario (atelier/fictives/). Ses envois sont joues, rien n'en part.",
+            "quoi": "Compagnie FICTIVE de reference, livree avec le logiciel : le rejeu de son scenario (atelier/fictives/). Ses envois sont joues, rien n'en part.",
         }),
         2,
     )
@@ -916,7 +919,7 @@ mod enregistreur {
         /// UNE ROUTE, servie par `servir` sous l'enregistreur : le temps fige a son debut, ce qu'on avait depose recopie,
         /// l'empreinte de la compagnie avant et apres, puis sa ligne. Une lecture, quand on ne les enregistre pas, est
         /// seulement servie.
-        pub fn route(&self, racine: &Path, nom: &str, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
+        pub fn route(&self, racine: &Path, nom: Route, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
             if !self.lectures && !crate::routes::est_une_ecriture(nom) {
                 return servir();
             }
@@ -940,7 +943,7 @@ mod enregistreur {
             ligne.insert("ok".into(), json!(ok));
             // Le refus se garde, pour qui relit le scenario (le rejeu ne compare que `ok`).
             if !ok {
-                ligne.insert("refus".into(), json!(rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default()));
+                ligne.insert("refus".into(), json!(rep.get("erreur").map(documents::valeur::valeur_en_texte).unwrap_or_default()));
             }
             self.ecrire(&mut n, ligne, quand);
             rep
@@ -959,7 +962,7 @@ mod enregistreur {
 
         /// Ce que la route lit hors du moteur : un dossier ou un fichier nomme par la charge (`CLES_DE_DEPOT`), ou la
         /// boite aux lettres `import/` de la compagnie. Chaque fichier entre dans `pieces/`.
-        fn recopier_les_pieces(&self, racine: &Path, route: &str, charge: &Value) -> Map<String, Value> {
+        fn recopier_les_pieces(&self, racine: &Path, route: Route, charge: &Value) -> Map<String, Value> {
             let mut out = Map::new();
             for cle in CLES_DE_DEPOT {
                 let valeur = charge.get(cle).and_then(Value::as_str).map(str::trim);

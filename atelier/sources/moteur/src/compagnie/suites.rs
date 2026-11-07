@@ -2,12 +2,13 @@
 //! la compagnie -- noter les incidents, ranger les attestations France Travail, marquer les arrets qu'une DSN a portes,
 //! faire taire le reveil du filet. Elles se font toutes, que l'envoi ait abouti ou non.
 
+use droit::fiche::Lue as _;
 use serde_json::json;
 
 use droit::contexte::Contexte;
 use envois::suites::Suites;
 use socle::echec::R;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 
 /// Ce que les suites laissent a dire : ce qu'il reste a faire, et ce qui n'a pas pu se faire.
 #[derive(Default)]
@@ -52,14 +53,14 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
 /// (`droit::pas::EN_RETOUR_DE`) : son taux vaut pour les mois qui suivent.
 fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::PathBuf)]) -> R<()> {
     use serde_json::Value;
-    let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| s.get("nir").is_some_and(vrai)).map(|(cle, s)| json!([cle, s["nir"]])).collect();
+    let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| !s.nir.texte().is_empty()).map(|(cle, s)| json!([cle, s.nir.texte()])).collect();
     let journal = envois::journal::lu(&ctx.racine).map_err(|m| socle::echec::erreur("ValueError", m))?;
-    let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(documents::valeur::valeur_en_texte).unwrap_or_default();
     let mois_declare = |retour: &Value| -> Option<String> {
         let flux = texte(retour.get("flux"));
-        let l = journal.lignes.iter().find(|l| !flux.is_empty() && texte(l.get("flux")) == flux)?;
-        let nature = texte(l.get("detail").and_then(|d| d.get("nature")));
-        (texte(l.get("quoi")) == "dsn" && nature == "01").then(|| texte(l.get("mois"))).filter(|m| !m.is_empty())
+        let l = journal.lignes.iter().find(|l| !flux.is_empty() && l.flux() == flux)?;
+        let nature = l.nature_dsn();
+        (l.acte() == envois::journal::Acte::Dsn && nature == "01").then(|| l.mois().map(|m| m.to_string())).flatten()
     };
     let mut tous = Vec::new();
     for (retour, chemin) in crm {
@@ -89,8 +90,7 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
 fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std::path::PathBuf)]) -> R<Vec<String>> {
     use std::collections::BTreeMap;
     let mut a_faire = Vec::new();
-    let texte = |k: &str| ctx.entreprise.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
-    let (siren, nic) = (texte("siren"), texte("nic"));
+    let (siren, nic) = (ctx.entreprise.siren.texte().to_string(), ctx.entreprise.nic.texte().to_string());
     for (retour, chemin) in notifications {
         let le = envois::releve_retours::date_publication(retour);
         let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();
@@ -139,7 +139,7 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
 /// Un depot refuse s'ecrit au journal des incidents, test comme reel. LE CAS URGENT SE DISTINGUE ICI : un refus en REEL
 /// alors que la repetition etait conforme.
 fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
-    let apres_test = d.reel && d.repetition.get("test").is_some_and(vrai);
+    let apres_test = d.reel && d.repetition.as_ref().is_some_and(|r| r.test.is_some());
     let _ = crate::compagnie::incidents::noter(
         &ctx.racine,
         &crate::compagnie::incidents::Note {
@@ -147,7 +147,7 @@ fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
             ou: &format!("depot-{}", d.quoi),
             quoi: &d.classe,
             resume: &d.message,
-            detail: json!({"reel": d.reel, "apres_test_conforme": apres_test, "repetition": if vrai(&d.repetition) { d.repetition.clone() } else { json!({}) }}),
+            detail: json!({"reel": d.reel, "apres_test_conforme": apres_test, "repetition": d.repetition.as_ref().map_or(json!({}), |r| json!(r))}),
             ..Default::default()
         },
     );

@@ -8,7 +8,8 @@
 //! sous-ensemble que la table des formats emploie (classes, groupes,
 //! alternatives, `? * + {n,m}`, `\d \s`, `^ $`), prouve contre `re`.
 
-use socle::fichiers::{dossier_du_code, json_en_cache, repr};
+use socle::fichiers::{dossier_du_code, repr};
+use documents::valeur::json_en_cache;
 use crate::norme::Norme;
 use socle::num::Resultat;
 use crate::usages::{espace, lignes, strip};
@@ -18,7 +19,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 // Les rubriques de la table des formats qui se saisissent dans une fiche :
 // (rubrique, fiche, champ), tels que `champs.champ_de_rubrique` les rend.
-const SAISIES: [(&str, &str, &str); 32] = [
+const SAISIES: [(&str, &str, &str); 33] = [
     ("S10.G00.01.003", "entreprise", "raison_sociale"),
     ("S21.G00.06.001", "entreprise", "siren"),
     ("S21.G00.06.002", "entreprise", "nic"),
@@ -26,6 +27,7 @@ const SAISIES: [(&str, &str, &str); 32] = [
     ("S21.G00.06.004", "entreprise", "adresse"),
     ("S21.G00.06.005", "entreprise", "code_postal"),
     ("S21.G00.06.006", "entreprise", "commune"),
+    ("S21.G00.06.007", "entreprise", "complement_adresse"),
     ("S21.G00.11.022", "entreprise", "idcc"),
     ("S21.G00.20.002", "entreprise", "france_travail_dossier_recouvrement"),
     ("S21.G00.30.001", "salarie", "nir"),
@@ -312,7 +314,7 @@ pub fn table_de(norme: &Norme) -> Resultat<Arc<Value>> {
 pub fn format_en(norme: &Norme, rubrique: &str) -> Resultat<Value> {
     let t = table_de(norme)?;
     Ok(match t["formats"].get(rubrique) {
-        Some(f) if socle::fichiers::vrai(f) => f.clone(),
+        Some(f) if documents::valeur::vrai(f) => f.clone(),
         _ => Value::Object(Default::default()),
     })
 }

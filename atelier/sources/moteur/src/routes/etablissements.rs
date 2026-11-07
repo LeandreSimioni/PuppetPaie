@@ -24,8 +24,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::R;
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 use crate::routes::fiches::{refus, sans_valeur};
 
@@ -54,7 +53,7 @@ fn comparable(e: &Value) -> Value {
     o.retain(|k, v| !k.starts_with('_') && k != "ouverture" && k != "nic" && !k.ends_with("_affichage") && !sans_valeur(Some(v)));
     for cle in ["taux_atmp", "versement_mobilite"] {
         if let Some(Value::Object(t)) = o.get_mut(cle) {
-            t.retain(|k, v| !k.starts_with('_') && k != "annee" && !sans_valeur(Some(v)));
+            t.retain(|k, v| !k.starts_with('_') && !droit::fiche::est_une_note(k) && k != "annee" && !sans_valeur(Some(v)));
         }
     }
     Value::Object(o)
@@ -134,9 +133,9 @@ fn au(frise: &Frise, jour: &Jour) -> Option<Value> {
 /// ECRIRE LA LISTE QUE L'ECRAN DONNE (`liste`) dans la fiche entreprise `contenu`, datee : voir l'en-tete. `depuis` est la
 /// date d'effet de la boite « Ce qui change » ; sans elle, un changement qui se date se refuse.
 pub(crate) fn ecrire(
-    ctx: &Contexte, contenu: &mut Map<String, Value>, donnees: &Map<String, Value>, liste_ecran: &Value, depuis: Option<Jour>, note: Option<&str>,
+    ctx: &Contexte, contenu: &mut droit::fiche::FicheEntrepriseDatee, donnees: &Map<String, Value>, liste_ecran: &Value, depuis: Option<Jour>, note: Option<&str>,
 ) -> R<()> {
-    if !contenu.contains_key("etablissements") && liste(Some(liste_ecran)).is_empty() {
+    if contenu.etablissements.is_empty() && liste(Some(liste_ecran)).is_empty() {
         // Une compagnie qui n'en a jamais eu : rien a dater.
         return Ok(());
     }
@@ -163,7 +162,7 @@ pub(crate) fn ecrire(
                 griefs.push(format!("{} : le code INSEE de sa commune (cinq caractères), que la DSN déclare avec le versement mobilité", nom));
             }
         }
-        let ouverture = match o.get("ouverture").filter(|v| vrai(v)).map(socle::date::d) {
+        let ouverture = match o.get("ouverture").filter(|v| vrai(v)).map(documents::valeur::d) {
             Some(Ok(j)) => j,
             _ => {
                 griefs.push(format!("{} : sa date d'ouverture", nom));
@@ -171,19 +170,15 @@ pub(crate) fn ecrire(
             }
         };
         let mut atmp = o.get("taux_atmp").and_then(Value::as_object).cloned().unwrap_or_default();
-        let du_siege = ctx.taux_atmp_de(ouverture.an).and_then(Result::ok).and_then(|t| t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte));
+        let du_siege = ctx.taux_atmp_de(ouverture.an).and_then(Result::ok).and_then(|t| t.code_risque).filter(|c| !c.is_empty());
         let code = texte(atmp.get("code_risque")).trim().to_string();
         if code.is_empty() {
             match du_siege {
                 Some(code) => {
                     atmp.insert("code_risque".into(), Value::String(code));
-                    atmp.insert("_code_de_la_compagnie".into(), Value::Bool(true));
                 }
                 None => griefs.push(format!("{} : son code risque AT/MP, tel que la CARSAT le notifie", nom)),
             }
-        } else if du_siege.as_deref() != Some(code.as_str()) {
-            // Un autre code que celui de la compagnie : celui que la CARSAT a notifie.
-            atmp.shift_remove("_code_de_la_compagnie");
         }
         o.insert("taux_atmp".into(), Value::Object(atmp));
         nouvelles.push((ouverture, Value::Object(o)));
@@ -193,14 +188,8 @@ pub(crate) fn ecrire(
     }
 
     // L'histoire telle que la fiche la dit : une frise par etablissement.
-    let versions: Vec<(Option<Jour>, Vec<Value>)> = match contenu.get("etablissements") {
-        Some(v) => droit::contexte::valeurs_datees(&json!({"etablissements": v}), "etablissements")
-            .map_err(|m| refus(m))?
-            .into_iter()
-            .map(|(j, l)| (j, liste(Some(l))))
-            .collect(),
-        None => Vec::new(),
-    };
+    let versions: Vec<(Option<Jour>, Vec<Value>)> =
+        droit::fiche::valeurs_datees(&contenu.etablissements).into_iter().map(|e| (e.depuis, liste(Some(&socle::ecriture::en_valeur(&e.valeur))))).collect();
     let ouverts: Vec<Value> = versions.last().map(|(_, l)| l.clone()).unwrap_or_default();
     let mut frises: BTreeMap<String, Frise> = BTreeMap::new();
     for (i, (j, l)) in versions.iter().enumerate() {
@@ -309,7 +298,7 @@ valeur, et la date ne se devine pas. Rien n'a été enregistré.",
     for j in jours {
         let mut ouverts_ce_jour: Vec<(Jour, String, Value)> = frises
             .iter()
-            .filter_map(|(n, f)| au(f, &j).map(|v| (v.get("ouverture").map(socle::date::d).and_then(Result::ok).unwrap_or(j), n.clone(), v)))
+            .filter_map(|(n, f)| au(f, &j).map(|v| (v.get("ouverture").map(documents::valeur::d).and_then(Result::ok).unwrap_or(j), n.clone(), v)))
             .collect();
         ouverts_ce_jour.sort_by(|a, b| (a.0, &a.1).cmp(&(b.0, &b.1)));
         let valeur = Value::Array(ouverts_ce_jour.into_iter().map(|(_, _, v)| v).collect());
@@ -327,15 +316,16 @@ valeur, et la date ne se devine pas. Rien n'a été enregistré.",
     // Le controle que toute lecture de la configuration fait (`droit::contexte`), sur ce qui est ouvert, avant d'ecrire :
     // contre le bareme de cette annee et de l'annee de chaque ouverture (une annee sans socle livre ne se controle pas).
     let fiche = json!({"siren": siren, "nic": texte(donnees.get("nic")), "etablissements": nouvelles.iter().map(|(_, e)| e.clone()).collect::<Vec<_>>()});
+    let fiche: droit::fiche::ChampsEntreprise = droit::fiche::lire_champs(&fiche, "La fiche entreprise").map_err(refus)?;
     let mut annees: Vec<i32> = std::iter::once(ctx.aujourdhui.an).chain(nouvelles.iter().map(|(o, _)| o.an)).collect();
     annees.sort();
     annees.dedup();
     for an in annees {
-        if let Ok(bar) = ctx.bareme_fondu(an) {
+        if let Some(Ok(bar)) = socle::date::Jour::nouveau(an, 1, 1).map(|j| ctx.bareme_fondu(&j)) {
             droit::contexte::controler_etablissements(&fiche, &bar).map_err(refus)?;
         }
     }
-    contenu.insert("etablissements".into(), Value::Array(datee));
+    contenu.etablissements = droit::fiche::lire_saisie(&Value::Array(datee), droit::contexte::ENTREPRISE).map_err(refus)?;
     Ok(())
 }
 
@@ -356,9 +346,9 @@ fn poser_annee(ligne: &mut Value, annee: Option<Value>) {
 /// (`ouverture::etablissements_dits`), ceux qui ouvrent plus tard compris ; c'est contre elle qu'un enregistrement se
 /// compare.
 pub(crate) fn entreprise_montree(ctx: &Contexte) -> Value {
-    let mut e = ctx.entreprise.clone();
+    let mut e = socle::ecriture::en_valeur(&ctx.entreprise);
     if let Some(o) = e.as_object_mut() {
-        if o.contains_key("etablissements") || ctx.entreprise_brute().get("etablissements").is_some() {
+        if o.contains_key("etablissements") || !ctx.entreprise_brute().etablissements.is_empty() {
             o.insert("etablissements".into(), Value::Array(crate::routes::ouverture::etablissements_dits(ctx)));
         }
     }

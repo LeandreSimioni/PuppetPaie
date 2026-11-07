@@ -88,9 +88,6 @@ const RUBRIQUES: [(&str, &[&str]); 12] = [
     ("declarant_dsn.qualite", &["S20.G00.07.004"]),
 ];
 
-/// Ce que la fiche de la fictive dit de SON identite, et qui ne doit pas survivre sous celle de la variable : ce que la
-/// variable remplace, plus ce qui en derive (l'affichage, le complement d'adresse, le telephone de repli de la DPAE).
-const RETIREES: [&str; 8] = ["siret", "nom_affichage", "adresse_affichage", "commune_affichage", "complement_adresse", "tel", "etablissements", "_source"];
 
 /// Ce que la copie ne prend pas de la fictive (relatif a sa racine).
 const NON_COPIES: [&str; 3] = [MARQUEUR, envois::retours::RETOURS, crate::horloge::FICHIER_HORLOGE];
@@ -213,9 +210,21 @@ impl Identite {
                 }
             }
         }
-        // C_MT_DCL, dix caracteres dans le gabarit de la DPAE (`dpae::employeur`) : plus long, il serait tronque sans un mot.
-        if self.texte("medecine_travail")?.chars().count() > 10 {
-            return refus("medecine_travail", "10 caracteres au plus (C_MT_DCL de la DPAE)");
+        // Ce que le type de chaque case refuse (`droit::fiche::texte_borne!` : les zones de la DPAE).
+        use droit::fiche::{CodeMedecine, CodeNaf, CodePostal, CommuneEmployeur, LigneAdresse, RaisonSociale, Telephone};
+        let types: [(&str, fn(&str) -> Option<String>); 7] = [
+            ("raison_sociale", RaisonSociale::faute),
+            ("adresse", LigneAdresse::faute),
+            ("code_postal", CodePostal::faute),
+            ("commune", CommuneEmployeur::faute),
+            ("naf", CodeNaf::faute),
+            ("declarant_dsn.tel", Telephone::faute),
+            ("medecine_travail", CodeMedecine::faute),
+        ];
+        for (cle, faute) in types {
+            if let Some(f) = faute(&self.texte(cle)?) {
+                return refus(cle, &f);
+            }
         }
         // La DUE MtoM refuse les accents (`depot::identifiants`, qui citerait la valeur : on refuse ici, avant).
         for k in ["api_dpae.nom", "api_dpae.prenom"] {
@@ -230,11 +239,16 @@ impl Identite {
     /// La fiche de la fictive, sous cette identite : les cles de la variable posees, ce qui en derive recompose (le SIRET, le
     /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
     /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
-    pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
-        let mut brute = fiche.as_object().cloned().ok_or_else(|| socle::echec::avec("La fiche entreprise de la fictive est abîmée.", json!({"fichier": droit::contexte::ENTREPRISE})))?;
-        for k in RETIREES {
-            brute.remove(k);
+    pub fn appliquer(&self, fiche: &droit::fiche::FicheEntrepriseDatee) -> Result<droit::fiche::FicheEntrepriseDatee, String> {
+        let mut brute = fiche.clone();
+        // Ce que la fiche de la fictive dit de SON identite, et qui ne survit pas sous celle de la variable : ce que la variable
+        // remplace, et ce qui en derive (l'affichage, le complement d'adresse).
+        for liste in [&mut brute.siret, &mut brute.nom_affichage, &mut brute.adresse_affichage, &mut brute.commune_affichage] {
+            liste.clear();
         }
+        brute.complement_adresse.clear();
+        brute.etablissements.clear();
+        brute.note = None;
         let mut f = Map::new();
         let (siren, nic) = (self.texte("siren")?, self.texte("nic")?);
         let siret = format!("{}{}", siren, nic);
@@ -262,18 +276,12 @@ impl Identite {
         }
         f.insert("api_dpae".into(), Value::Object(dpae));
         f.insert(
-            "_source".into(),
+            "note".into(),
             json!(format!("COMPAGNIE D'ESSAI (moteur essai monter) : l'identite vient de {} ; le reste, de la compagnie fictive copiee. Ne se commite jamais.", VARIABLE)),
         );
-        for (k, v) in f {
-            brute.remove(&k);
-            if k.starts_with('_') {
-                brute.insert(k, v);
-            } else {
-                droit::contexte::dater(&mut brute, &k, v, None, None);
-            }
-        }
-        Ok(Value::Object(brute))
+        let plate: droit::fiche::ChampsEntreprise = droit::fiche::lire_saisie(&f, droit::contexte::ENTREPRISE)?;
+        brute.par_dessus(&<droit::fiche::FicheEntrepriseDatee as droit::fiche::FicheDatee>::neuve(&plate));
+        Ok(brute)
     }
 }
 
@@ -356,7 +364,7 @@ fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
 
 /// Le journal de la copie sans les depots de DSN de la fictive (mensuelles et signalements, essais et reels) : voir l'en-tete.
 fn retirer_les_depots_de_dsn(dossier: &Path) -> Result<(), String> {
-    envois::journal::ne_garder_que(dossier, |l| l.get("quoi").and_then(Value::as_str) != Some("dsn"))
+    envois::journal::ne_garder_que(dossier, |l| l.acte() != envois::journal::Acte::Dsn)
 }
 
 /// Monte (ou remet a jour) la compagnie d'essai dans `dossier`, depuis la fictive `depuis`, sous l'identite `texte` (le
@@ -382,7 +390,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     }
     let (src, nom) = if deja {
         // La copie dit de quelle fictive elle vient ; `--depuis` ne la change pas (il faudrait une copie neuve).
-        let fiche = socle::fichiers::lire_json(&dossier.join(MARQUEUR)).unwrap_or(Value::Null);
+        let fiche = documents::valeur::lire_json(&dossier.join(MARQUEUR)).unwrap_or(Value::Null);
         (None, fiche.get("depuis").and_then(Value::as_str).unwrap_or("?").to_string())
     } else {
         let s = source(depuis)?;
@@ -394,7 +402,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         Some(s) => s.join(droit::contexte::ENTREPRISE),
         None => dossier.join(droit::contexte::ENTREPRISE),
     };
-    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| socle::echec::du_disque(&base_fiche, &e))?;
+    let fiche: droit::fiche::FicheEntrepriseDatee = droit::fiche::lire_fichier(&base_fiche, droit::contexte::ENTREPRISE)?;
     let fiche = id.appliquer(&fiche)?;
 
     if let Some(s) = &src {
@@ -405,7 +413,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
             "copie_de": format!("{} (moteur essai monter, identite de {}), depuis la compagnie fictive {}", MARQUE_ESSAI, VARIABLE, nom),
             "depuis": nom,
             "quand": quand,
-            "_quoi": "Compagnie d'ESSAI : ses depots de TEST vont au reseau, sous l'identite d'une vraie compagnie ; tout acte reel est refuse (depot_acte::refuser_si_copie, et pas de coffre). Ne se commite jamais.",
+            "quoi": "Compagnie d'ESSAI : ses depots de TEST vont au reseau, sous l'identite d'une vraie compagnie ; tout acte reel est refuse (depot_acte::refuser_si_copie, et pas de coffre). Ne se commite jamais.",
         });
         socle::ecriture::ecrire_json(&dossier.join(MARQUEUR), &marqueur, 2)?;
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")

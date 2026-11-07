@@ -6,20 +6,22 @@
 
 use std::collections::BTreeMap;
 
-use serde_json::{json, Value};
+use droit::fiche::Lue;
+
+use socle::forme::NombreLu;
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, LigneCotisation, Paie, ReductionGenerale};
 use droit::reduction::{reduction_au_coefficient, reduction_generale};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
-use crate::{Avis, Engagement};
-use socle::fichiers::vrai;
-use socle::num::{dec, eur2, Decimal, Resultat};
+use socle::date::Jour;
+use crate::{Avis, Chiffre, Engagement, LignePaie};
+use socle::num::{dec_f64, eur2, Decimal, Resultat};
 
 
 /// Le jour ou l'avenant de la saisie du mois decoupe la paie (`droit::periodes::jour_de_l_avenant`).
 fn jour_de_l_avenant(eng: &Engagement) -> Resultat<Option<Jour>> {
-    droit::periodes::jour_de_l_avenant(eng.avant.as_ref(), eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &eng.qui())
+    let avant = eng.avant.as_ref().map(|a| droit::periodes::TermesDAvant { salaire_mensuel: a.salaire_mensuel.is_some(), quotite_contrat: a.quotite_contrat.is_some() });
+    droit::periodes::jour_de_l_avenant(avant, eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &eng.qui())
 }
 
 /// Les bornes des periodes elementaires de la paie de `eng` : une seule (la periode payee) pour un mois d'un seul
@@ -32,8 +34,8 @@ pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jo
     if eng.periode.is_some() || !eng.nat()?.mensuelle() {
         return Ok(vec![(debut, fin)]);
     }
-    let cle = crate::calcul::cle_du_salarie(ctx, eng)?;
-    let mut jours = droit::emplois::jours_de_changement(ctx, &cle, &debut, &fin)?;
+    crate::fiche_du_salarie(ctx, &eng.salarie)?;
+    let mut jours = droit::emplois::jours_de_changement(ctx, &eng.salarie, &debut, &fin)?;
     jours.extend(jour_de_l_avenant(eng)?);
     droit::periodes::decouper(debut, fin, jours)
 }
@@ -49,52 +51,51 @@ pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jo
 /// encore ; le logiciel ne choisit pas.
 pub(crate) fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes: &[(Jour, Jour)]) -> Resultat<Vec<Engagement>> {
     let ligne = match eng.lignes.as_slice() {
-        [l] if l.get("rubrique").and_then(Value::as_str) == Some("mois") => l,
+        [l] if l.rubrique() == "mois" => l,
         _ => {
-            let autres: Vec<String> = eng
-                .lignes
-                .iter()
-                .filter(|l| l.get("rubrique").and_then(Value::as_str) != Some("mois"))
-                .map(|l| l.get("rubrique").map(en_texte).unwrap_or_else(|| "?".into()))
-                .collect();
+            let autres: Vec<String> = eng.lignes.iter().filter(|l| l.rubrique() != "mois").map(|l| l.rubrique().to_string()).collect();
             return Err(format!(
                 "{} : la paie de ce mois se decoupe en periodes elementaires (un changement de statut, de categorie ou de \
 duree du travail le {}), et elle porte {} en plus du salaire mensuel. A quelle periode une telle ligne se rattache (avant \
 le changement, apres, ou les deux) ne se lit nulle part dans la saisie, et le logiciel ne decoupe encore que le salaire \
 mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au premier jour d'un mois.",
                 eng.qui(),
-                bornes.get(1).map_or_else(|| "?".to_string(), |b| b.0.jj_mm_aaaa()),
+                bornes.iter().skip(1).map(|b| b.0.jj_mm_aaaa()).collect::<Vec<_>>().join(", "),
                 if autres.is_empty() { "des lignes saisies a la main".to_string() } else { format!("les lignes {}", autres.join(", ")) }
             ));
         }
     };
-    let salaire_apres = dec(ligne.get("taux").ok_or_else(|| socle::fichiers::absent("taux"))?)?;
+    let salaire_apres = ligne.taux().ok_or_else(|| socle::fichiers::absent("taux"))?;
     let quotite_apres = eng.quotite()?;
     let avenant = jour_de_l_avenant(eng)?;
+    let terme = |x: &Option<NombreLu>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
     let (salaire_avant, quotite_avant) = match &eng.avant {
-        Some(a) => (dec(&a["salaire_mensuel"])?, dec(&a["quotite_contrat"])?),
+        Some(a) => (terme(&a.salaire_mensuel, "salaire_mensuel")?, terme(&a.quotite_contrat, "quotite_contrat")?),
         None => (salaire_apres, quotite_apres),
     };
     let fin_mois = eng.fin_mois()?;
     let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or_else(|| socle::echec::cle("Le moteur ne calcule pas ce mois : le signaler au développeur.", "engagements_des_periodes"))?;
     // Le contrat borne au mois : la regle d'un premier ou d'un dernier mois incomplet le regarde, pas la coupure.
     let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
-    let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois);
+    let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois)?;
     let horaire = crate::conges::horaire_du_mois(ctx, &eng.salarie, &eng.debut, &debut_mois, &fin_mois)?;
     let mut out = Vec::new();
     for (d, f) in bornes {
-        let (salaire, quotite) = if avenant.map_or(false, |a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
+        let (salaire, quotite) = if avenant.is_some_and(|a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
         // Chaque periode, au salaire de ses termes, par la regle d'un mois incomplet (`droit::periodes::part_du_mois`).
         let part = droit::periodes::part_du_mois(d, f, &fin_mois, regle, &horaire)?;
         let mut e = eng.clone();
         e.periode = Some((*d, *f));
         e.quotite_contrat = Some(crate::conges::flot(quotite));
         let (q, h) = (crate::conges::flot(part.fraction), crate::conges::flot(eur2(quotite)));
-        let mut ligne = json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h});
-        if let Some(p) = part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours)) {
-            ligne["precision"] = json!(p);
-        }
-        e.lignes = vec![ligne];
+        e.lignes = vec![LignePaie::Composee(crate::ligne::Composee {
+            rubrique: "mois".to_string(),
+            quantite: dec_f64(q)?,
+            taux: dec_f64(crate::conges::flot(salaire))?,
+            heures: Some(dec_f64(h)?),
+            precision: part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours)),
+            dates: Vec::new(),
+        })];
         // Les heures que la DSN mesure (S21.G00.53, « heures » d'un contrat paye au mois) : celles de la ligne de la
         // periode, comme `Engagement::nouveau` les tire des lignes du mois.
         let heures = droit::catalogue::rubrique(&ctx.racine, "mois", &ctx.lue_au)?.heures(q, Some(h));
@@ -112,7 +113,7 @@ fn cumuler(m: &mut BTreeMap<String, Decimal>, cle: &str, x: Decimal) {
 /// Remplace la reduction generale de la periode `p` par `rg` : sa ligne, le total patronal et le cout employeur.
 fn poser_reduction(p: &mut Paie, rg: Option<ReductionGenerale>) {
     let p = p.ecrire();
-    if let Some(i) = p.lignes.iter().position(|l| l.id == "reduction_generale") {
+    if let Some(i) = p.lignes.iter().position(|l| l.est("reduction_generale")) {
         let l = p.lignes.remove(i);
         p.total_pat -= l.montant_pat;
     }
@@ -124,9 +125,18 @@ fn poser_reduction(p: &mut Paie, rg: Option<ReductionGenerale>) {
     p.reduction_generale = rg;
 }
 
-/// Le statut (artiste, technicien) d'une periode, lu comme le bareme le lit : vide, un artiste.
-fn statut(p: &Paie) -> String {
-    p.salarie.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into())
+/// Le statut (artiste, technicien) d'une periode, tel que la fiche le dit ; `None` : la fiche n'en dit pas (le bareme
+/// lit alors sa section de base, `droit::bareme::bareme_du_statut`).
+fn statut(p: &Paie) -> Option<droit::fiche::Statut> {
+    p.salarie.statut.dite().copied()
+}
+
+/// Le statut d'une periode, tel qu'un refus le nomme.
+fn statut_dit(s: Option<droit::fiche::Statut>) -> &'static str {
+    match s {
+        Some(s) => s.as_str(),
+        None => "sans statut",
+    }
 }
 
 /// La paie du mois de `eng`, somme de ses periodes elementaires `parts` (dans l'ordre des jours), qu'elle garde
@@ -150,8 +160,8 @@ pub(crate) fn assembler(ctx: &Contexte, eng: &Engagement, mut parts: Vec<Paie>) 
 memes assiettes (taux reduits, plafond, CSS L. 242-10) : la paie d'un tel mois n'est pas decoupee par le logiciel. \
 Dater le changement au premier jour d'un mois sur la fiche.",
             eng.qui(),
-            statut(p),
-            statut_du_mois
+            statut_dit(statut(p)),
+            statut_dit(statut_du_mois)
         ));
     }
     // Sous deduction forfaitaire specifique, la reduction se calcule sur le brut abattu et se borne a 130 % de
@@ -164,20 +174,20 @@ Dater le changement au premier jour d'un mois sur la fiche.",
 forfaitaire specifique. Ni la reduction generale sous deduction (bornee a 130 %), ni le plafond annuel de 7 600 EUR ne se \
 partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
             eng.qui(),
-            p.engagement.debut_periode().map(|d| d.jj_mm_aaaa()).unwrap_or_default()
+            p.engagement.debut_periode()?.jj_mm_aaaa()
         ));
     }
     // La reduction generale du mois, puis sa part dans chaque periode.
     let zero = Decimal::new(0, 2);
     let brut_mois = parts.iter().fold(zero, |a, p| a + p.brut);
     let heures_mois = parts.iter().fold(Decimal::ZERO, |a, p| a + p.heures_travaillees);
-    let caisse = parts.iter().any(|p| p.bases.get("brut_cs").map_or(false, |b| *b > Decimal::ZERO));
+    let caisse = parts.iter().any(|p| p.bases.get(crate::calcul::BRUT_CS).is_some_and(|b| *b > Decimal::ZERO));
     let pile = pile_de_la_paie(ctx, derniere)?;
-    let du_mois = reduction_generale(&pile, Some(statut_du_mois.as_str()), brut_mois, heures_mois, caisse)?;
+    let du_mois = reduction_generale(pile.reduction_generale.as_ref(), statut_du_mois.map(|s| s.as_str()), brut_mois, heures_mois, caisse)?;
     for p in parts.iter_mut() {
         let rg = match &du_mois {
             Some(m) if p.brut > Decimal::ZERO && p.heures_travaillees > Decimal::ZERO => {
-                Some(reduction_au_coefficient(&*pile_de_la_paie(ctx, p)?, m.coefficient, p.brut, p.heures_travaillees)?)
+                Some(reduction_au_coefficient(pile_de_la_paie(ctx, p)?.reduction_generale.as_ref(), m.coefficient, p.brut, p.heures_travaillees)?)
             }
             _ => None,
         };
@@ -224,14 +234,14 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
                 }
                 None => {
                     // Apres la ligne de meme identifiant a un autre taux s'il y en a une, sinon apres la precedente.
-                    let i = lignes.iter().rposition(|x| x.id == l.id).or(precedente).map_or(0, |i| i + 1);
+                    let i: usize = lignes.iter().rposition(|x| x.id == l.id).or(precedente).into_iter().map(|i| i + 1).sum();
                     lignes.insert(i, l.clone());
                     precedente = Some(i);
                 }
             }
         }
     }
-    if let Some(i) = lignes.iter().position(|l| l.id == "reduction_generale") {
+    if let Some(i) = lignes.iter().position(|l| l.est("reduction_generale")) {
         let l = lignes.remove(i);
         lignes.push(l);
     }
@@ -273,17 +283,17 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
         .iter()
         .filter_map(|p| p.engagement.periode.map(|b| (p, b)))
         .map(|(p, (d, f))| {
-            let cadre = if p.salarie.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01") { "cadre" } else { "non cadre" };
-            format!(
+            let cadre = if droit::bareme::est_cadre(&p.salarie) { "cadre" } else { "non cadre" };
+            Ok(format!(
                 "du {} au {} ({}, {} h, brut {})",
                 d.jj_mm_aaaa(),
                 f.jj_mm_aaaa(),
                 cadre,
-                p.engagement.quotite().map(socle::num::nombre).unwrap_or_default(),
+                socle::num::nombre(p.engagement.quotite()?),
                 p.brut
-            )
+            ))
         })
-        .collect();
+        .collect::<Resultat<_>>()?;
     m.avertissements.push(Avis {
         info: true,
         texte: format!(

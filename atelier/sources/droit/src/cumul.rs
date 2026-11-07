@@ -5,14 +5,11 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{Map, Value};
-
-use crate::bareme::canon;
 use crate::catalogue::{annexes, rubrique};
+use crate::fiche::Lue;
 use crate::contexte::{aujourdhui, Contexte};
-use socle::date::{d, Jour};
-use socle::fichiers::repr;
-use socle::num::{add, flottant, nombre, Decimal, Resultat};
+use socle::date::Jour;
+use socle::num::{add, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (le catalogue des rubriques et `annexes`).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -27,23 +24,16 @@ pub struct Constantes {
     pub fenetre_jours: i64,
 }
 
-fn entier_de(v: &Value) -> i64 {
-    match v {
-        Value::Number(n) => n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64),
-        Value::String(s) => s.trim().parse().unwrap_or(0),
-        _ => 0,
-    }
-}
 
 impl Constantes {
     pub fn lire(racine: &Path, jour: &Jour) -> Resultat<Constantes> {
         let cachet = rubrique(racine, "cachet", jour)?;
         let a = annexes()?;
         Ok(Constantes {
-            heures_par_cachet: cachet.heures_forfait.unwrap_or(0.0) as i64,
-            cachets_par_mois: cachet.plafond_mensuel.unwrap_or(0),
-            seuil_heures: entier_de(&a["seuil_heures"]),
-            fenetre_jours: entier_de(&a["fenetre_jours"]),
+            heures_par_cachet: cachet.heures_forfait.ok_or_else(|| socle::fichiers::absent("cachet.heures_forfait"))? as i64,
+            cachets_par_mois: cachet.plafond_mensuel.ok_or_else(|| socle::fichiers::absent("cachet.plafond_mensuel"))?,
+            seuil_heures: a.seuil_heures,
+            fenetre_jours: a.fenetre_jours,
         })
     }
 }
@@ -52,9 +42,10 @@ impl Constantes {
 /// donnee ; sans date de naissance, le plafond bas.
 pub fn plafond_enseignement(racine: &Path, date_naissance: Option<Jour>, a_la_date: Jour) -> Resultat<i64> {
     let r = rubrique(racine, "enseignement", &a_la_date)?;
-    let p = r.plafond_annuel_heures.filter(|p| socle::fichiers::vrai(p)).unwrap_or(Value::Object(Map::new()));
-    let bas = p.get("moins_de_50_ans").map_or(0, entier_de);
-    let haut = p.get("50_ans_et_plus").map_or(bas, entier_de);
+    let Some(p) = r.plafond_annuel_heures else {
+        return Err(socle::echec::livree("rubriques-base.json", "rubriques.enseignement.plafond_annuel_heures"));
+    };
+    let (bas, haut) = (p.moins_de_50_ans, p.cinquante_ans_et_plus);
     let Some(n) = date_naissance else { return Ok(bas) };
     let avant = (a_la_date.mois, a_la_date.jour) < (n.mois, n.jour);
     let age = a_la_date.an - n.an - i32::from(avant);
@@ -67,7 +58,6 @@ pub struct Declare {
     pub salarie: String,
     pub debut: Jour,
     pub fin: Jour,
-    pub numero_objet: Value,
     pub heures: i64,
     pub cachets: i64,
     pub jours: i64,
@@ -79,7 +69,7 @@ pub struct Declare {
 impl Declare {
     /// Le mois de la fin, auquel se rattachent les cachets.
     pub fn mois(&self) -> String {
-        self.fin.mois_iso()
+        self.fin.mois_civil().to_string()
     }
 
     pub fn heures_equivalentes(&self, c: &Constantes) -> i64 {
@@ -90,27 +80,6 @@ impl Declare {
     pub fn heures_montant(&self, c: &Constantes) -> i64 {
         self.heures_equivalentes(c) - self.heures_enseignement
     }
-
-    pub fn canon(&self, c: &Constantes) -> Value {
-        let mut m = Map::new();
-        m.insert("salarie".into(), Value::String(self.salarie.clone()));
-        m.insert("debut".into(), Value::String(self.debut.iso()));
-        m.insert("fin".into(), Value::String(self.fin.iso()));
-        m.insert("numero_objet".into(), canon(&self.numero_objet));
-        m.insert("heures".into(), entier(self.heures));
-        m.insert("cachets".into(), entier(self.cachets));
-        m.insert("jours".into(), entier(self.jours));
-        m.insert("brut".into(), Value::String(nombre(self.brut)));
-        m.insert("heures_enseignement".into(), entier(self.heures_enseignement));
-        m.insert("mois".into(), Value::String(self.mois()));
-        m.insert("heures_equivalentes".into(), entier(self.heures_equivalentes(c)));
-        m.insert("heures_montant".into(), entier(self.heures_montant(c)));
-        Value::Object(m)
-    }
-}
-
-fn entier(n: i64) -> Value {
-    Value::String(n.to_string())
 }
 
 /// Etat d'un salarie sur une fenetre.
@@ -224,66 +193,6 @@ impl Position {
         let h = self.constantes.heures_par_cachet;
         Ok(-((-self.manque()?).div_euclid(h)))
     }
-
-    /// La forme canonique de la position : ses lignes et tous ses comptes.
-    pub fn canon(&self, aujourdhui: Jour) -> Resultat<Value> {
-        let c = &self.constantes;
-        let mut m = Map::new();
-        m.insert("salarie".into(), Value::String(self.salarie.clone()));
-        m.insert("debut".into(), Value::String(self.debut.iso()));
-        m.insert("fin".into(), Value::String(self.fin.iso()));
-        m.insert("libelle_fenetre".into(), Value::String(self.libelle_fenetre.clone()));
-        m.insert("engagements".into(), Value::Array(self.engagements.iter().map(|e| e.canon(c)).collect()));
-        m.insert("date_naissance".into(), self.date_naissance.map_or(Value::Null, |j| Value::String(j.iso())));
-        m.insert("cachets".into(), entier(self.cachets()));
-        m.insert("heures".into(), entier(self.heures()));
-        m.insert("heures_equivalentes".into(), entier(self.heures_equivalentes()));
-        let par_mois: Map<String, Value> = self.cachets_par_mois().into_iter().map(|(k, n)| (k, entier(n))).collect();
-        m.insert("cachets_par_mois".into(), Value::Object(par_mois));
-        m.insert("cachets_retenus".into(), entier(self.cachets_retenus()));
-        m.insert("cachets_perdus".into(), entier(self.cachets_perdus()));
-        m.insert("mois_plafonnes".into(), Value::Array(self.mois_plafonnes().into_iter().map(Value::String).collect()));
-        m.insert("heures_retenues".into(), entier(self.heures_retenues()));
-        m.insert("heures_enseignement".into(), entier(self.heures_enseignement()));
-        m.insert("plafond_enseignement".into(), entier(self.plafond_enseignement()?));
-        m.insert("heures_enseignement_retenues".into(), entier(self.heures_enseignement_retenues()?));
-        m.insert("heures_montant".into(), entier(self.heures_montant()));
-        m.insert("heures_ouverture".into(), entier(self.heures_ouverture()?));
-        m.insert("enseignement_perdu".into(), entier(self.enseignement_perdu()?));
-        m.insert("jours".into(), entier(self.jours()));
-        m.insert("brut".into(), Value::String(nombre(self.brut())));
-        m.insert("manque".into(), entier(self.manque()?));
-        m.insert("atteint".into(), Value::Bool(self.atteint()?));
-        m.insert("cachets_manquants".into(), entier(self.cachets_manquants()?));
-        m.insert("jours_restants".into(), entier(self.jours_restants(aujourdhui)));
-        Ok(Value::Object(m))
-    }
-}
-
-/// La part d'enseignement d'une liste de lignes de paie, en heures entieres :
-/// les rubriques dont le catalogue dit `compte_pour = ouverture_des_droits`.
-pub fn heures_enseignement(ctx: &Contexte, lignes: &[Value]) -> Resultat<i64> {
-    let mut heures = 0.0;
-    for l in lignes {
-        let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
-        let code = match code {
-            Value::String(s) => s.clone(),
-            autre => socle::date::en_texte(autre),
-        };
-        let r = rubrique(&ctx.racine, &code, &ctx.lue_au)?;
-        if r.compte_pour != "ouverture_des_droits" {
-            continue;
-        }
-        let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
-        let saisies = match l.get("heures") {
-            None | Some(Value::Null) => None,
-            Some(x) => Some(flottant(x)?),
-        };
-        // Le signe porte aussi sur les heures, comme au calcul (`calcul::lignes_brut`) : une ligne « - » en retire.
-        let signe = if r.sens == "-" { -1.0 } else { 1.0 };
-        heures += signe * r.heures(q, saisies);
-    }
-    Ok(heures.round_ties_even() as i64)
 }
 
 
@@ -342,10 +251,7 @@ pub fn position(
 
 /// Date de naissance du salarie, ou `None`.
 pub fn naissance(ctx: &Contexte, salarie: &str) -> Resultat<Option<Jour>> {
-    match ctx.salaries.get(salarie).and_then(|f| f.get("date_naissance")) {
-        Some(v) if socle::fichiers::vrai(v) => d(v).map(Some),
-        _ => Ok(None),
-    }
+    Ok(ctx.salaries.get(salarie).and_then(|f| f.date_naissance.dite().copied()))
 }
 
 /// Fin du dernier contrat declare : le depart de la fenetre par defaut.
@@ -396,28 +302,6 @@ pub struct Colonne {
     pub heures_ouverture: Option<i64>,
 }
 
-impl Colonne {
-    pub fn canon(&self) -> Value {
-        let mut m = Map::new();
-        m.insert("titre".into(), Value::String(self.titre.clone()));
-        m.insert("sous_titre".into(), Value::String(self.sous_titre.clone()));
-        m.insert("cachets".into(), entier(self.cachets));
-        m.insert("heures".into(), entier(self.heures));
-        m.insert("heures_equivalentes".into(), entier(self.heures_equivalentes));
-        m.insert("brut".into(), Value::String(nombre(self.brut)));
-        m.insert("reste".into(), self.reste.map_or(Value::Null, entier));
-        m.insert("echeance".into(), self.echeance.map_or(Value::Null, |j| Value::String(j.iso())));
-        m.insert("enseignement".into(), entier(self.enseignement));
-        m.insert("heures_ouverture".into(), self.heures_ouverture.map_or(Value::Null, entier));
-        Value::Object(m)
-    }
-}
-
-/// Une tranche du mois `AAAA-MM`, lue comme un entier.
-fn entier_du_mois(texte: &str) -> Resultat<i32> {
-    texte.trim().parse().map_err(|_| format!("nombre entier illisible : {}", repr(texte)))
-}
-
 /// Les colonnes : le mois, l'annee civile (arretee a la fin du mois), et
 /// la fenetre des droits quand `anniversaire_droits` est dans la fiche.
 pub fn tableau_cumul(
@@ -427,18 +311,9 @@ pub fn tableau_cumul(
     engagements: &[Declare],
 ) -> Resultat<Vec<Colonne>> {
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let tranche = |a: usize, b: usize| -> String { mois.chars().skip(a).take(b - a).collect() };
-    let annee = entier_du_mois(&tranche(0, 4))?;
-    let mo = entier_du_mois(&tranche(5, 7))?;
-    if !(1..=9999).contains(&annee) {
-        return Err(socle::date::annee_impossible(annee));
-    }
-    if !(1..=12).contains(&mo) {
-        return Err(socle::date::mois_impossible(mo));
-    }
-    let mo = mo as u32;
-    let debut_mois = Jour { an: annee, mois: mo, jour: 1 };
-    let fin_mois = Jour { an: annee, mois: mo, jour: debut_mois.jours_du_mois() };
+    let mois = socle::mois::Mois::lire(mois)?;
+    let annee = mois.annee();
+    let (debut_mois, fin_mois) = (mois.premier_jour(), mois.dernier_jour());
     let ne = naissance(ctx, salarie)?;
     let p_mois = position(ctx, &c, engagements, salarie, &(debut_mois, fin_mois, "periode".to_string()), ne);
     let p_annee = position(ctx, &c, engagements, salarie, &fenetre_annee_civile(annee, Some(fin_mois)), ne);
@@ -458,7 +333,7 @@ pub fn tableau_cumul(
         })
     };
     let mut colonnes = vec![
-        col("Période", format!("{:02}/{}", mo, annee), &p_mois, None, None)?,
+        col("Période", format!("{:02}/{}", mois.numero(), annee), &p_mois, None, None)?,
         col("Cumul", format!("année {}", annee), &p_annee, None, None)?,
     ];
     if let Some(anniv) = anniversaire_configure(ctx, salarie)? {
@@ -472,8 +347,5 @@ pub fn tableau_cumul(
 /// Date anniversaire des droits, si elle est dans `config/salaries.json`
 /// (`anniversaire_droits`) ; absente tant que France Travail ne l'a pas notifiee.
 pub fn anniversaire_configure(ctx: &Contexte, salarie: &str) -> Resultat<Option<Jour>> {
-    match ctx.salaries.get(salarie).and_then(|f| f.get("anniversaire_droits")) {
-        Some(v) if socle::fichiers::vrai(v) => d(v).map(Some),
-        _ => Ok(None),
-    }
+    Ok(ctx.salaries.get(salarie).and_then(|f| f.anniversaire_droits.dite().copied()))
 }

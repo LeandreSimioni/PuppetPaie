@@ -31,12 +31,10 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::editeur::{Client, ErreurFilet};
 use socle::ecriture::ecrire_json;
 use envois::etats::{get};
-use socle::valeur::valeurs_egales;
-use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
+use documents::valeur::{nom_type, valeur_en_texte, valeurs_egales, vrai};
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::{dossier_du_code, vrai};
+use socle::fichiers::dossier_du_code;
 use regex::Regex;
 use socle::verrou::Verrou;
 

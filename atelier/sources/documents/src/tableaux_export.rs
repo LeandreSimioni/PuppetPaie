@@ -14,6 +14,7 @@
 //! volet fige sous l'en-tete. Il se prouve par son contenu (openpyxl), pas a l'octet. Le PDF est celui de la
 //! fabrique (`fabrique_pdf`), decrit comme `tableaux.description_pdf`.
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -21,10 +22,8 @@ use rust_xlsxwriter::{Format, FormatAlign, Workbook, Worksheet};
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use socle::date::forme_ecrite;
-use socle::valeur::valeur_en_texte;
+use crate::valeur::{forme_ecrite, valeur_en_texte};
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
 
@@ -70,7 +69,7 @@ impl Val {
     pub fn decimal(&self) -> R<Decimal> {
         let t = match self {
             Val::Dec(d) => return Ok(*d),
-            Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
+            Val::Num(v) => return crate::valeur::dec(v).map_err(|m| erreur("InvalidOperation", m)),
             Val::Txt(s) => s,
         };
         socle::num::decimal_lu(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
@@ -379,12 +378,7 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
 
 /// Le nom de la compagnie, ou rien.
 pub fn nom_compagnie(ctx: &Contexte) -> String {
-    for c in ["nom_affichage", "raison_sociale", "nom"] {
-        if let Some(v) = ctx.entreprise.get(c).filter(|v| vrai(v)) {
-            return valeur_en_texte(v);
-        }
-    }
-    String::new()
+    ctx.entreprise.nommee()
 }
 
 fn entete_texte(t: &Tableau, nom: &str) -> Vec<String> {
@@ -576,17 +570,23 @@ fn ecrire_cellule(ws: &mut Worksheet, ligne: u32, col: u16, cel: &Cel, fmt: &For
     }
 }
 
-/// Le nom de la feuille : au plus 31 caracteres, sans ceux qu'Excel refuse.
-fn nom_de_feuille(t: &str) -> String {
-    let n: String = t.chars().take(31).collect();
-    n.chars().map(|c| if "[]:*?/\\".contains(c) { '_' } else { c }).collect()
+/// Le nom de la feuille : celui de l'etat (`livre-de-paie`), qui tient dans les 31 caracteres qu'Excel admet et n'en
+/// porte aucun qu'il refuse ; le titre entier est la premiere ligne de la feuille.
+fn nom_de_feuille(t: &Tableau) -> R<&str> {
+    if t.etat.is_empty() || t.etat.chars().count() > 31 || t.etat.chars().any(|c| "[]:*?/\\'".contains(c)) {
+        return Err(refus(format!(
+            "L'état « {} » ne peut pas nommer une feuille Excel : 31 caractères au plus, sans crochet, deux-points, astérisque, point d'interrogation, barre ni apostrophe. Le renommer dans le moteur.",
+            t.etat
+        )));
+    }
+    Ok(&t.etat)
 }
 
 /// `xlsx_tableau`.
 pub fn xlsx_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut wb = Workbook::new();
     let ws = wb.add_worksheet();
-    ws.set_name(nom_de_feuille(&t.titre)).map_err(xl)?;
+    ws.set_name(nom_de_feuille(t)?).map_err(xl)?;
     let mut ligne: u32 = 0;
     for x in entete_texte(t, &lire_nom(ctx)) {
         ws.write_string_with_format(ligne, 0, &x, &format_de(true, Some(13.0), None)).map_err(xl)?;
@@ -854,16 +854,9 @@ pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<P
 
 // ------------------------------------------------------------------ petits outils
 
-/// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
-pub fn nom_du_mois(m: &str) -> R<&'static str> {
-    let tranche: String = m.chars().skip(5).take(2).collect();
-    let n = socle::num::entier_lu(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
-    socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
-}
-
-/// « Septembre 2026 ».
+/// « Septembre 2026 » d'un mois `AAAA-MM` (le nom en titre) ; un mois illisible se refuse.
 pub fn libelle_mois(m: &str) -> R<String> {
-    Ok(format!("{} {}", nom_du_mois(m)?, m.chars().take(4).collect::<String>()))
+    socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Titre)).map_err(|e| erreur("ValueError", e))
 }
 
 /// AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.
@@ -877,22 +870,20 @@ pub fn jj(iso: &str) -> String {
 }
 
 /// « NOM Prenom ».
-pub fn qui(fiche: &Value) -> R<String> {
-    let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => valeur_en_texte(v),
-        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
-    };
-    let nom = fiche.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-    Ok(format!("{} {}", valeur_en_texte(nom), prenom))
+pub fn qui(fiche: &droit::fiche::ChampsSalarie) -> R<String> {
+    if fiche.nom.is_none() {
+        return Err(erreur("KeyError", socle::fichiers::absent("nom")));
+    }
+    Ok(qui_souple(fiche))
 }
 
 /// Le « qui » d'une fiche qui n'a peut-etre pas de nom.
-pub fn qui_souple(fiche: &Value) -> String {
-    let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => valeur_en_texte(v),
-        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
+pub fn qui_souple(fiche: &droit::fiche::ChampsSalarie) -> String {
+    let prenom = match fiche.prenom_affichage.texte() {
+        "" => fiche.prenom.texte(),
+        p => p,
     };
-    format!("{} {}", fiche.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom)
+    format!("{} {}", fiche.nom.texte(), prenom)
 }
 
 /// Un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).

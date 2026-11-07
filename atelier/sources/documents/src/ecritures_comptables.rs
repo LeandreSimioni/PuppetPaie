@@ -2,6 +2,7 @@
 //! recouvert par `config/plan-comptable.json`) et leur CSV (`Compta_AAAA.csv`) : point-virgule, virgule decimale,
 //! UTF-8 avec BOM, fins de ligne CRLF. Tout part des paies du mois (`engagement::etats::paies_du_mois` : ecrites ou importees).
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 
 use serde_json::{json, Map, Value};
@@ -9,9 +10,9 @@ use serde_json::{json, Map, Value};
 use droit::catalogue::{self, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
+use crate::valeur::vrai;
 use socle::num::{eur2, zero2, Decimal};
-use socle::valeur::valeur_en_texte;
+use crate::valeur::valeur_en_texte;
 
 use crate::plan_comptable::{compte_du_salarie, Refus};
 
@@ -47,21 +48,10 @@ impl Ecriture {
     }
 }
 
-/// Le dernier jour du mois, AAAA-MM-JJ.
-fn dernier_jour(annee: i64, mois: i64) -> R<String> {
-    let (a, m) = if mois == 12 { (annee + 1, 1) } else { (annee, mois + 1) };
-    let premier = socle::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
-    Ok(premier.plus_jours(-1).map_err(|x| erreur("ValueError", x))?.iso())
-}
-
-/// La date de l'ecriture d'un mois (son dernier jour) et son libelle (« Decembre 2026 »). « 00 » n'est aucun mois et se
-/// refuse (`date::numero_du_mois`).
+/// La date de l'ecriture d'un mois (son dernier jour, AAAA-MM-JJ) et son libelle (« Decembre 2026 »).
 fn date_et_libelle(mois: &str) -> R<(String, String)> {
-    let annee: i64 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
-    let mo = i64::from(socle::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
-    let date = dernier_jour(annee, mo)?;
-    let nom = socle::date::nom_du_mois(mo, socle::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
-    Ok((date, format!("{} {}", nom, annee)))
+    let mois = socle::mois::Mois::lire(mois).map_err(|e| erreur("ValueError", e))?;
+    Ok((mois.dernier_jour().iso(), mois.libelle(socle::mois::Graphie::Titre)))
 }
 
 /// `plan[cle]` : `KeyError` s'il manque.
@@ -73,7 +63,7 @@ fn cle_du_plan<'a>(plan: &'a Map<String, Value>, cle: &str) -> R<&'a Value> {
 fn dans<'a>(v: &'a Value, cle: &str) -> R<&'a Value> {
     match v {
         Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", crate::valeur::nom_type(autre)))),
     }
 }
 
@@ -122,8 +112,8 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
     };
     for (p, pas) in paies.iter().zip(&pas_des_paies) {
         // UN PERMANENT N'A PAS DE SPECTACLE : son brut va a sa propre section.
-        let titre = match p.spectacle.get("titre").filter(|t| vrai(t)) {
-            Some(t) => valeur_en_texte(t),
+        let titre = match p.spectacle.as_ref().and_then(|s| s.titre.dite()).filter(|t| !t.is_empty()) {
+            Some(t) => t.clone(),
             None => match p.engagement.spectacle.as_deref().filter(|s| !s.is_empty()) {
                 Some(s) => s.to_string(),
                 None => "Salariés au mois".to_string(),
@@ -131,11 +121,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
         };
         let brut = eur2(p.brut);
         ajouter(&mut brut_par_spectacle, titre.clone(), brut);
-        let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => valeur_en_texte(v),
-            None => p.salarie.get("prenom").map(valeur_en_texte).unwrap_or_default(),
-        };
-        let qui = format!("{} {}", valeur_en_texte(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
+        let qui = crate::tableaux_export::qui(&p.salarie)?;
         let mut retenu = zero;
         for l in p.remuneration.iter().filter(|l| !l.soumis) {
             if catalogue::rubrique(&ctx.racine, &l.code, &ctx.lue_au).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
@@ -163,22 +149,25 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;
         ajouter(&mut net_par_salarie, qui.clone(), eur2(p.net_a_payer) - prelevement);
-        let cle_salarie = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        let cle_salarie = p.salarie.id.to_string();
         let compte = compte_du_salarie(plan, &p.salarie, &cle_salarie).map_err(|r| match r {
             Refus::Operation(m) => refus(m),
             Refus::Autre(e) => e,
         })?;
         compte_de.insert(qui, compte);
         for l in &p.lignes {
-            let regle = lignes_du_plan.as_object().and_then(|o| o.get(&l.id)).filter(|r| vrai(r));
+            let Some(id) = l.id.as_deref() else {
+                return Err(refus(format!("La ligne de bulletin « {} » ne dit pas sa cotisation : elle n'a pas de compte dans le plan comptable.", l.libelle)));
+            };
+            let regle = lignes_du_plan.as_object().and_then(|o| o.get(id)).filter(|r| vrai(r));
             let Some(regle) = regle else {
                 return Err(refus(format!(
                     "La ligne de bulletin « {} » ({}) n'a pas de compte dans le plan comptable. L'ajouter dans config/plan-comptable.json sous « lignes », avec un compte de charge et un compte de tiers.",
-                    l.id, l.libelle
+                    id, l.libelle
                 )));
             };
             let libelle_de = |r: &Value| ou_texte(r.get("libelle"), &l.libelle);
-            if l.id == "reduction_generale" {
+            if id == "reduction_generale" {
                 if let Some(rg) = &p.reduction_generale {
                     // La RGDU : une charge negative, ventilee au tiers de chaque part telle que la paie l'a calculee.
                     let k = (valeur_en_texte(dans(regle, "charge")?), libelle_de(regle));

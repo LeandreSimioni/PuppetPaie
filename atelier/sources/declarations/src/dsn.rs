@@ -12,16 +12,20 @@ use std::path::Path;
 use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
-use droit::bareme::{self, bareme_applique};
+use droit::bareme::{self, bareme_applique, EntrepriseLue};
+use droit::fiche::{ChampsEntreprise, DeclarantDsn, Lue};
+use droit::forme_bareme::{CotisationDsn, Pile, Rubrique};
 use documents::bordereau::{self, Destinataire, LigneBordereau};
 use droit::reduction::au_dela_du_seuil;
 use engagement::calcul::Paie;
 use engagement::etats::PrelevementDeLaCorrection;
 use droit::contexte::{aujourdhui, Contexte};
-use droit::natures::{contrat_court, Nature};
-use socle::date::{en_texte, Jour};
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
-use socle::num::{add, dec, dec_avec_echelle, div, eur, mul, pct, sub, Decimal, Resultat};
+use droit::natures::{contrat_court, Mesure, Nature, TypeDeRemuneration};
+use socle::date::Jour;
+use documents::valeur::{dec, dec_avec_echelle, en_texte, vrai};
+use socle::mois::Mois;
+use socle::num::{add, div, mul, pct, sub, Decimal, Resultat};
+use droit::organismes::{Ctp, Organismes, Versement};
 use droit::pas::{self, Triplet, ZONE_DEFAUT};
 
 pub const LOGICIEL: &str = "PUPPETPAIE";
@@ -82,12 +86,38 @@ impl Fichier {
     }
 
     /// Pose `rubrique` d'une valeur JSON écrite en texte ; refus sur `null`.
+    /// Une rubrique dite par un texte, exigee : sans lui, le refus la nomme.
+    pub fn add_ecrit(&mut self, rubrique: &str, valeur: Option<String>) -> Resultat<()> {
+        self.add(rubrique, valeur.ok_or_else(|| absente(rubrique))?);
+        Ok(())
+    }
+
     pub fn add_v(&mut self, rubrique: &str, valeur: &Value) -> Resultat<()> {
         if valeur.is_null() {
             return Err(absente(rubrique));
         }
         self.add(rubrique, en_texte(valeur));
         Ok(())
+    }
+
+    /// LE COMPLEMENT D'ADRESSE (S10.G00.01.009, S21.G00.06.007, S21.G00.11.006 : « Complement de la localisation de la
+    /// construction », facultatif, X [1,50], `atelier/reference/norme-dsn/texte/bloc-S21.G00.06.txt` l. 98-110) : la
+    /// seconde ligne de l'adresse, ecrite entiere quand la fiche la dit, absente sinon.
+    pub fn add_complement(&mut self, rubrique: &str, case: &Option<droit::fiche::LigneAdresse>) {
+        if let Some(t) = case.remplie() {
+            self.add(rubrique, t);
+        }
+    }
+
+    /// La case `cle` d'une fiche, que la rubrique exige : vide, elle refuse en se nommant.
+    pub fn add_case<T: AsRef<str>>(&mut self, rubrique: &str, case: &Option<T>, cle: &str) -> Resultat<()> {
+        match case {
+            None => Err(socle::fichiers::absent(cle)),
+            Some(t) => {
+                self.add(rubrique, t.as_ref());
+                Ok(())
+            }
+        }
     }
 
     /// Les rubriques ecrites, `(rubrique, valeur)`, dans l'ordre.
@@ -135,9 +165,9 @@ pub fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 /// pouvant donner des précisions sur cet envoi ». Le nom ne vient plus du signataire (le courriel et le téléphone
 /// venaient déjà du déclarant : deux personnes dans le même bloc), et la civilité n'est plus « 01 » en dur : elle
 /// se lit dans la fiche, sinon refus.
-pub fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
-    let decl = req(ent, "declarant_dsn")?;
-    let civilite = txt(g(decl, "civilite"));
+pub fn contact_emetteur(f: &mut Fichier, ent: &ChampsEntreprise) -> Resultat<()> {
+    let decl = ent.declarant_dsn.exigee("declarant_dsn")?;
+    let civilite = decl.civilite.code();
     if civilite != "01" && civilite != "02" {
         return Err(socle::echec::cle(format!(
             "La civilité de la personne que les organismes contactent {} : la saisir dans Configuration › Entreprise, « Qui les organismes contactent », case Civilité (Monsieur ou Madame). Elle s'écrit en S10.G00.02.001 (cahier technique DSN, p. 132). Rien n'est écrit.",
@@ -145,12 +175,23 @@ pub fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
         ), "declarant_dsn.civilite"));
     }
     f.add("S10.G00.02.001", civilite);
-    if !vrai(g(decl, "nom_prenom")) {
+    if decl.nom_prenom.remplie().is_none() {
         return Err(socle::echec::cle("Le nom de la personne que les organismes contactent manque : le saisir dans Configuration › Entreprise, « Qui les organismes contactent ». Il s'écrit en S10.G00.02.002 et S20.G00.07.001. Rien n'est écrit.", "declarant_dsn.nom_prenom"));
     }
-    f.add_v("S10.G00.02.002", req(decl, "nom_prenom")?)?;
-    f.add_v("S10.G00.02.004", req(decl, "email")?)?;
-    f.add_v("S10.G00.02.005", req(decl, "tel")?)?;
+    f.add_case("S10.G00.02.002", &decl.nom_prenom, "nom_prenom")?;
+    f.add_case("S10.G00.02.004", &decl.email, "email")?;
+    f.add_case("S10.G00.02.005", &decl.tel, "tel")?;
+    Ok(())
+}
+
+/// Le bloc `S20.G00.07` (contact chez le declare) de la personne que les organismes contactent (`declarant_dsn`), commun
+/// a la mensuelle et aux signalements : nom, telephone, courriel, type.
+pub fn contact_chez_le_declare(f: &mut Fichier, ent: &ChampsEntreprise) -> Resultat<()> {
+    let decl = ent.declarant_dsn.exigee("declarant_dsn")?;
+    f.add_case("S20.G00.07.001", &decl.nom_prenom, "nom_prenom")?;
+    f.add_case("S20.G00.07.002", &decl.tel, "tel")?;
+    f.add_case("S20.G00.07.003", &decl.email, "email")?;
+    f.add("S20.G00.07.004", type_du_contact(decl));
     Ok(())
 }
 
@@ -165,11 +206,8 @@ pub fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
 pub const TYPE_CONTACT_ORDINAIRE: &str = "04";
 
 /// Le type du contact a ecrire en S20.G00.07.004 : celui de la fiche s'il y en a un, sinon [`TYPE_CONTACT_ORDINAIRE`].
-pub fn type_du_contact(decl: &Value) -> Value {
-    match decl.get("qualite") {
-        Some(q) if vrai(q) => q.clone(),
-        _ => Value::String(TYPE_CONTACT_ORDINAIRE.to_string()),
-    }
+fn type_du_contact(decl: &DeclarantDsn) -> &str {
+    decl.qualite.remplie().unwrap_or(TYPE_CONTACT_ORDINAIRE)
 }
 
 /// LA MEDECINE DU TRAVAIL INTERNE DE L'ETABLISSEMENT, dans l'identifiant de son service de prevention et de sante au travail
@@ -178,18 +216,19 @@ pub fn type_du_contact(decl: &Value) -> Value {
 /// 2027.1.1, `texte-2027/bloc-S21.G00.11.txt` l. 232-237). La norme 2027 y nomme les SPST autonomes : « MT01 - MEDECINE
 /// INTERNE ETABLISSEMENT » (note differentielle 2026.1.2 -> 2027.1.2, § 13,
 /// `norme-dsn/dsn-note-differentielle-ct-2026.1.2-vers-2027.1.2-20251224.txt` l. 3497-3503), et en fait la condition du
-/// contact de type 17 (`contact_sante_travail`) ; la norme 2026 n'a ni l'une ni l'autre. La fiche garde ce code pour la
-/// DPAE (`medecine_travail`, « le code de votre service de prevention et de sante au travail »).
+/// contact de type 17 (`contact_sante_travail`) ; la norme 2026 n'a ni l'une ni l'autre. La fiche garde le code de la DPAE
+/// (`medecine_travail`), ou la medecine interne s'ecrit MT999 (`droit::fiche::CodeMedecine::INTERNE`) : les deux textes nomment la
+/// meme medecine interne a l'etablissement, ce qui est une inference.
 ///
-/// Rend `MT01` quand la fiche le dit et que la version du fichier est 2027 ou apres ; sinon rien. L'identifiant d'un
+/// Rend `MT01` quand la fiche dit une medecine interne et que la version du fichier est 2027 ou apres ; sinon rien. L'identifiant d'un
 /// service EXTERNE ne s'ecrit pas encore : sa definition est « precisee dans la fiche consigne dediee », qui n'est pas
 /// deposee, et que le code de la DPAE soit cet identifiant serait une inference (la rubrique est conditionnelle).
-fn spst_ecrit(f: &Fichier, ent_e: &Value) -> Resultat<Option<String>> {
-    let spst = txt(g(ent_e, "medecine_travail")).trim().to_string();
-    if spst != "MT01" || f.norme()?.version.as_str() < "P27V01" || !usage_admet(f, "S21.G00.11.025", "01")? {
+fn spst_ecrit(f: &Fichier, ent_e: &ChampsEntreprise) -> Resultat<Option<String>> {
+    let interne = ent_e.medecine_travail.dite().is_some_and(droit::fiche::CodeMedecine::interne);
+    if !interne || f.norme()?.version.as_str() < "P27V01" || !usage_admet(f, "S21.G00.11.025", "01")? {
         return Ok(None);
     }
-    Ok(Some(spst))
+    Ok(Some("MT01".to_string()))
 }
 
 /// LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE (S20.G00.07 de type 17). Norme 2027 (cahier technique 2027.1.1,
@@ -198,26 +237,26 @@ fn spst_ecrit(f: &Fichier, ent_e: &Value) -> Resultat<Option<String>> {
 /// avec la valeur MT01 - MEDECINE INTERNE ETABLISSEMENT [...], alors un bloc Contact chez le declare - S20.G00.07 de type 17
 /// [...] doit obligatoirement etre present. Dans le cas contraire, il est interdit. » ; c'est « le medecin du travail ou
 /// un interlocuteur place sous sa responsabilite, pour la transmission des arrets de travail ». Il vient de la fiche
-/// (`contact_sante_travail`, montre et demande quand le code vaut MT01, `champs-base.json`) ; sans lui, la DSN refuse.
-fn contact_sante_travail(f: &mut Fichier, ent_e: &Value) -> Resultat<()> {
+/// (`contact_sante_travail`, montre et demande quand le code vaut MT999, `champs-base.json`) ; sans lui, la DSN refuse.
+fn contact_sante_travail(f: &mut Fichier, ent_e: &ChampsEntreprise) -> Resultat<()> {
     if spst_ecrit(f, ent_e)?.as_deref() != Some("MT01") {
         return Ok(());
     }
-    let c = g(ent_e, "contact_sante_travail");
-    let manque: Vec<&str> = [("nom_prenom", "nom et prénom"), ("tel", "téléphone"), ("email", "courriel")]
+    let c = ent_e.contact_sante_travail.dite().cloned().unwrap_or_default();
+    let manque: Vec<&str> = [(&c.nom_prenom, "nom et prénom"), (&c.tel, "téléphone"), (&c.email, "courriel")]
         .into_iter()
-        .filter(|(k, _)| txt(g(c, k)).trim().is_empty())
+        .filter(|(k, _)| k.texte().trim().is_empty())
         .map(|(_, l)| l)
         .collect();
     if !manque.is_empty() {
         return Err(format!(
-            "La médecine du travail de la compagnie est interne (code MT01) : la DSN déclare qui y répond, le médecin du travail ou une personne sous sa responsabilité (S20.G00.07, type 17). Manque : {}. Le saisir dans Configuration › Entreprise, « Qui répond pour la médecine du travail interne ». Rien n'est écrit.",
+            "La médecine du travail de la compagnie est interne (code MT999) : la DSN déclare qui y répond, le médecin du travail ou une personne sous sa responsabilité (S20.G00.07, type 17). Manque : {}. Le saisir dans Configuration › Entreprise, « Qui répond pour la médecine du travail interne ». Rien n'est écrit.",
             manque.join(", ")
         ));
     }
-    f.add_v("S20.G00.07.001", g(c, "nom_prenom"))?;
-    f.add_v("S20.G00.07.002", g(c, "tel"))?;
-    f.add_v("S20.G00.07.003", g(c, "email"))?;
+    f.add("S20.G00.07.001", c.nom_prenom.texte());
+    f.add("S20.G00.07.002", c.tel.texte());
+    f.add("S20.G00.07.003", c.email.texte());
     f.add("S20.G00.07.004", "17");
     Ok(())
 }
@@ -265,27 +304,21 @@ fn rond(x: Decimal) -> Decimal {
 }
 
 pub fn jour(v: &Value) -> Resultat<Jour> {
-    socle::date::d(v)
+    documents::valeur::d(v)
 }
 
 pub fn jj(v: &Value) -> Resultat<String> {
     Ok(jour(v)?.jjmmaaaa())
 }
 
-fn fin_mois(an: i32, mo: u32) -> Jour {
-    Jour::nouveau(an, mo, socle::date::jours_du_mois(an, mo)).unwrap()
-}
 
-fn premier(mois: &str) -> Resultat<Jour> {
-    socle::date::premier_du_mois(mois)
-}
 
 fn tuple(j: Jour) -> (i32, u32, u32) {
     (j.an, j.mois, j.jour)
 }
 
 fn cle_salarie(p: &Paie) -> String {
-    txt(g(&p.salarie, "_cle"))
+    p.salarie.id.to_string()
 }
 
 // ------------------------------------------------- les emplois multiples (S21.G00.40.036)
@@ -294,7 +327,7 @@ fn cle_salarie(p: &Paie) -> String {
 /// `40.006`), lu sur la fiche telle que l'engagement l'a faite (`emplois::emploi_de`).
 fn emploi_declare(p: &Paie) -> (String, String, String) {
     let s = &p.salarie;
-    (txt(g(s, "pcs_ese")), txt(g(s, "code_emploi_ft")), txt(g(s, "emploi")))
+    (s.pcs_ese.texte().to_string(), s.code_emploi_ft.texte().to_string(), s.emploi.texte().to_string())
 }
 
 /// Les contrats d'une periode de paie : la paie ecrite de chaque engagement valide du mois
@@ -325,12 +358,30 @@ pub fn emplois_multiples(p: &Paie, autres: &[&Paie]) -> &'static str {
     }
 }
 
-// ------------------------------------------------- les etablissements
+// ------------------------------------------------- l'individu (S21.G00.30)
 
-pub fn nics(fiche: &Value) -> Vec<String> {
-    let mut out = vec![bareme::nic_principal(fiche)];
-    out.extend(bareme::secondaires(fiche).iter().map(|e| en_texte(g(e, "nic"))));
-    out
+/// LE BLOC 30 D'UN INDIVIDU, de son NIR a son matricule, tel que sa fiche le dit (`s` : la DSN mensuelle y met les
+/// identifiants du mois declare, `changements_individu::identite_du_mois`). La codification UE se lit par
+/// `codification_ue` (quatre valeurs, et un ancien 03 se relit) ; le pays de naissance dans la liste livree (`pays.rs`,
+/// un code inconnu refuse). L'adresse mel (30.018) est conditionnelle (usage « C », et « conditionne a l'accord
+/// explicite » de l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) :
+/// elle s'ecrit quand la nature l'admet (`courriel`) et que la fiche la dit.
+pub fn bloc_individu(f: &mut Fichier, s: &droit::fiche::ChampsSalarie, courriel: bool) -> Resultat<()> {
+    crate::ntt::poser_nir(f, s)?;
+    f.add_case("S21.G00.30.002", &s.nom, "nom")?;
+    f.add_case("S21.G00.30.004", &s.prenom, "prenom")?;
+    f.add("S21.G00.30.006", s.date_naissance.exigee("date_naissance")?.jjmmaaaa());
+    f.add_case("S21.G00.30.007", &s.lieu_naissance, "lieu_naissance")?;
+    f.add_case("S21.G00.30.008", &s.adresse, "adresse")?;
+    f.add_case("S21.G00.30.009", &s.code_postal, "code_postal")?;
+    f.add_case("S21.G00.30.010", &s.commune, "commune")?;
+    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(&s.nationalite())?);
+    f.add_case("S21.G00.30.014", &s.departement_naissance, "departement_naissance")?;
+    f.add_case("S21.G00.30.015", &s.pays_de_naissance()?, "pays_naissance")?;
+    if courriel && !s.email.texte().is_empty() {
+        f.add("S21.G00.30.018", s.email.texte());
+    }
+    f.add_case("S21.G00.30.019", &s.code_salarie, "code_salarie")
 }
 
 
@@ -347,9 +398,14 @@ impl Arret {
         txt(g(&self.v, k))
     }
 
+    /// L'arret en sa forme (`engagement::imprevus::ArretSaisi`), pour les regles du magasin.
+    pub fn forme(&self) -> Resultat<engagement::imprevus::ArretSaisi> {
+        socle::forme::lire(&self.v, engagement::imprevus::ILLISIBLE)
+    }
+
     /// Une periode commune avec [debut, fin] : la regle du bloc 60 (`imprevus::arret_croise`).
     pub fn couvre(&self, debut: &Jour, fin: &Jour) -> Resultat<bool> {
-        engagement::imprevus::arret_croise(&self.v, debut, fin)
+        engagement::imprevus::arret_croise(&self.forme()?, debut, fin)
     }
 
     /// L'arret se reporte-t-il dans la DSN mensuelle de `mois` ? Celle de chaque mois qu'il croise ; et, s'il a fini avant
@@ -361,8 +417,8 @@ impl Arret {
     /// mensuelle même si les impacts de l'absence sont portés dans une paie ultérieure. Un arret sans date de saisie, ou
     /// dont le contrat n'a rien declare de reel, ne se reporte que dans les mois qu'il croise.
     pub fn a_reporter(&self, mois: &str, departs: &engagement::departs::Departs) -> Resultat<bool> {
-        let debut_mois = socle::date::premier_du_mois(mois)?;
-        if self.couvre(&debut_mois, &socle::date::dernier_du_mois(mois)?)? {
+        let debut_mois = socle::mois::Mois::lire(mois)?.premier_jour();
+        if self.couvre(&debut_mois, &socle::mois::Mois::lire(mois)?.dernier_jour())? {
             return Ok(true);
         }
         let origine = Jour::nouveau(1900, 1, 1).ok_or("jour inexistant")?;
@@ -392,19 +448,20 @@ impl Arret {
 
     /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
     /// meme date de debut du contrat, le meme numero quand l'un et l'autre en ont un.
-    fn du_contrat(&self, p: &Paie) -> bool {
-        engagement::imprevus::du_contrat(&self.v, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut).unwrap_or(false)
+    fn du_contrat(&self, p: &Paie) -> Resultat<bool> {
+        engagement::imprevus::du_contrat(&self.forme()?, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)
     }
 }
 
-fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
-    let t = json_en_cache(&dossier_du_code().join("arrets-base.json"))?;
-    for c in liste(&t["subrogation"]["codes"]) {
-        if txt(g(c, "libelle")) == libelle {
-            return Ok(txt(g(c, "code")));
+/// Ceux des arrets qui suspendent le contrat de cette paie (`Arret::du_contrat`).
+fn arrets_du_contrat<'a>(arrets: &[&'a Arret], p: &Paie) -> Resultat<Vec<&'a Arret>> {
+    let mut out = Vec::new();
+    for a in arrets {
+        if a.du_contrat(p)? {
+            out.push(*a);
         }
     }
-    Err(socle::echec::livree("arrets-base.json", &format!("subrogation.{}", libelle)))
+    Ok(out)
 }
 
 /// Le bloc « Arret de travail - S21.G00.60 » (`signalement.bloc_60`).
@@ -413,24 +470,24 @@ fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
 /// `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60) : la subrogation (60.004 a 60.008) est
 /// C en 01, O ou C en 04, I en 05 et en 07 ; la date de l'accident (60.012), I en 01 et en 07. `nature` est celle du
 /// fichier, jamais une autre.
-pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: &Value) -> Resultat<()> {
+pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: Option<&droit::fiche::Banque>) -> Resultat<()> {
     let v = &a.v;
     f.add_v("S21.G00.60.001", g(v, "motif"))?;
     // La veille du debut prescrit, ou ce jour s'il a ete travaille (S21.G00.60.002, `imprevus::dernier_jour_declare`).
-    f.add("S21.G00.60.002", engagement::imprevus::dernier_jour_declare(v)?.jjmmaaaa());
+    f.add("S21.G00.60.002", engagement::imprevus::dernier_jour_declare(&a.forme()?)?.jjmmaaaa());
     f.add("S21.G00.60.003", jj(g(v, "fin_previsionnelle"))?);
     if usage_admet(f, "S21.G00.60.004", nature)? && vrai(g(v, "subrogation")) {
         f.add_v("S21.G00.60.004", g(v, "subrogation"))?;
-        if a.s("subrogation") == nomenclature_subrogation("oui")? {
-            if !vrai(g(banque, "iban")) || !vrai(g(banque, "bic")) {
+        if crate::signalement::avec_subrogation(a)? {
+            let Some((iban, bic)) = banque.and_then(|b| b.iban.remplie().zip(b.bic.remplie())) else {
                 return Err("Subrogation demandee : l'IBAN et le BIC de la compagnie (S21.G00.60.007 et .008) sont \
 obligatoires -- CCH-11. Ils se lisent dans la fiche entreprise, ils ne se saisissent pas dans l'arret."
                     .into());
-            }
+            };
             f.add("S21.G00.60.005", jj(g(v, "subrogation_debut"))?);
             f.add("S21.G00.60.006", jj(g(v, "subrogation_fin"))?);
-            f.add_v("S21.G00.60.007", &banque["iban"])?;
-            f.add_v("S21.G00.60.008", &banque["bic"])?;
+            f.add("S21.G00.60.007", iban);
+            f.add("S21.G00.60.008", bic);
         }
     }
     if vrai(g(v, "reprise")) {
@@ -513,7 +570,7 @@ pub struct Cotisation {
     pub taux: Option<Value>,
     pub montant: Option<Decimal>,
     /// Le composant d'une base 31 (S21.G00.79.001, et son montant 79.004) quand la source du taux de la ligne le dit
-    /// (`_composant_79`, `bareme::bareme_sante`) ; `None` : la tranche A, sur le brut.
+    /// (`composant_79`, `bareme::bareme_sante`) ; `None` : la tranche A, sur le brut.
     pub composant79: Option<(String, Decimal)>,
     /// La part patronale de la CET (`parts_patronales_agirc_arrco`) : son code se lit dans la version de la norme du
     /// fichier (`Norme::cotisation_cet_patronale`), pas dans `code81`.
@@ -529,7 +586,7 @@ fn opt_txt(v: &Value) -> Option<String> {
 }
 
 /// Les assiettes que le calcul a ecrites dans la paie, telles quelles : rien ne se recalcule.
-pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
+pub fn bases(p: &Paie, bar: &Pile) -> Resultat<HashMap<String, Decimal>> {
     let b = &p.bases;
     let mut out = HashMap::new();
     let lue = |cle: &str| -> Resultat<Decimal> { b.get(cle).copied().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, cle)) };
@@ -539,7 +596,8 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     out.insert("brut_x115".into(), lue("brut_x115")?);
     out.insert("brut_x110".into(), lue("brut_x110")?);
     out.insert("zero".into(), zero());
-    if vrai(g(bar, "plafond_journalier")) {
+    // La tranche 1 journaliere d'un intermittent (`calcul::calculer`, 7.6), quand la pile a un plafond journalier.
+    if bar.plafond_journalier.is_some() && !p.engagement.nat()?.mensuelle() {
         out.insert("t1_journaliere".into(), lue("t1_journaliere")?);
     }
     // Les assiettes plafonnees d'un intermittent (`calcul::calculer`, 7.6) : les bases 02 et 07 portent ce que le
@@ -618,11 +676,10 @@ pub fn brut_du_51(p: &Paie) -> Decimal {
     }
 }
 
-fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
-    let ids: Vec<String> = liste(ids).iter().map(en_texte).collect();
+fn somme_lignes(p: &Paie, ids: &[String], patronale_seule: bool) -> Decimal {
     p.lignes
         .iter()
-        .filter(|l| ids.contains(&l.id))
+        .filter(|l| l.id.as_ref().is_some_and(|i| ids.contains(i)))
         .fold(zero(), |s, l| add(s, if patronale_seule { l.montant_pat } else { add(l.montant_pat, l.montant_sal) }))
 }
 
@@ -630,25 +687,39 @@ fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
 /// la pile d'une paie a chaque bloc qui la declare (versement, bases, cotisations, bordereau), et elle ne depend que de
 /// ce bareme et de la paie (`bareme_de`).
 pub struct BaremeDuMois {
-    bar: Value,
-    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<Value>>>,
+    bar: Pile,
+    /// Les contributions de branche du mois, posees par la DSN (`contributions_dsn`).
+    pub contributions_du_mois: Vec<Value>,
+    /// La compagnie telle que ce bareme la lit (`Contexte::entreprise_lue`, au meme jour).
+    pub entreprise: EntrepriseLue,
+    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<Pile>>>,
 }
 
 impl BaremeDuMois {
-    pub fn nouveau(bar: Value) -> BaremeDuMois {
-        BaremeDuMois { bar, piles: Default::default() }
+    pub fn nouveau(bar: Pile, entreprise: EntrepriseLue) -> BaremeDuMois {
+        BaremeDuMois { bar, contributions_du_mois: Vec::new(), entreprise, piles: Default::default() }
     }
 }
 
 impl std::ops::Deref for BaremeDuMois {
-    type Target = Value;
-    fn deref(&self) -> &Value {
+    type Target = Pile;
+    fn deref(&self) -> &Pile {
         &self.bar
     }
 }
 
+/// Ce que la DSN declare de la reduction generale de la pile (ses codes ; aucun : ceux de la norme).
+fn reduction_dsn(pile: &Pile) -> droit::forme_bareme::ReductionDsn {
+    pile.reduction_generale.as_ref().and_then(|r| r.dsn.clone()).unwrap_or_default()
+}
+
+/// L'organisme de la premiere cotisation `code` de la pile.
+fn org_de(pile: &Pile, code: &str) -> Option<String> {
+    pile.cotisations_dsn.iter().find(|c| c.code81.as_deref() == Some(code)).and_then(|c| c.org.clone())
+}
+
 /// La pile de bareme de cette paie, sur le bareme du mois choisi.
-fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Value>> {
+fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Pile>> {
     let nat = p.engagement.nat()?;
     let fin = p.engagement.fin_periode()?;
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
@@ -657,11 +728,12 @@ fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Value>> {
         &droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.engagement.salarie),
     )?;
     let caisse = p.declaree_a_la_caisse_des_conges()?;
-    let cle = format!("{}|{}|{}|{}|{}|{}", fin.iso(), nat.cle, p.salarie, nat.mensuelle(), caisse, cpf_cdd);
+    let majoration = droit::majoration_chomage::due(&nat, p.engagement.motif_recours.as_deref(), &p.engagement.debut, p.engagement.fin.as_ref());
+    let cle = format!("{}|{}|{:?}|{}|{}|{}|{}", fin.iso(), nat.cle, p.salarie, nat.mensuelle(), caisse, cpf_cdd, majoration);
     if let Some(pile) = bar.piles.lock().unwrap_or_else(|e| e.into_inner()).get(&cle) {
         return Ok(pile.clone());
     }
-    let pile = std::sync::Arc::new(bareme_applique(bar, &p.salarie, &nat, Some(&fin), caisse, cpf_cdd)?);
+    let pile = std::sync::Arc::new(bareme_applique(bar, &bar.entreprise, &p.salarie, &nat, Some(&fin), caisse, cpf_cdd, majoration)?);
     bar.piles.lock().unwrap_or_else(|e| e.into_inner()).insert(cle, pile.clone());
     Ok(pile)
 }
@@ -672,7 +744,7 @@ fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Value>> {
 /// bases aux memes cles (`engagement::importe::Importe::paie`). Zero quand le bareme ne declare rien sous ce code.
 pub fn base_declaree(p: &Paie, bar: &BaremeDuMois, bloc78: &str) -> Resultat<Decimal> {
     let bar = bareme_de(p, bar)?;
-    let Some(cle) = liste(req(&bar, "cotisations_dsn")?).iter().filter(|c| en_texte(g(c, "bloc78")) == bloc78).map(|c| en_texte(g(c, "base78"))).find(|k| k != "zero") else {
+    let Some(cle) = bar.cotisations_dsn.iter().filter(|c| c.bloc78 == bloc78).map(|c| c.base78.clone()).find(|k| k != "zero") else {
         return Ok(zero());
     };
     Ok(match cle_abattue(p, bloc78, &cle)?.as_str() {
@@ -684,49 +756,41 @@ pub fn base_declaree(p: &Paie, bar: &BaremeDuMois, bloc78: &str) -> Resultat<Dec
 
 /// Les cotisations d'un versement, dans l'ordre du bareme.
 pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
-    let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
-    let exclues = places_non_affiliees(p, g(bar, "_entreprise"))?;
+    let contribs = bar.contributions_du_mois.clone();
+    let exclues = places_non_affiliees(p, &bar.entreprise.fiche)?;
     let bar = bareme_de(p, bar)?;
     let bases = bases(p, &bar)?;
     let mut out: Vec<Cotisation> = Vec::new();
-    for c in liste(req(&bar, "cotisations_dsn")?) {
-        let seuil = g(c, "seuil_smic");
-        if !seuil.is_null() && !au_dela_du_seuil(&bar, p.brut, p.heures_travaillees, Some(seuil))? {
+    for c in &bar.cotisations_dsn {
+        if c.seuil_smic.is_some() && !au_dela_du_seuil(bar.reduction_generale.as_ref(), p.brut, p.heures_travaillees, c.seuil_smic.map(|n| n.0))? {
             continue;
         }
-        let bloc78 = en_texte(req(c, "bloc78")?);
-        let abattue = |cle: &Value| -> Resultat<Decimal> { base(&bases, &Value::String(cle_abattue(p, &bloc78, &en_texte(cle))?)) };
+        let bloc78 = c.bloc78.clone();
+        let abattue = |cle: &str| -> Resultat<Decimal> { base(&bases, &Value::String(cle_abattue(p, &bloc78, cle)?)) };
         let mut l = Cotisation {
             bloc78: bloc78.clone(),
-            base78: abattue(req(c, "base78")?)?,
-            code81: en_texte(req(c, "code81")?),
-            org: opt_txt(g(c, "org")),
-            affectation: opt_txt(g(c, "affectation")),
-            cle_total: None,
-            code_insee: None,
+            base78: abattue(&c.base78)?,
+            code81: c.code81.clone().unwrap_or_else(|| "None".into()),
+            org: c.org.clone(),
+            affectation: c.affectation.clone(),
+            cle_total: c.cle_total.clone().filter(|x| !x.is_empty()),
+            code_insee: c.code_insee.clone().filter(|x| !x.is_empty()),
             base81: None,
             taux: None,
             montant: None,
             composant79: None,
             cet: false,
         };
-        if vrai(g(c, "cle_total")) {
-            l.cle_total = Some(en_texte(&c["cle_total"]));
-        }
-        if vrai(g(c, "code_insee")) {
-            l.code_insee = Some(en_texte(&c["code_insee"]));
-        }
-        if vrai(g(c, "lignes")) {
-            l.montant = Some(somme_lignes(p, &c["lignes"], false));
-            l.composant79 = composant_79(p, &bar, &c["lignes"]);
-        } else if !req(c, "taux")?.is_null() {
-            let b = abattue(req(c, "base")?)?;
+        if let Some(lignes) = c.lignes.as_ref().filter(|l| !l.is_empty()) {
+            l.montant = Some(somme_lignes(p, lignes, false));
+            l.composant79 = composant_79(p, &bar, lignes);
+        } else if let Some(taux) = c.taux.map(|t| t.0) {
+            let b = abattue(c.base.as_deref().ok_or_else(|| socle::fichiers::absent("base"))?)?;
             l.base81 = Some(b);
-            l.taux = Some(c["taux"].clone());
-            l.montant = Some(if vrai(g(c, "composants")) {
-                liste(&c["composants"]).iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(t)?))))?
-            } else {
-                pct(b, dec_avec_echelle(&c["taux"])?)
+            l.taux = Some(Value::from(taux));
+            l.montant = Some(match c.composants.as_ref().filter(|c| !c.is_empty()) {
+                Some(composants) => composants.iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(&Value::from(*t))?))))?,
+                None => pct(b, dec_avec_echelle(&Value::from(taux))?),
             });
         }
         let unifie = l.code81 == AGIRC_ARRCO_UNIFIE;
@@ -737,7 +801,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
         }
     }
     let nat = p.engagement.nat()?;
-    let nature = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
+    let nature = nat.bareme().unwrap_or("intermittent").to_string();
     for contrib in &contribs {
         let natures = g(contrib, "natures");
         if natures.get(&nature).is_none() {
@@ -762,7 +826,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
                 code_insee: None,
                 base81: None,
                 taux: None,
-                montant: Some(somme_lignes(p, g(contrib, "lignes"), false)),
+                montant: Some(somme_lignes(p, &liste(g(contrib, "lignes")).iter().map(en_texte).collect::<Vec<_>>(), false)),
                 composant79: None,
                 cet: false,
             },
@@ -770,26 +834,18 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     }
     if let Some(rg) = &p.reduction_generale {
         if !rg.montant.is_zero() {
-            let dsn = g(g(&bar, "reduction_generale"), "dsn");
-            let par = |k: &str, defaut: &str| -> String {
-                let v = g(dsn, k);
-                if v.is_null() { defaut.to_string() } else { en_texte(v) }
-            };
-            let org_de = |code: &str| -> Option<String> {
-                liste(g(&bar, "cotisations_dsn"))
-                    .iter()
-                    .find(|c| txt(g(c, "code81")) == code)
-                    .and_then(|c| opt_txt(g(c, "org")))
-            };
+            let dsn = reduction_dsn(&bar);
+            let par = |v: &Option<String>, defaut: &str| -> String { v.clone().unwrap_or_else(|| defaut.to_string()) };
+            let org_de = |code: &str| -> Option<String> { org_de(&bar, code) };
             let urssaf = org_de("075");
             let ft = org_de("040");
             // Sous la base 03 : abattue sous deduction forfaitaire specifique (`cle_abattue`), comme la reduction
             // elle-meme se calcule sur le brut abattu (`droit::reduction::reduction_generale_sous_dfs`).
             let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
             for (code, org, part, cle) in [
-                (par("code81_urssaf", "018"), urssaf, rg.urssaf, par("cle_total_urssaf", "018:urssaf")),
-                (par("code81_chomage", "018"), ft, rg.chomage, par("cle_total_chomage", "018:chomage")),
-                (par("code81_retraite", "106"), None, rg.agirc_arrco, "106".to_string()),
+                (par(&dsn.code81_urssaf, "018"), urssaf, rg.urssaf, par(&dsn.cle_total_urssaf, "018:urssaf")),
+                (par(&dsn.code81_chomage, "018"), ft, rg.chomage, par(&dsn.cle_total_chomage, "018:chomage")),
+                (par(&dsn.code81_retraite, "106"), None, rg.agirc_arrco, "106".to_string()),
             ] {
                 if !part.is_zero() {
                     out.push(Cotisation {
@@ -817,10 +873,10 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     // 04/06/2026, `editeur-dsn/guide-urssaf-regularisation.txt`, l. 1353 : « Au niveau individuel, le montant de reduction
     // doit etre signe »). 81.003 : la remuneration des heures.
     if let Some(remuneration) = p.bases.get(engagement::heures_en_plus::REMUNERATION).copied().filter(|m| !m.is_zero()) {
-        let urssaf = liste(g(&bar, "cotisations_dsn")).iter().find(|c| txt(g(c, "code81")) == "075").and_then(|c| opt_txt(g(c, "org")));
+        let urssaf = org_de(&bar, "075");
         let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
         for (code, id) in [(CODE81_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (CODE81_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
-            let montant = p.lignes.iter().filter(|l| l.id == id).fold(zero(), |a, l| add(a, add(l.montant_pat, l.montant_sal)));
+            let montant = p.lignes.iter().filter(|l| l.est(id)).fold(zero(), |a, l| add(a, add(l.montant_pat, l.montant_sal)));
             if montant.is_zero() {
                 continue;
             }
@@ -863,12 +919,11 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
 }
 
 /// Le composant de la base 31 des `lignes` : le type que la source du taux de la premiere qui en porte un lui donne
-/// (`_composant_79` de la pile, `bareme::bareme_sante`), et la base de cette ligne au bulletin.
-fn composant_79(p: &Paie, pile: &Value, lignes: &Value) -> Option<(String, Decimal)> {
-    let rubriques = liste(g(pile, "rubriques_bulletin"));
-    liste(lignes).iter().map(en_texte).find_map(|id| {
-        let type_79 = rubriques.iter().find(|r| txt(g(r, "id")) == id).map(|r| txt(g(r, "_composant_79"))).filter(|t| !t.is_empty())?;
-        let base = p.lignes.iter().find(|l| l.id == id)?.base;
+/// (`composant_79` de la pile, `bareme::bareme_sante`), et la base de cette ligne au bulletin.
+fn composant_79(p: &Paie, pile: &Pile, lignes: &[String]) -> Option<(String, Decimal)> {
+    lignes.iter().find_map(|id| {
+        let type_79 = pile.rubrique(id)?.composant_79.clone()?;
+        let base = p.lignes.iter().find(|l| l.est(id))?.base;
         Some((type_79, base))
     })
 }
@@ -890,15 +945,14 @@ const LIGNES_AGIRC_ARRCO: [&str; 3] = ["retraite_t1", "retraite_t2", "cet"];
 /// CET en plus) ; la retraite et la CEG seules sont ce que la ligne vaudrait sans elle, au meme arrondi (chaque composant
 /// sur la base de la ligne), et la CET le reste. Une ligne que ce calcul ne retrouve pas au centime refuse : sa CET ne
 /// se separe pas sans deviner.
-fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Value) -> Resultat<(Decimal, Option<(Decimal, f64)>)> {
-    let cet = g(r, "cet_si_depasse");
-    if !vrai(cet) || p.bases.get("cet").map_or(true, |b| b.is_zero()) {
+fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) -> Resultat<(Decimal, Option<(Decimal, f64)>)> {
+    let Some(cet) = r.cet_si_depasse.as_ref().filter(|_| p.bases.get("cet").map_or(false, |b| !b.is_zero())) else {
         return Ok((l.montant_pat, None));
-    }
-    let cet_pat = socle::num::flottant(req(cet, "pat")?)?;
-    let comp = match droit::bareme::taux_liste(r.get("composants_pat"))? {
-        Some(c) => c,
-        None => vec![socle::num::flottant(req(r, "taux_pat")?)?],
+    };
+    let cet_pat = cet.pat;
+    let comp = match r.composants_pat.as_deref().unwrap_or_default() {
+        [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
+        c => c.to_vec(),
     };
     let sans = droit::bareme::somme_pct(l.base, &comp)?;
     let mut avec = comp;
@@ -909,7 +963,7 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Value) -> 
         return Err(format!(
             "La ligne « {} » du bulletin ({} de part patronale sur {}) ne se refait pas, CET comprise, à partir de \
 ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans deviner. Rien n'est écrit.",
-            l.id,
+            l.id.as_deref().unwrap_or(&l.libelle),
             socle::texte::euros(l.montant_pat),
             socle::texte::euros(l.base)
         ));
@@ -934,15 +988,14 @@ ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans
 /// admet la base 23 (norme p. 293, ligne 133). Une part nulle ne s'ecrit pas. En 2027 la CET a son code, 148, « entierement
 /// sous l'assiette deplafonnee » (03, 22 ou 23 ; fiche net-entreprises 2556, l. 83-87) : le code s'ecrit selon la version
 /// du fichier (`Cotisation::cet`, `Norme::cotisation_cet_patronale`), la base reste celle du 131 (type 23).
-fn parts_patronales_agirc_arrco(p: &Paie, pile: &Value, c: &Value, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
-    let rubriques = liste(req(pile, "rubriques_bulletin")?);
-    let rubrique = |id: &str| rubriques.iter().find(|r| txt(g(r, "id")) == id);
+fn parts_patronales_agirc_arrco(p: &Paie, pile: &Pile, c: &CotisationDsn, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
+    let rubrique = |id: &str| pile.rubrique(id);
     // Le 131 nomme ses lignes, ou porte un taux sur l'assiette de la ligne de retraite qu'il declare (`bareme::poser_t1`).
-    let ids: Vec<String> = if vrai(g(c, "lignes")) {
-        liste(&c["lignes"]).iter().map(en_texte).collect()
+    let ids: Vec<String> = if let Some(lignes) = c.lignes.as_ref().filter(|l| !l.is_empty()) {
+        lignes.clone()
     } else {
-        let base = g(c, "base");
-        LIGNES_AGIRC_ARRCO.iter().filter(|id| rubrique(id).map_or(false, |r| g(r, "base") == base)).map(|s| s.to_string()).collect()
+        let base = c.base.as_deref();
+        LIGNES_AGIRC_ARRCO.iter().filter(|id| rubrique(id).map_or(false, |r| r.base.as_deref() == base)).map(|s| s.to_string()).collect()
     };
     if ids.is_empty() || ids.iter().any(|id| !LIGNES_AGIRC_ARRCO.contains(&id.as_str())) {
         return Err(format!(
@@ -953,10 +1006,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
             LIGNES_AGIRC_ARRCO.join(", ")
         ));
     }
-    let org = liste(req(pile, "cotisations_dsn")?)
-        .iter()
-        .find(|x| txt(g(x, "code81")) == "075" && vrai(g(x, "org")))
-        .map(|x| en_texte(&x["org"]))
+    let org = org_de(pile, "075")
         .ok_or_else(|| "La part patronale Agirc-Arrco (142, 146) se declare a l'Urssaf (81.002), et le bareme ne nomme l'Urssaf sur aucune cotisation 075. Rien n'est ecrit.".to_string())?;
     let part = |code: &str, base: Decimal, taux: f64, montant: Decimal| Cotisation {
         bloc78: l131.bloc78.clone(),
@@ -976,10 +1026,10 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
     let (mut cet_montant, mut cet_base, mut cet_taux) = (zero(), zero(), None::<f64>);
     for id in &ids {
         // La CET d'un non cadre n'existe pas ; une tranche 2 nulle n'est pas au bulletin (`calcul::calculer`).
-        let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| &l.id == id)) else { continue };
+        let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| l.est(id))) else { continue };
         let (montant, cet) = sans_la_cet(p, l, r)?;
         let taux = match &cet {
-            Some(_) => socle::num::flottant(req(r, "taux_pat")?)?,
+            Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?,
             None => l.taux_pat.ok_or_else(|| format!("La ligne « {} » du bulletin n'a pas de taux patronal : sa part Agirc-Arrco ne se declare pas.", id))?,
         };
         if let Some((m, t)) = cet {
@@ -1023,43 +1073,30 @@ fn regrouper_par_base(lignes: Vec<Cotisation>) -> Vec<Cotisation> {
 
 // ------------------------------------------------ adhesions et affiliations
 
-/// L'adhesion `reference` du fichier des organismes vaut-elle pour la periode `debut`..=`fin` (`droit::adhesions`) ?
-/// Une reference que le fichier ne porte pas (une contribution de branche du bareme) n'a pas de date.
-pub fn adhesion_en_vigueur(orgs: &Value, reference: &str, debut: &Jour, fin: &Jour) -> Resultat<bool> {
-    match liste(g(orgs, "adhesions_prevoyance")).iter().find(|a| en_texte(g(a, "reference")) == reference) {
-        Some(a) => droit::adhesions::en_vigueur(a, debut, fin),
-        None => Ok(true),
-    }
-}
-
 /// Le premier et le dernier jour du mois `AAAA-MM`.
 fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
-    Ok((socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?))
+    let mois = Mois::lire(mois)?;
+    Ok((mois.premier_jour(), mois.dernier_jour()))
 }
 
 /// Les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
 /// periode `debut`..=`fin`.
-pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
-    let cle = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
-    let sec = g(g(orgs, "affiliations_par_nature"), &cle);
-    if !vrai(sec) {
+pub fn affiliations(orgs: &Organismes, nat: &Nature, contribs: &[Value], (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
+    let cle = nat.bareme().unwrap_or("intermittent").to_string();
+    let Some(sec) = orgs.par_nature.de(&cle) else {
         return Err(socle::echec::avec(format!(
             "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et \
 les organismes composés pour la compagnie ne disent rien d'un salarié « {} » (seulement des intermittents et des \
 permanents). Aucune saisie de la compagnie ne le dit : c'est la composition livrée qui \
 ne connaît pas ce cas. Rien n'est écrit.",
             nat.libelle, cle
-        ), serde_json::json!({"fichier": "organismes-base.json"})));
-    }
-    let refs = g(sec, "references");
-    if !vrai(refs) {
-        let pourquoi = if vrai(g(sec, "_a_confirmer")) {
-            en_texte(&sec["_a_confirmer"])
-        } else {
+        ), socle::echec::APart { fichier: Some("organismes-base.json".into()), ..Default::default() }));
+    };
+    if sec.references.is_empty() {
+        let pourquoi = sec.a_confirmer.unwrap_or(
             "Leurs références se saisissent dans Configuration › Organismes et contrats ; elles se lisent sur le certificat \
-d'adhésion de l'assureur."
-                .into()
-        };
+d'adhésion de l'assureur.",
+        );
         return Err(format!(
             "Contrat {} : la DSN rattache chaque salarié à ses contrats de prévoyance et de santé (S21.G00.70.013), et ceux \
 d'un salarié « {} » ne sont pas connus.\n  {}\n  Déclarer quand même le rattacherait aux contrats d'une autre \
@@ -1067,13 +1104,8 @@ population, ce que la plate-forme accepte sans rien dire. Rien n'est écrit.",
             nat.libelle, cle, pourquoi
         ));
     }
-    let mut out: Vec<String> = Vec::new();
-    for r in liste(refs).iter().map(en_texte) {
-        if adhesion_en_vigueur(orgs, &r, &debut, &fin)? {
-            out.push(r);
-        }
-    }
-    for c in liste(contribs) {
+    let mut out: Vec<String> = sec.references.iter().filter(|r| orgs.adhesion_en_vigueur(r, &debut, &fin)).cloned().collect();
+    for c in contribs {
         if g(c, "natures").get(&cle).is_some() {
             out.push(en_texte(g(c, "reference")));
         }
@@ -1105,7 +1137,7 @@ struct AffiliationsDuPermanent {
 }
 
 /// `None` pour un contrat qui n'est pas paye au mois : un intermittent est affilie a toutes les adhesions de sa nature.
-fn affiliations_du_permanent(p: &Paie, ent: &Value) -> Resultat<Option<AffiliationsDuPermanent>> {
+fn affiliations_du_permanent(p: &Paie, ent: &ChampsEntreprise) -> Resultat<Option<AffiliationsDuPermanent>> {
     if !p.engagement.nat()?.mensuelle() {
         return Ok(None);
     }
@@ -1115,22 +1147,22 @@ fn affiliations_du_permanent(p: &Paie, ent: &Value) -> Resultat<Option<Affiliati
     // de mutuelle (`bareme_sante`), et le
     // salarie n'est pas rattache au contrat de sante -- 70.014/.015 decrivent la dispense comme ce qui ouvre ou ferme
     // l'affiliation (cahier technique 2026.1, p. 287).
-    let dispense = vrai(g(&p.salarie, "sante_dispense"));
+    let dispense = !p.salarie.sante_dispense.texte().is_empty();
     // Un mois entierement suspendu sans indemnisation, garanties suspendues (`calcul::sante_de_la_suspension` : 3090,
     // accord sante du 19/07/2024, art. 4.2 et 15) : pas de cotisation, et pas de rattachement a la sante ce mois-la --
     // comme une dispense. INFERENCE NOMMEE : aucune fiche DSN deposee ne dit comment declarer une affiliation sante
     // suspendue (pas de bloc 70 ? un bloc 70 avec une fin de rattachement ? une base 31 a zero ?) ; le moteur n'ecrit ni
     // bloc 70 ni base 31 de sante pour ce mois (`atelier/reference/sources/suspension-non-remuneree/RAPPORT-20261015.md`,
     // point 2 et « Ce qui reste ouvert », 3).
-    let suspendue = vrai(g(&p.salarie, droit::bareme::SANTE_SUSPENDUE));
-    if suspendue && p.lignes.iter().any(|l| l.id == "mutuelle") {
+    let suspendue = p.salarie.sante_suspendue.as_deref().is_some_and(|s| !s.is_empty());
+    if suspendue && p.lignes.iter().any(|l| l.est("mutuelle")) {
         return Err(format!(
             "{} : sa sante est suspendue ce mois-ci ({}) et le bulletin cotise a la mutuelle. Rien n'est declare.",
             qui_contrat(p),
-            txt(g(&p.salarie, droit::bareme::SANTE_SUSPENDUE))
+            p.salarie.sante_suspendue.clone().unwrap_or_default()
         ));
     }
-    if dispense && p.lignes.iter().any(|l| l.id == "mutuelle") {
+    if dispense && p.lignes.iter().any(|l| l.est("mutuelle")) {
         return Err(socle::echec::cle(
             format!(
                 "{} : la fiche porte une dispense de complementaire sante (« {} ») et le bulletin cotise a \
@@ -1138,8 +1170,8 @@ la mutuelle (convention {}) : il a ete calcule sans elle. La DSN ne choisit pas 
 recalculer le bulletin si le salarie est dispense, retirer la dispense de la fiche s'il est affilie. Rien n'est \
 declare.",
                 qui_contrat(p),
-                txt(g(&p.salarie, "sante_dispense")),
-                txt(g(ent, "idcc"))
+                p.salarie.sante_dispense.texte().to_string(),
+                ent.idcc.texte()
             ),
             "sante_dispense",
         ));
@@ -1148,7 +1180,7 @@ declare.",
 }
 
 /// Les places (`Affiliation::place`) des adhesions de sa nature auxquelles le salarie n'est pas affilie ce mois-la.
-fn places_non_affiliees(p: &Paie, ent: &Value) -> Resultat<Vec<usize>> {
+fn places_non_affiliees(p: &Paie, ent: &ChampsEntreprise) -> Resultat<Vec<usize>> {
     let mut out = Vec::new();
     if let Some(a) = affiliations_du_permanent(p, ent)? {
         if a.prevoyance == bareme::AffiliationPrevoyance::NonAffilie {
@@ -1172,8 +1204,8 @@ fn places_non_affiliees(p: &Paie, ent: &Value) -> Resultat<Vec<usize>> {
 /// (`depuis`, Thalie Sante au 01/01/2026) et une prevoyance que l'anciennete dans la branche ouvre
 /// (`prevoyance_branche_depuis`). La date s'ecrit chaque mois ou le contrat se declare (inference : la condition de la
 /// norme reste vraie ; la liste des cas d'usage de net-entreprises n'est pas dans le depot).
-/// `ent` : la fiche de l'entreprise que la paie a lue (`_entreprise` de son bareme, `entreprise_du`).
-pub fn rattachements(p: &Paie, orgs: &Value, ent: &Value, refs: Vec<String>) -> Resultat<Vec<Affiliation>> {
+/// `ent` : la fiche de l'entreprise que la paie a lue (`BaremeDuMois::entreprise`).
+pub fn rattachements(p: &Paie, orgs: &Organismes, ent: &ChampsEntreprise, refs: Vec<String>) -> Resultat<Vec<Affiliation>> {
     let e = &p.engagement;
     let permanent = affiliations_du_permanent(p, ent)?;
     let fin = e.fin_periode()?;
@@ -1210,17 +1242,16 @@ travaillait pas avant, sa date d'embauche chez nous). Rien n'est declare.",
             // (`bloc-S21.G00.71.txt`, p. 287), le lendemain de son dernier jour. Ce mois-ci n'est plus dispense
             // (`calcul::dispense_de_la_periode`) : une fin de dispense posee est passee.
             if place == 1 {
-                if let Some(j) = p.salarie.get("sante_dispense_jusqu_au").filter(|v| vrai(v)) {
-                    let lendemain = Jour::lire(&txt(j))?.plus_jours(1)?;
+                if let Some(j) = p.salarie.sante_dispense_jusqu_au.dite() {
+                    let lendemain = j.plus_jours(1)?;
                     if lendemain <= fin && debut.map_or(true, |x| lendemain > x) {
                         debut = Some(lendemain);
                     }
                 }
             }
         }
-        let adhesion = liste(g(orgs, "adhesions_prevoyance")).iter().find(|a| en_texte(g(a, "reference")) == reference);
-        if let Some(depuis) = adhesion.map(|a| txt(g(a, "depuis"))).filter(|d| !d.is_empty()) {
-            let d = Jour::lire(&depuis)?;
+        let adhesion = orgs.adhesion(&reference);
+        if let Some(d) = adhesion.and_then(|a| a.depuis) {
             if debut.map_or(true, |x| d > x) {
                 debut = Some(d);
             }
@@ -1238,20 +1269,12 @@ travaillait pas avant, sa date d'embauche chez nous). Rien n'est declare.",
 /// `organismes-base.json` dit que l'organisme les demande pour ce contrat (`contrats`, `options` : la sante des
 /// permanents 3090, fiche de parametrage Audiens version 139, groupes 00003 a 00008). Ils se lisent de `sante_svp`, la
 /// meme fiche que la cotisation (`bareme::bareme_sante`) ; sans elle, ou d'un niveau que la table n'a pas, refus.
-fn option_retenue(p: &Paie, ent: &Value, adhesion: &Value, reference: &str) -> Resultat<(Option<String>, Option<(i64, i64)>)> {
-    let base = json_en_cache(&dossier_du_code().join("organismes-base.json"))?;
-    let libelle = txt(g(adhesion, "libelle"));
-    let contrats = g(&base, "contrats");
-    let idcc = txt(g(ent, "idcc"));
-    let options = liste(g(contrats, "tous"))
-        .iter()
-        .chain(liste(g(contrats, &idcc)))
-        .find(|c| txt(g(c, "libelle")) == libelle && vrai(g(c, "options")))
-        .map(|c| g(c, "options"));
-    let Some(options) = options else {
+fn option_retenue(p: &Paie, ent: &ChampsEntreprise, adhesion: &droit::organismes::Adhesion, reference: &str) -> Resultat<(Option<String>, Option<(i64, i64)>)> {
+    let base = droit::organismes::base()?;
+    let libelle = adhesion.libelle.trim();
+    let Some(options) = base.options(ent.idcc.texte(), libelle) else {
         return Ok((None, None));
     };
-    let s = &p.salarie;
     let lieu = format!(
         "{} : affilie a {} (S21.G00.70.013 = {}), dont Audiens demande l'option retenue par le salarie (S21.G00.70.004 ; \
 fiche de parametrage Audiens, groupes << PERMANENT SVP SANTE >>, `organismes-base.json`)",
@@ -1259,7 +1282,7 @@ fiche de parametrage Audiens, groupes << PERMANENT SVP SANTE >>, `organismes-bas
         libelle,
         reference
     );
-    if bareme::alsace_moselle(ent, s) && g(options, "regime_local") != &Value::Bool(true) {
+    if bareme::alsace_moselle(ent, &p.salarie) && !options.regime_local {
         return Err(format!(
             "{} : ses options sont du regime general (GE), et ce salarie releve du regime local d'Alsace-Moselle -- le code \
 de son option n'est dans aucune fiche de parametrage du depot. Il se lit sur la fiche de parametrage Audiens de la \
@@ -1267,19 +1290,12 @@ compagnie ; rien n'est declare.",
             lieu
         ));
     }
-    let choix = g(s, "sante_svp");
-    let niveau = txt(g(choix, "niveau"));
-    let enfants = match g(choix, "enfants") {
-        Value::Null => Some(0),
-        Value::Number(n) => n.as_i64(),
-        Value::String(x) if x.trim().is_empty() => Some(0),
-        Value::String(x) => x.trim().parse::<i64>().ok(),
-        _ => None,
-    }
-    .filter(|n| (0..=99).contains(n));
-    let conjoint = vrai(g(choix, "conjoint"));
+    let choix = p.salarie.sante_svp.dite().cloned().unwrap_or_default();
+    let niveau = choix.niveau.texte().to_string();
+    let enfants = choix.enfants.dite().map_or(Some(0), droit::fiche::Montant::entier).filter(|n| (0..=99).contains(n));
+    let conjoint = choix.conjoint.oui();
     let famille = conjoint || enfants.map_or(false, |n| n > 0);
-    let code = g(g(g(options, "niveaux"), &niveau), if famille { "famille" } else { "isole" }).as_str();
+    let code = options.niveaux.get(&niveau).map(|n| if famille { n.famille.as_str() } else { n.isole.as_str() });
     match (code, enfants) {
         (Some(c), Some(n)) => Ok((Some(c.to_string()), famille.then_some((i64::from(conjoint), n)))),
         _ => Err(socle::echec::a_la_cle(
@@ -1288,36 +1304,29 @@ compagnie ; rien n'est declare.",
                 lieu
             ),
             "sante_svp",
-            if choix.is_null() { "rien".to_string() } else { choix.to_string() },
+            p.salarie.sante_svp.dite().map_or("rien".to_string(), |s| format!("niveau « {} »", s.niveau.texte())),
         )),
     }
 }
 
 /// `places_par_contrat` : combien d'identifiants d'affiliation un contrat se reserve.
-pub fn places_par_contrat(bar: &Value) -> i64 {
-    3.max(2 + liste(g(bar, "contributions_dsn")).len() as i64)
+pub fn places_par_contrat(bar: &Pile) -> i64 {
+    3.max(2 + bar.contributions_dsn.as_ref().map_or(0, Vec::len) as i64)
 }
 
 /// Les references de chaque nature (hors `ref`), en vigueur pendant le mois.
-fn refs_du_mois(orgs: &Value, sec: &Value, mois: &str) -> Resultat<Option<Vec<String>>> {
-    let refs: Vec<String> = if sec.is_object() { liste(g(sec, "references")).iter().map(en_texte).collect() } else { vec![] };
-    if refs.is_empty() {
+fn refs_du_mois(orgs: &Organismes, sec: &droit::organismes::Rattachement, mois: &str) -> Resultat<Option<Vec<String>>> {
+    if sec.references.is_empty() {
         return Ok(None);
     }
     let (debut, fin) = bornes_du_mois(mois)?;
-    let mut out = Vec::new();
-    for r in refs {
-        if adhesion_en_vigueur(orgs, &r, &debut, &fin)? {
-            out.push(r);
-        }
-    }
-    Ok(Some(out))
+    Ok(Some(sec.references.iter().filter(|r| orgs.adhesion_en_vigueur(r, &debut, &fin)).cloned().collect()))
 }
 
 /// `casc_svp` : la CASC-SVP de ce mois, ou `None`.
-fn casc_svp(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str) -> Resultat<Option<Value>> {
-    let base = crate::casc::base()?;
-    if txt(g(ent, "idcc")) != en_texte(g(&base, "idcc")) || mois < txt(g(&base, "depuis")).as_str() {
+fn casc_svp(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Organismes, mois: &str) -> Resultat<Option<Value>> {
+    let base = droit::adhesions::casc_svp_base()?;
+    if ent.idcc.texte() != base.idcc || mois < base.depuis.trim() {
         return Ok(None);
     }
     if bareme::casc_exemptee(ent)? {
@@ -1326,9 +1335,8 @@ fn casc_svp(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str) -> Resultat<O
     if crate::casc::mois_regularises(ctx)?.iter().any(|m| m == mois) {
         return Ok(None);
     }
-    let dsn = g(&base, "dsn");
-    let contrat = en_texte(g(dsn, "contrat"));
-    let adh = liste(g(orgs, "adhesions_prevoyance")).iter().find(|a| txt(g(a, "libelle")) == contrat);
+    let contrat = &base.dsn.contrat;
+    let adh = orgs.adhesions_prevoyance.iter().find(|a| a.libelle.trim() == contrat);
     let adh = match adh {
         Some(a) => a,
         None => {
@@ -1339,55 +1347,52 @@ l'adhesion {} que le logiciel compose pour toute compagnie de la 3090. Rien n'es
             ))
         }
     };
-    let reference = en_texte(g(adh, "reference"));
+    let reference = adh.reference.clone();
     let mut natures = Map::new();
-    if let Some(m) = g(orgs, "affiliations_par_nature").as_object() {
-        for (n, s) in m {
-            let tous: Vec<String> = if s.is_object() { liste(g(s, "references")).iter().map(en_texte).collect() } else { vec![] };
-            if tous.is_empty() || tous.contains(&reference) {
-                continue;
-            }
-            let refs = refs_du_mois(orgs, s, mois)?.unwrap_or_default();
-            if refs.len() >= 3 {
-                return Err(format!(
-                    "Contrat '{}' : {} adhesions deja, plus de place pour la CASC-SVP (trois identifiants \
-d'affiliation par contrat). Rien n'est ecrit.",
-                    n,
-                    refs.len()
-                ));
-            }
-            natures.insert(n.clone(), Value::String((202 + refs.len()).to_string()));
+    for (n, s) in orgs.par_nature.natures() {
+        if s.references.is_empty() || s.references.contains(&reference) {
+            continue;
         }
+        let refs = refs_du_mois(orgs, s, mois)?.unwrap_or_default();
+        if refs.len() >= 3 {
+            return Err(format!(
+                "Contrat '{}' : {} adhesions deja, plus de place pour la CASC-SVP (trois identifiants \
+d'affiliation par contrat). Rien n'est ecrit.",
+                n,
+                refs.len()
+            ));
+        }
+        natures.insert(n.to_string(), Value::String((202 + refs.len()).to_string()));
     }
     let mut out = Map::new();
     out.insert("reference".into(), Value::String(reference));
-    out.insert("libelle".into(), adh["libelle"].clone());
-    out.insert("lignes".into(), g(dsn, "lignes_bulletin").clone());
+    out.insert("libelle".into(), Value::String(adh.libelle.clone()));
+    out.insert("lignes".into(), Value::from(base.dsn.lignes_bulletin.clone()));
     out.insert("natures".into(), Value::Object(natures));
     Ok(Some(Value::Object(out)))
 }
 
 
 /// `contributions_dsn` : les contributions declarees sous une adhesion Audiens.
-fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar: &Value) -> Resultat<Vec<Value>> {
+fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Organismes, mois: &str, bar: &Pile) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     if let Some(c) = casc_svp(ctx, ent, orgs, mois)? {
         out.push(c);
     }
-    let specs: Vec<&Value> = liste(g(bar, "contributions_dsn"))
+    let specs: Vec<&droit::forme_bareme::ContributionDsn> = bar.contributions_dsn
         .iter()
-        .filter(|c| c.is_object() && mois >= txt(g(c, "en_dsn_depuis")).as_str())
+        .flatten()
+        .filter(|c| mois >= c.en_dsn_depuis.as_str())
         .collect();
     if specs.is_empty() {
         return Ok(out);
     }
     let places = places_par_contrat(bar);
-    let adhesions = liste(g(orgs, "adhesions_prevoyance"));
     let mut deja: HashMap<String, i64> = HashMap::new();
     for spec in specs {
-        let nom = en_texte(req(spec, "contribution")?);
-        let adh = adhesions.iter().find(|a| {
-            txt(g(a, "contribution")).to_uppercase() == nom.to_uppercase() || txt(g(a, "libelle")).to_uppercase() == nom.to_uppercase()
+        let nom = spec.contribution.clone();
+        let adh = orgs.adhesions_prevoyance.iter().find(|a| {
+            a.contribution.as_deref().unwrap_or("").trim().to_uppercase() == nom.to_uppercase() || a.libelle.trim().to_uppercase() == nom.to_uppercase()
         });
         let adh = match adh {
             Some(a) => a,
@@ -1395,40 +1400,37 @@ fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar:
                 return Err(format!(
                     "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens, et les organismes \
 du mois n'ont pas l'adhesion de cette contribution, que le logiciel compose depuis le bareme. Rien n'est ecrit.",
-                    socle::date::forme_ecrite(g(ent, "idcc")).trim_matches('\''),
+                    ent.idcc.texte(),
                     nom,
-                    en_texte(g(spec, "en_dsn_depuis"))
+                    spec.en_dsn_depuis
                 ))
             }
         };
-        let reference = en_texte(g(adh, "reference"));
+        let reference = adh.reference.clone();
         let mut natures = Map::new();
-        if let Some(m) = g(orgs, "affiliations_par_nature").as_object() {
-            for (n, sec) in m {
-                let tous: Vec<String> = if sec.is_object() { liste(g(sec, "references")).iter().map(en_texte).collect() } else { vec![] };
-                if tous.is_empty() || tous.contains(&reference) {
-                    continue;
-                }
-                let refs = refs_du_mois(orgs, sec, mois)?.unwrap_or_default();
-                let place = refs.len() as i64 + deja.get(n).copied().unwrap_or(0);
-                if place >= places {
-                    return Err(format!(
-                        "Contrat '{}' : {} adhesions deja, plus de place pour le {} ({} identifiants d'affiliation par \
-contrat). Rien n'est ecrit.",
-                        n,
-                        refs.len(),
-                        nom,
-                        places
-                    ));
-                }
-                natures.insert(n.clone(), Value::String((202 + place).to_string()));
-                *deja.entry(n.clone()).or_insert(0) += 1;
+        for (n, sec) in orgs.par_nature.natures() {
+            if sec.references.is_empty() || sec.references.contains(&reference) {
+                continue;
             }
+            let refs = refs_du_mois(orgs, sec, mois)?.unwrap_or_default();
+            let place = refs.len() as i64 + deja.get(n).copied().unwrap_or(0);
+            if place >= places {
+                return Err(format!(
+                    "Contrat '{}' : {} adhesions deja, plus de place pour le {} ({} identifiants d'affiliation par \
+contrat). Rien n'est ecrit.",
+                    n,
+                    refs.len(),
+                    nom,
+                    places
+                ));
+            }
+            natures.insert(n.to_string(), Value::String((202 + place).to_string()));
+            *deja.entry(n.to_string()).or_insert(0) += 1;
         }
         let mut o = Map::new();
         o.insert("reference".into(), Value::String(reference));
-        o.insert("libelle".into(), adh["libelle"].clone());
-        o.insert("lignes".into(), req(spec, "lignes")?.clone());
+        o.insert("libelle".into(), Value::String(adh.libelle.clone()));
+        o.insert("lignes".into(), Value::from(spec.lignes.clone()));
         o.insert("natures".into(), Value::Object(natures));
         out.push(Value::Object(o));
     }
@@ -1452,8 +1454,8 @@ pub fn usage_admet(f: &Fichier, rubrique: &str, nature_dsn: &str) -> Resultat<bo
 /// spectacle, `spectacle`, dans une convention ou la case se montre) et ne l'ecrit pas sinon : une production
 /// audiovisuelle n'en a pas, ni un lieu en 1790 qui n'engage pour aucun spectacle. Une valeur vide ne s'ecrit
 /// jamais : `X [1,100]`.
-fn licence_du_contrat(f: &mut Fichier, nature_dsn: &str, ent: &Value, spectacle: bool) -> Resultat<()> {
-    let licence = txt(req(ent, "licence_spectacle")?);
+fn licence_du_contrat(f: &mut Fichier, nature_dsn: &str, ent: &ChampsEntreprise, spectacle: bool) -> Resultat<()> {
+    let licence = ent.licence_spectacle.ecrite("licence_spectacle")?.to_string();
     if !licence.trim().is_empty() {
         return si_admise(f, nature_dsn, "S21.G00.40.049", Some(licence));
     }
@@ -1488,7 +1490,7 @@ fn motif_rupture(p: &Paie, nat: &Nature) -> Resultat<String> {
     let e = &p.engagement;
     if let Some(m) = e.motif_rupture.as_deref().filter(|m| !m.is_empty()) {
         // CCH-11 de S21.G00.62.002 : un motif que la nature n'admet pas ne s'ecrit pas.
-        if let Some(refus) = nat.motif_rupture_refuse(m, &e.numero.clone().unwrap_or_else(|| "None".into())) {
+        if let Some(refus) = nat.motif_rupture_refuse(m, &e.numero.as_deref().unwrap_or("None").to_string()) {
             return Err(refus);
         }
         return Ok(m.to_string());
@@ -1499,12 +1501,12 @@ fn motif_rupture(p: &Paie, nat: &Nature) -> Resultat<String> {
     let connus: Vec<String> = nat
         .motifs_rupture()
         .iter()
-        .map(|m| format!("{} ({})", en_texte(g(m, "code")), en_texte(g(m, "libelle"))))
+        .map(|m| format!("{} ({})", m.code, m.libelle))
         .collect();
     Err(socle::echec::cle(format!(
         "Contrat {} ({}) : il se termine le {}, et le motif de la rupture (S21.G00.62.002) n'est pas dit. Un {} ne \
 finit pas tout seul, et le motif commande les droits du salarie a l'assurance chomage : il se saisit. Motifs : {}.",
-        e.numero.clone().unwrap_or_else(|| "None".into()),
+        e.numero.as_deref().unwrap_or("None").to_string(),
         nat.libelle,
         e.fin.map(|f| f.jjmmaaaa()).unwrap_or_default(),
         nat.libelle,
@@ -1521,15 +1523,15 @@ fn qt_f(x: f64) -> Resultat<String> {
 }
 
 /// « Prenom NOM » d'une fiche, a defaut sa cle : qui une phrase de refus designe.
-fn qui_fiche(s: &Value, cle: &str) -> String {
-    let nom = [txt(g(s, "prenom")), txt(g(s, "nom"))].into_iter().filter(|x| !x.trim().is_empty()).collect::<Vec<_>>().join(" ");
+fn qui_fiche(s: &droit::fiche::ChampsSalarie, cle: &str) -> String {
+    let nom = [s.prenom.texte().to_string(), s.nom.texte().to_string()].into_iter().filter(|x| !x.trim().is_empty()).collect::<Vec<_>>().join(" ");
     if nom.is_empty() { cle.to_string() } else { nom }
 }
 
 /// « Prenom NOM, contrat <numero> » : qui une phrase de refus du bloc 40 designe.
 fn qui_contrat(p: &Paie) -> String {
     let nom = qui_fiche(&p.salarie, &cle_salarie(p));
-    format!("{}, contrat {}", nom, p.engagement.numero.clone().unwrap_or_else(|| "sans numero".into()))
+    format!("{}, contrat {}", nom, p.engagement.numero.as_deref().unwrap_or("sans numero").to_string())
 }
 
 /// `S21.G00.86.003` d'une DSN mensuelle : l'anciennete dans l'entreprise (type 07, en jours), « connue a la fin de la
@@ -1538,8 +1540,8 @@ fn qui_contrat(p: &Paie) -> String {
 /// paie la lit ainsi, `calcul::fiche_de_l_engagement` ; l'import la pose au premier contrat lu), et que les gens peuvent
 /// changer. Une fiche qui ne la porte pas ne dit pas ce jour : elle refuse. Une date apres la fin du mois donnerait zero
 /// ou moins, que la CCH-12 interdit : elle refuse aussi.
-pub fn anciennete_du_mois(s: &Value, cle: &str, fin_m: &Jour) -> Resultat<i64> {
-    let Some(v) = s.get("date_anciennete").filter(|v| vrai(v)) else {
+pub fn anciennete_du_mois(s: &droit::fiche::ChampsSalarie, cle: &str, fin_m: &Jour) -> Resultat<i64> {
+    let Some(depuis) = s.date_anciennete.dite().copied() else {
         return Err(socle::echec::cle(format!(
             "{} : la fiche ne porte pas sa date d'anciennete (« Dans la compagnie depuis »), d'ou se \
 compte l'anciennete declaree en S21.G00.86.003. C'est le jour de son embauche, que la validation de son premier \
@@ -1548,7 +1550,6 @@ la fiche : le jour ou la personne est entree dans la compagnie.",
             qui_fiche(s, cle)
         ), "date_anciennete"));
     };
-    let depuis = jour(v)?;
     let jours = fin_m.moins(&depuis) + 1;
     if jours < 1 {
         return Err(socle::echec::cle(format!(
@@ -1578,11 +1579,11 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 ///
 /// La CCH-11 (p. 182, l. 156-160 : 40.003 = 01 => 40.002 dans 03, 04 ou 08) est un controle bloquant : verifiee ici,
 /// avant de produire.
-pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
+pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
     let s = &p.salarie;
-    let lu = |k: &str| Some(txt(g(s, k)).trim().to_string()).filter(|v| !v.is_empty());
-    let code = txt(g(s, "code_emploi_ft")).trim().to_uppercase();
-    let m = droit::emplois::metier(&code)?.filter(|m| m.get("catalogue") == Some(&Value::Bool(true)));
+    let lu = |v: &str| Some(v.trim().to_string()).filter(|v| !v.is_empty());
+    let code = s.code_emploi_ft.texte().trim().to_uppercase();
+    let m = droit::emplois::metier(&code)?.filter(|m| m.au_catalogue().is_some());
     let metier_dit = if code.is_empty() {
         "la fiche n'a pas de metier (code emploi)".to_string()
     } else if m.is_none() {
@@ -1590,9 +1591,9 @@ pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
     } else {
         String::new()
     };
-    let rc = match (lu("statut_categoriel_rc"), &m) {
+    let rc = match (lu(s.statut_categoriel_rc.code()), &m) {
         (Some(rc), _) => rc,
-        (None, Some(m)) if !vrai(g(m, "cadre_par_defaut")) => "04".to_string(),
+        (None, Some(m)) if m.cadre_par_defaut(idcc) == Some(false) => "04".to_string(),
         (None, Some(m)) => {
             return Err(format!(
                 "{} : le metier {} ({}) est cadre au catalogue, et la fiche ne dit pas cadre ou non cadre \
@@ -1600,11 +1601,11 @@ pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
 « Cadre ou non cadre » sur la fiche : 01 (cadre, et refaire la paie) ou 04 (non cadre).",
                 qui_contrat(p),
                 code,
-                txt(g(m, "libelle"))
+                m.libelle()
             ))
         }
         (None, None) => {
-            let aussi = if lu("statut_conventionnel").is_none() {
+            let aussi = if lu(s.statut_conventionnel.code()).is_none() {
                 ", ni le classement conventionnel (S21.G00.40.002, « Classement conventionnel (DSN) » : 04 cadre, 05 profession \
 intermediaire, 06 employe, 07 ouvrier)"
             } else {
@@ -1620,11 +1621,11 @@ metiers, ou saisir « Cadre ou non cadre » et « Classement conventionnel (DSN)
             ));
         }
     };
-    let sc = match lu("statut_conventionnel") {
+    let sc = match lu(s.statut_conventionnel.code()) {
         Some(sc) => Some(sc),
         None => m.as_ref().and_then(|m| match rc.as_str() {
             "01" => Some("04".to_string()),
-            "04" => droit::emplois::statut_non_cadre(m),
+            "04" => m.statut_non_cadre(),
             _ => None,
         }),
     };
@@ -1653,7 +1654,7 @@ profession intermediaire, 06 employe, 07 ouvrier), et {}. Il ne se devine pas : 
 /// que `emplois_multiples` tire des autres contrats de la periode.
 #[allow(clippy::too_many_arguments)]
 pub fn bloc_contrat(
-    f: &mut Fichier, p: &Paie, ent: &Value, orgs: &Value, rang: i64, bar: &Value, fin_de_contrat: bool,
+    f: &mut Fichier, p: &Paie, ent: &ChampsEntreprise, orgs: &Organismes, rang: i64, bar: &BaremeDuMois, fin_de_contrat: bool,
     arrets: &[&Arret], nature_dsn: &str, emplois: &str,
 ) -> Resultat<()> {
     bloc_contrat_fctu(f, p, ent, orgs, rang, bar, fin_de_contrat, arrets, nature_dsn, None, emplois)
@@ -1664,19 +1665,20 @@ pub fn bloc_contrat(
 /// d'une mensuelle.
 #[allow(clippy::too_many_arguments)]
 pub fn bloc_contrat_fctu(
-    f: &mut Fichier, p: &Paie, ent: &Value, orgs: &Value, rang: i64, bar: &Value, fin_de_contrat: bool,
+    f: &mut Fichier, p: &Paie, ent: &ChampsEntreprise, orgs: &Organismes, rang: i64, bar: &BaremeDuMois, fin_de_contrat: bool,
     arrets: &[&Arret], nature_dsn: &str, fin_fctu: Option<&crate::fctu::FinDeContrat>, emplois: &str,
 ) -> Resultat<()> {
     let e = &p.engagement;
     let s = &p.salarie;
     let nat = e.nat()?;
-    let atmp = g(bar, "taux_atmp");
+    let atmp = bar.taux_atmp.clone().unwrap_or_default();
     let ecrit_atmp = usage_admet(f, "S21.G00.40.043", nature_dsn)?;
     // SIG-11 : sous le code risque 999ZZ (pas encore de notification), le taux (40.043) est interdit ; sous tout autre
     // code, il est obligatoire (`norme-dsn/texte/bloc-S21.G00.40.txt`, l. 1309-1313).
-    let sans_notification = txt(g(atmp, "code_risque")) == bareme::SANS_NOTIFICATION;
-    if ecrit_atmp && (!vrai(g(atmp, "code_risque")) || (!sans_notification && !vrai(g(atmp, "valeur")))) {
-        let annee = if bar.get("annee").is_some() { en_texte(&bar["annee"]) } else { "?".into() };
+    let code_risque = atmp.code_risque.clone().unwrap_or_default();
+    let sans_notification = code_risque == bareme::SANS_NOTIFICATION;
+    if ecrit_atmp && (code_risque.is_empty() || (!sans_notification && !atmp.valeur.is_some_and(|v| !v.is_zero()))) {
+        let annee = bar.annee.to_string();
         return Err(socle::echec::cle(format!(
             "Bareme {} : le taux AT/MP manque (sa valeur et son code risque). C'est le taux AT/MP notifie a l'etablissement, \
 declare en S21.G00.40.043 ; il ne se devine pas.",
@@ -1684,38 +1686,38 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         ), "taux_atmp"));
     }
     // Les statuts se lisent, ou refusent (`statuts_du_contrat`), avant qu'une ligne du contrat soit ecrite.
-    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p)?;
+    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p, ent.idcc.texte())?;
     f.add("S21.G00.40.001", e.debut.jjmmaaaa());
     f.add("S21.G00.40.002", statut_conventionnel);
     f.add("S21.G00.40.003", statut_categoriel_rc);
-    f.add_v("S21.G00.40.004", req(s, "pcs_ese")?)?;
+    f.add_case("S21.G00.40.004", &s.pcs_ese, "pcs_ese")?;
     // Le complement PCS-ESE : « 999SPT pour les emplois permanents du spectacle » (CCH-18, p. 185) quand la nature le
     // fixe (`contrats-base.json` : cdi, cdd) ; le contrat d'un intermittent (`droit::caisse_conges::intermittent` : un
     // CDDU, le CDD d'un artiste ou d'un technicien de la liste de l'annexe 8) declare le code de son metier dans la
     // nomenclature des emplois du spectacle, que France Travail Spectacle lit.
-    let intermittent = droit::caisse_conges::intermittent(&nat, s)?;
+    let intermittent = droit::caisse_conges::intermittent(&nat, &p.salarie)?;
     match nat.code("S21.G00.40.005").filter(|c| !c.is_empty() && !intermittent) {
         Some(c) => f.add("S21.G00.40.005", c),
-        None => f.add_v("S21.G00.40.005", req(s, "code_emploi_ft")?)?,
+        None => f.add_case("S21.G00.40.005", &s.code_emploi_ft, "code_emploi_ft")?,
     }
-    f.add_v("S21.G00.40.006", req(s, "emploi")?)?;
+    f.add_case("S21.G00.40.006", &s.emploi, "emploi")?;
     f.add_opt("S21.G00.40.007", nat.code("S21.G00.40.007"))?;
     f.add_opt("S21.G00.40.008", nat.code("S21.G00.40.008"))?;
     f.add_opt("S21.G00.40.009", e.numero.clone())?;
     if !nat.duree_indeterminee || e.fin.is_some() {
         f.add_opt("S21.G00.40.010", e.fin.map(|j| j.jjmmaaaa()))?;
     }
-    f.add("S21.G00.40.011", &nat.unite_quotite);
+    f.add("S21.G00.40.011", nat.unite_quotite());
     let quotite = e.quotite()?;
     // Le plafond de la nature (`contrats-base.json`, `unite_quotite.plafond`) vaut pour 40.012 comme pour 40.013 :
     // CCH-12 du bloc 40 (journee, 31.00), CCH-13 (heure, 250.00) ; cahier technique 2026.1, p. 189.
     let depasse = |rubrique: &str, quoi: &str, valeur: String| -> Resultat<()> {
-        let Some(plafond) = nat.plafond_quotite else { return Ok(()) };
+        let plafond = nat.plafond_quotite();
         let q: f64 = valeur.parse().unwrap_or(0.0);
         if q <= plafond {
             return Ok(());
         }
-        let cch = match nat.unite_quotite.as_str() {
+        let cch = match nat.unite_quotite() {
             "12" | "20" => " CCH-12",
             "10" | "21" => " CCH-13",
             _ => "",
@@ -1723,13 +1725,13 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         Err(format!(
             "Contrat {} du {} au {} : {} de {}, et la norme DSN la plafonne a {} en unite << {} >> \
 ({}, bloc 40{}). A trancher avant de le declarer.",
-            e.numero.clone().unwrap_or_else(|| "None".into()),
+            e.numero.as_deref().unwrap_or("None").to_string(),
             e.debut.jjmmaaaa(),
             e.fin.map(|j| j.jjmmaaaa()).unwrap_or_else(|| "?".into()),
             quoi,
             valeur,
             qt_f(plafond)?,
-            nat.unite_quotite,
+            nat.unite_quotite(),
             rubrique,
             cch
         ))
@@ -1745,14 +1747,14 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     }
     f.add("S21.G00.40.013", qt(quotite));
     f.add("S21.G00.40.014", nat.code("S21.G00.40.014").filter(|c| !c.is_empty()).map_or_else(|| e.modalite_temps_travail(), Ok)?);
-    if bareme::regime_local(bar, s) {
+    if bareme::alsace_moselle(&bar.entreprise.fiche, &p.salarie) {
         f.add("S21.G00.40.016", "01");
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent, &p.spectacle, s)?);
+    f.add("S21.G00.40.017", engagement::minima::idcc_du_contrat(ent.idcc.texte(), p.spectacle.as_ref(), &p.salarie)?);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
-    f.add_v("S21.G00.40.019", req(ent, "siret")?)?;
+    f.add_case("S21.G00.40.019", &ent.siret, "siret")?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;
     if nat.ecrit("S21.G00.40.021") {
         let m = match nat.code("S21.G00.40.021").filter(|c| !c.is_empty()) {
@@ -1783,9 +1785,9 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     f.add_opt("S21.G00.40.037", nat.code("S21.G00.40.037"))?;
     si_admise(f, nature_dsn, "S21.G00.40.039", nat.code("S21.G00.40.039"))?;
     if ecrit_atmp {
-        si_admise(f, nature_dsn, "S21.G00.40.040", Some(en_texte(&atmp["code_risque"])))?;
+        si_admise(f, nature_dsn, "S21.G00.40.040", Some(code_risque.clone()))?;
         if !sans_notification {
-            si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
+            si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(atmp.valeur.unwrap_or_default(), 2)))?;
         }
     }
     licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
@@ -1793,13 +1795,13 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // l. 270), seulement AUTORISEE pour les natures 02 et 10 (CCH-11, `texte/bloc-S21.G00.40.txt` l. 1379-1388) ; une
     // rubrique conditionnelle qu'on n'a pas s'omet, elle ne s'ecrit pas a blanc (`texte/chapitre-3-structuration.txt`
     // l. 257-259). Utile, jamais exige : « Pour demarrer » le propose (`sinon` de `champs-base.json`).
-    let objet = txt(g(&p.spectacle, "numero_objet"));
+    let objet = p.spectacle.as_ref().and_then(|s| s.numero_objet.dite()).cloned().unwrap_or_default();
     if nat.ecrit("S21.G00.40.050") && !objet.trim().is_empty() && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
         f.add("S21.G00.40.050", objet.trim());
     }
     si_admise(f, nature_dsn, "S21.G00.40.051", nat.code("S21.G00.40.051"))?;
-    if vrai(g(s, "statut_boeth")) {
-        si_admise(f, nature_dsn, "S21.G00.40.072", Some(en_texte(&s["statut_boeth"])))?;
+    if let Some(b) = s.statut_boeth.dite() {
+        si_admise(f, nature_dsn, "S21.G00.40.072", Some(b.as_str().to_string()))?;
     }
     proratisation_du_plafond(f, p, nature_dsn)?;
     // S21.G00.40.086 (« Adhesion a une caisse de conges payes a titre obligatoire ») ne s'ecrit pas : « A ne pas
@@ -1807,7 +1809,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // `atelier/reference/norme-dsn/dsn-journal-maintenance-2027.1.2-20260615.txt` l. 368-381), absente de P26V01. Le lot
     // V4b l'ecrivait sur le cahier 2027.1.1 ; `norme::verifier_les_valeurs` la refuse (`rubriques_a_ne_pas_renseigner`).
     for a in arrets {
-        bloc_60(f, a, nature_dsn, g(ent, "banque"))?;
+        bloc_60(f, a, nature_dsn, ent.banque.dite())?;
     }
     if let Some(fin) = fin_fctu {
         crate::fctu::bloc_62_63(f, fin, e)?;
@@ -1820,18 +1822,18 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         f.add("S21.G00.62.006", crate::fctu::dernier_jour_paye(e)?.jjmmaaaa());
         // 62.017 d'un CDDU suit le motif : 01 (circuit derogatoire) pour le 031, 02 sinon (CCH-12, `Nature::codes_fin`).
         for (rub, val) in nat.codes_fin(Some(&motif)) {
-            f.add_v(&rub, &val)?;
+            f.add(&rub, val);
         }
     }
     for s in &e.suspensions {
         suspension_sans_maintien(f, p, s)?;
-        f.add_v("S21.G00.65.001", req(s, "motif")?)?;
-        f.add("S21.G00.65.002", jj(req(s, "debut")?)?);
-        f.add("S21.G00.65.003", jj(req(s, "fin")?)?);
+        f.add("S21.G00.65.001", s.motif.clone());
+        f.add("S21.G00.65.002", s.debut.jjmmaaaa());
+        f.add("S21.G00.65.003", s.fin.jjmmaaaa());
     }
     let places = places_par_contrat(bar);
-    let refs = affiliations(orgs, &nat, g(bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
-    for a in rattachements(p, orgs, droit::bareme::entreprise_du(bar, ent), refs)? {
+    let refs = affiliations(orgs, &nat, &bar.contributions_du_mois, (e.debut_periode()?, e.fin_periode()?))?;
+    for a in rattachements(p, orgs, &bar.entreprise.fiche, refs)? {
         if let Some(o) = a.option {
             si_admise(f, nature_dsn, "S21.G00.70.004", Some(o))?;
         }
@@ -1855,12 +1857,10 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
 /// `permanents-base.json` dit remunere (637, conge pour evenement familial : C. trav. L. 3142-2) ne retire rien du salaire,
 /// et la norme 2027 en fait une suspension qui ne se declare pas : refus, plutot que de taire un imprevu saisi. Ni le bloc 75
 /// (liste p. 297) ni un autre ne recoit un conge paye : il est dans la remuneration du mois.
-fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
+fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &engagement::imprevus::Suspension) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("bloc_65_sans_maintien_de_remuneration")? else { return Ok(()) };
-    let motif = txt(req(s, "motif")?);
-    let regles = droit::permanents::regles()?;
-    let m = liste(&regles["suspensions"]["motifs"]).into_iter().find(|m| txt(g(m, "code")) == motif);
-    let Some(m) = m.filter(|m| vrai(g(m, "remunere"))) else { return Ok(()) };
+    let motif = s.motif.clone();
+    let Some(m) = droit::permanents::motif_de_suspension(&motif)?.filter(|m| m.remunere) else { return Ok(()) };
     Err(format!(
         "{} : suspension au motif {} ({}), du {} au {}, saisie comme imprevu. Ce motif est un conge remunere \
 ({}). En norme {}, le bloc S21.G00.65 ne declare qu'une << absence a temps plein du \
@@ -1869,10 +1869,10 @@ ne retire rien du salaire) et ne se declare pas en suspension : retirer l'imprev
 Rien n'est ecrit.",
         qui_contrat(p),
         motif,
-        txt(g(m, "libelle")),
-        txt(g(s, "debut")),
-        txt(g(s, "fin")),
-        txt(g(m, "_remunere")),
+        m.libelle,
+        s.debut.iso(),
+        s.fin.iso(),
+        m.texte(),
         f.norme()?.version,
         texte
     ))
@@ -1885,7 +1885,7 @@ Rien n'est ecrit.",
 /// refuse. Une duree collective plus courte (32 h) passe. Un contrat d'usage (en jours) n'est pas concerne.
 fn quotite_de_reference_sans_heures_supplementaires(f: &Fichier, p: &Paie, nat: &droit::natures::Nature, reference: f64) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("quotite_reference_sans_heures_supplementaires")? else { return Ok(()) };
-    let Some(legale) = nat.quotite_reference_defaut.filter(|_| nat.mensuelle()) else { return Ok(()) };
+    let Some(legale) = nat.quotite_reference_defaut().filter(|_| nat.mensuelle()) else { return Ok(()) };
     if reference <= legale {
         return Ok(());
     }
@@ -1950,8 +1950,8 @@ pub fn bloc_anciennete(f: &mut Fichier, p: &Paie, jours: i64) -> Resultat<()> {
 /// lit dans l'ecart entre 50.002 et 50.013 (norme 2026.1, p. 245). S21.G00.50.012 est reservee aux abattements des
 /// assistants maternels et familiaux, que seuls PAJEmploi et les departements declarent : le moteur ne l'ecrit pas.
 fn pas_du_versement(
-    taux_pas: Option<&Triplet>, bar: &Value, montant: Decimal, le: Jour, court: bool,
-) -> Resultat<(Value, Value, Value, Decimal)> {
+    taux_pas: Option<&Triplet>, bar: &Pile, montant: Decimal, le: Jour, court: bool,
+) -> Resultat<(Option<droit::fiche::Montant>, Option<String>, Option<String>, Decimal)> {
     let r = pas::du_versement(taux_pas, bar, montant, Some(le), court, ZONE_DEFAUT).map_err(|e| e.message().to_string())?;
     Ok((r.taux, r.type_taux, r.identifiant, r.montant_soumis))
 }
@@ -1965,21 +1965,19 @@ pub fn court(p: &Paie, le: Jour) -> Resultat<bool> {
 pub fn remunerations(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe: i64) -> Resultat<()> {
     let e = &p.engagement;
     let nat = e.nat()?;
-    for code in nat.types_remuneration() {
-        let code = en_texte(&code);
-        let montant = match code.as_str() {
-            "001" => brut_du_51(p),
-            "002" => p.assiette_chomage,
-            "003" => p.salaire_retabli,
-            "010" => p.salaire_de_base,
-            autre => return Err(format!("type de rémunération inconnu : {}", socle::fichiers::repr(autre))),
+    for &t in nat.types_remuneration() {
+        let montant = match t {
+            TypeDeRemuneration::Brute => brut_du_51(p),
+            TypeDeRemuneration::AssietteChomage => p.assiette_chomage,
+            TypeDeRemuneration::SalaireRetabli => p.salaire_retabli,
+            TypeDeRemuneration::SalaireDeBase => p.salaire_de_base,
         };
         f.add("S21.G00.51.001", debut.jjmmaaaa());
         f.add("S21.G00.51.002", fin.jjmmaaaa());
         f.add_opt("S21.G00.51.010", e.numero.clone())?;
-        f.add("S21.G00.51.011", &code);
+        f.add("S21.G00.51.011", t.code());
         f.add("S21.G00.51.013", ms(montant, signe));
-        if code == "002" {
+        if t == TypeDeRemuneration::AssietteChomage {
             activites(f, p, signe)?;
         }
     }
@@ -2021,30 +2019,26 @@ pub fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> 
     let nat = e.nat()?;
     let mut out = Vec::new();
     for u in nat.unites_activite() {
-        let mesure = en_texte(req(&u, "mesure")?);
-        let valeur = match mesure.as_str() {
-            "jours" => Decimal::from(e.jours),
-            "cachets" => Decimal::from(e.cachets),
-            "heures" => match e.heures {
+        let valeur = match u.mesure {
+            Mesure::Jours => Decimal::from(e.jours),
+            Mesure::Cachets => Decimal::from(e.cachets),
+            Mesure::Heures => match e.heures {
                 Some(h) if h != 0.0 => socle::num::dec_f64(h)?,
                 _ => Decimal::ZERO,
             },
-            "heures_travaillees" => p.heures_travaillees,
-            autre => return Err(format!("mesure inconnue : {}", socle::fichiers::repr(autre))),
         };
-        if vrai(g(&u, "si_non_nul")) && valeur.is_zero() {
+        if u.si_non_nul == Some(true) && valeur.is_zero() {
             continue;
         }
         // Une unite que seule la caisse des Conges Spectacles demande (`contrats-base.json`, `si_caisse_conges`).
-        if vrai(g(&u, "si_caisse_conges")) && !p.declaree_a_la_caisse_des_conges()? {
+        if u.si_caisse_conges == Some(true) && !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
-        let t = if u.get("type").is_some() { en_texte(&u["type"]) } else { "01".into() };
-        out.push((t, valeur, en_texte(req(&u, "code")?)));
+        out.push((u.type_activite.clone(), valeur, u.code.clone()));
     }
-    if let Some(a) = nat.unite_absence().filter(vrai) {
+    if let Some(a) = nat.unite_absence() {
         if !p.heures_absence.is_zero() {
-            out.push((en_texte(req(&a, "type")?), p.heures_absence, en_texte(req(&a, "code")?)));
+            out.push((a.type_activite.clone(), p.heures_absence, a.code.clone()));
         }
     }
     Ok(out)
@@ -2070,7 +2064,7 @@ pub fn primes_et_indemnites(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour,
             if let Some(pourquoi) = droit::permanents::code_52_permis(Some(code), Some(m))? {
                 return Err(format!(
                     "Contrat {}, ligne << {} >> : {}",
-                    p.engagement.numero.clone().unwrap_or_else(|| "None".into()),
+                    p.engagement.numero.as_deref().unwrap_or("None").to_string(),
                     l.libelle,
                     pourquoi
                 ));
@@ -2117,17 +2111,14 @@ pub fn autre_revenu(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, debut: &Jour,
         }
     }
     let bp = bareme_de(p, bar)?;
-    for (type_54, cle) in [("92", "cotisation_sante_patronale"), ("93", "cotisation_prevoyance_retraite_supp")] {
-        let supp = g(&bp, cle);
-        if !vrai(supp) {
-            continue;
-        }
-        let montant = if vrai(g(supp, "lignes_patronales")) {
-            somme_lignes(p, &supp["lignes_patronales"], true)
+    for (type_54, supp) in [("92", &bp.cotisation_sante_patronale), ("93", &bp.cotisation_prevoyance_retraite_supp)] {
+        let Some(supp) = supp else { continue };
+        let montant = if let Some(lignes) = supp.lignes_patronales.as_ref().filter(|l| !l.is_empty()) {
+            somme_lignes(p, lignes, true)
         } else {
-            let k = if supp.get("base").is_some() { en_texte(&supp["base"]) } else { "brut".into() };
+            let k = supp.base.clone().unwrap_or_else(|| "brut".into());
             let base_54 = bases(p, &bp)?.get(&k).copied().unwrap_or(p.brut);
-            pct(base_54, dec_avec_echelle(req(supp, "taux_sur_brut")?)?)
+            pct(base_54, supp.taux_sur_brut.map(|n| n.0).ok_or_else(|| socle::fichiers::absent("taux_sur_brut"))?)
         };
         let montant = rond(montant);
         if montant.is_zero() {
@@ -2250,7 +2241,7 @@ pub fn bases_et_cotisations(
                 si_admise(f, nature_dsn, "S21.G00.78.005", Some(a.to_string()))?;
             }
             if !f.contrat_unique {
-                si_admise(f, nature_dsn, "S21.G00.78.006", e.numero.clone())?;
+                si_admise(f, nature_dsn, "S21.G00.78.006", e.numero.clone().map(String::from))?;
             }
             if !composants {
             } else if c.bloc78 == "03" {
@@ -2331,17 +2322,17 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, rang: i64, taux
         None => {
             return Err(socle::echec::cle(format!(
                 "La paie de {} pour {} ne porte pas de prelevement a la source. Revalider l'engagement.",
-                en_texte(p.salarie.get("_cle").unwrap_or(&Value::Null)),
+                p.salarie.id.to_string(),
                 e.mois
             ), "pas"))
         }
     };
-    f.add_v("S21.G00.50.006", &taux)?;
-    f.add_v("S21.G00.50.007", &type_taux)?;
-    if en_texte(&type_taux) == "01" {
-        f.add_v("S21.G00.50.008", &identifiant)?;
+    f.add_ecrit("S21.G00.50.006", taux.as_ref().map(droit::fiche::Montant::ecrit))?;
+    f.add_ecrit("S21.G00.50.007", type_taux.clone())?;
+    if type_taux.as_deref() == Some("01") {
+        f.add_ecrit("S21.G00.50.008", identifiant.clone())?;
     }
-    f.add("S21.G00.50.009", mt(pct(soumis, dec_avec_echelle(&taux)?)));
+    f.add("S21.G00.50.009", mt(pct(soumis, droit::pas::taux_du_versement(taux.as_ref())?)));
     f.add("S21.G00.50.013", mt(soumis));
 
     // Un mois decoupe : les remunerations de chaque periode elementaire, datees de ses bornes (« La periode a
@@ -2406,13 +2397,12 @@ pub struct VersementEcrit {
 pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<VersementEcrit> {
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
-    let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
+    let nic = bareme::etablissement_de(ent, &p.salarie)?;
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
-    let ent_e = bareme::fiche_de_l_etablissement(ent, &nic)?;
     let e = &p.engagement;
-    let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
-    let affiliations = rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)?
+    let refs = affiliations(&orgs, &*e.nat()?, &bar.contributions_du_mois, (e.debut_periode()?, e.fin_periode()?))?;
+    let affiliations = rattachements(p, &orgs, &bar.entreprise.fiche, refs)?
         .into_iter()
         .map(|a| ((202 + a.place as i64).to_string(), a.reference))
         .collect();
@@ -2516,7 +2506,7 @@ fn blocs_58_de_la_correction(f: &mut Fichier, r: &Regularisation, debut: &Jour, 
 la norme {} declare en S21.G00.58 de type 13 (<< Part exoneree de cotisations sociales des indemnites de rupture >>, \
 cahier 2027.1.1, p. 268). Le logiciel ne sait pas encore l'annuler et la redeclarer dans une correction. Rien n'est ecrit.",
             r.mois,
-            apres.engagement.numero.clone().unwrap_or_else(|| "?".into()),
+            apres.engagement.numero.as_deref().unwrap_or("?").to_string(),
             f.norme()?.version
         ));
     }
@@ -2529,7 +2519,7 @@ cahier 2027.1.1, p. 268). Le logiciel ne sait pas encore l'annuler et la redecla
 la DSN déclare en S21.G00.58 de type 01 (fiche net-entreprises 2066). Le logiciel ne sait pas les annuler et les redéclarer \
 dans une correction. Rien n'est écrit.",
             r.mois,
-            apres.engagement.numero.clone().unwrap_or_else(|| "?".into())
+            apres.engagement.numero.as_deref().unwrap_or("?").to_string()
         ));
     }
     // Le 58 de la paie d'origine se date de son versement (sa fin de periode, 50.001 de la DSN d'origine) en norme 2027.
@@ -2618,13 +2608,13 @@ fn bloc_regularisation(
     f.add("S21.G00.50.004", mt(d_net));
     let v = &pas_c.versement;
     let (taux, type_taux, identifiant, soumis) = (&v.taux, &v.type_taux, &v.identifiant, v.montant_soumis);
-    f.add_v("S21.G00.50.006", &taux)?;
-    f.add_v("S21.G00.50.007", &type_taux)?;
-    if en_texte(&type_taux) == "01" {
-        f.add_v("S21.G00.50.008", &identifiant)?;
+    f.add_ecrit("S21.G00.50.006", taux.as_ref().map(droit::fiche::Montant::ecrit))?;
+    f.add_ecrit("S21.G00.50.007", type_taux.clone())?;
+    if type_taux.as_deref() == Some("01") {
+        f.add_ecrit("S21.G00.50.008", identifiant.clone())?;
     }
     let indu = d_ni < Decimal::ZERO;
-    f.add("S21.G00.50.009", if indu { "0.00".into() } else { mt(pct(soumis, dec_avec_echelle(&taux)?)) });
+    f.add("S21.G00.50.009", if indu { "0.00".into() } else { mt(pct(soumis, droit::pas::taux_du_versement(taux.as_ref())?)) });
     f.add("S21.G00.50.013", if indu { "0.00".into() } else { mt(soumis) });
 
     annuler_le_declare(f, r, &["51", "53"])?;
@@ -2649,7 +2639,7 @@ fn bloc_regularisation(
 introuvable dans le versement declare (rubrique S21.G00.50.006). Le bloc 56 de regularisation du PAS \
 doit le citer, et on ne le devine pas. Rien n'est ecrit.",
                         r.mois,
-                        txt(g(&apres.salarie, "nom"))
+                        apres.salarie.nom.texte().to_string()
                     ),
                     serde_json::json!({"chemin": format!("sorties/{}/{}", r.mois, r.declare.fichier)}),
                 ))
@@ -2707,52 +2697,44 @@ struct Lecture {
 }
 
 fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
-    let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
+    let contribs = bar.contributions_du_mois.clone();
     let pile = bareme_de(p, bar)?;
     let mut l = Lecture { roles: Vec::new(), blocs: Vec::new() };
-    for c in liste(req(&pile, "cotisations_dsn")?) {
-        l.blocs.push((en_texte(req(c, "bloc78")?), en_texte(req(c, "base78")?)));
-        if g(c, "code81").is_null() {
-            continue;
-        }
-        let org = opt_txt(g(c, "org")).unwrap_or_default();
-        let cle_total = if vrai(g(c, "cle_total")) { Some(en_texte(&c["cle_total"])) } else { None };
+    for c in &pile.cotisations_dsn {
+        l.blocs.push((c.bloc78.clone(), c.base78.clone()));
+        let Some(code) = c.code81.clone() else { continue };
+        let org = c.org.clone().unwrap_or_default();
+        let cle_total = c.cle_total.clone().filter(|x| !x.is_empty());
         // 81.003 s'ecrit avec un organisme ou une cle de totalisation (`bases_et_cotisations`) ; il porte la base du
         // taux, pas celle d'une cotisation faite de lignes du bulletin.
-        let base = if (!org.is_empty() || cle_total.is_some()) && !vrai(g(c, "lignes")) && !g(c, "taux").is_null() {
-            Some(en_texte(req(c, "base")?))
+        let base = if (!org.is_empty() || cle_total.is_some()) && c.lignes.as_ref().is_none_or(Vec::is_empty) && c.taux.is_some() {
+            Some(c.base.clone().ok_or_else(|| socle::fichiers::absent("base"))?)
         } else {
             None
         };
-        let code = en_texte(&c["code81"]);
         l.roles.push((code.clone(), org, Role81::Cotisation { cle: cle_total.unwrap_or(code), base }));
     }
-    let nature = p.engagement.nat()?.bareme.clone().unwrap_or_else(|| "intermittent".into());
+    let nature = p.engagement.nat()?.bareme().unwrap_or("intermittent").to_string();
     for contrib in &contribs {
         if g(contrib, "natures").get(&nature).is_some() {
             l.blocs.push(("31".into(), "zero".into()));
             l.roles.push(("059".into(), String::new(), Role81::Cotisation { cle: "059".into(), base: None }));
         }
     }
-    let dsn = g(g(&pile, "reduction_generale"), "dsn");
-    let par = |k: &str, defaut: &str| -> String {
-        let v = g(dsn, k);
-        if v.is_null() { defaut.to_string() } else { en_texte(v) }
-    };
-    let org_de = |code: &str| -> String {
-        liste(g(&pile, "cotisations_dsn")).iter().find(|c| txt(g(c, "code81")) == code).and_then(|c| opt_txt(g(c, "org"))).unwrap_or_default()
-    };
+    let dsn = reduction_dsn(&pile);
+    let par = |v: &Option<String>, defaut: &str| -> String { v.clone().unwrap_or_else(|| defaut.to_string()) };
+    let org = |code: &str| -> String { org_de(&pile, code).unwrap_or_default() };
     l.blocs.push(("03".into(), "brut".into()));
     for (code, org, part, cle) in [
-        (par("code81_urssaf", "018"), org_de("075"), "urssaf", par("cle_total_urssaf", "018:urssaf")),
-        (par("code81_chomage", "018"), org_de("040"), "chomage", par("cle_total_chomage", "018:chomage")),
-        (par("code81_retraite", "106"), String::new(), "retraite", "106".to_string()),
+        (par(&dsn.code81_urssaf, "018"), org("075"), "urssaf", par(&dsn.cle_total_urssaf, "018:urssaf")),
+        (par(&dsn.code81_chomage, "018"), org("040"), "chomage", par(&dsn.cle_total_chomage, "018:chomage")),
+        (par(&dsn.code81_retraite, "106"), String::new(), "retraite", "106".to_string()),
     ] {
         l.roles.push((code, org, Role81::Reduction { part, cle }));
     }
     // Les heures en plus : la reduction salariale et la deduction patronale, a l'Urssaf (`cotisations`).
     for code in [CODE81_REDUCTION_HEURES, CODE81_DEDUCTION_HEURES] {
-        l.roles.push((code.to_string(), org_de("075"), Role81::Cotisation { cle: code.to_string(), base: None }));
+        l.roles.push((code.to_string(), org("075"), Role81::Cotisation { cle: code.to_string(), base: None }));
     }
     Ok(l)
 }
@@ -2961,19 +2943,13 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &BaremeDuMois) -> Resul
     })
 }
 
-/// La cotisation d'un code a-t-elle un versement 20 hors Urssaf (le bordereau Urssaf se fait par les CTP) ?
-fn sert_a_un_versement(orgs: &Value, code: &str) -> bool {
-    liste(g(orgs, "versements")).iter().filter(|v| txt(g(v, "libelle")) != "URSSAF").any(|v| {
-        codes_du_versement(v).iter().any(|c| c == code || c.split(':').next() == Some(code))
-    })
-}
-
-/// Les cles de totalisation d'un versement 20 (`codes81` de `organismes-base.json`). Agirc-Arrco y porte 131 et 132
+/// La cotisation d'un code a-t-elle un versement 20 hors Urssaf (le bordereau Urssaf se fait par les CTP) ? Les cles de
+/// totalisation d'un versement sont ses `codes81` (`organismes-base.json`). Agirc-Arrco y porte 131 et 132
 /// (« Cotisation regime unifie Agirc-Arrco », « Cotisation Apec »), et 105 (« y compris Apec »), que la norme 2026.1 ne
 /// garde que « pour regularisation des periodes anterieures a 2025 » (cahier technique 2026.1, p. 302 et 305 ;
 /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, lignes 79-81).
-pub fn codes_du_versement(v: &Value) -> Vec<String> {
-    liste(g(v, "codes81")).iter().map(en_texte).collect()
+fn sert_a_un_versement(orgs: &Organismes, code: &str) -> bool {
+    orgs.versements().iter().filter(|v| !v.est_urssaf()).any(|v| v.codes81.iter().any(|c| c == code || c.split(':').next() == Some(code)))
 }
 
 /// `cumuler_totaux` de ce qui a ete DECLARE pour le contrat d'une regularisation : ses lignes 81 deposees, chacune a sa
@@ -2981,10 +2957,10 @@ pub fn codes_du_versement(v: &Value) -> Vec<String> {
 /// cumulent plus ici : ils se lisent dans le nominatif ecrit (`composants_de_versement`), ou `annuler_le_declare` a deja
 /// rattache chaque base 31 deposee a son adhesion (70.013).
 fn cumuler_le_declare(
-    totaux: &mut Vec<(String, Decimal)>, r: &Regularisation, bar: &BaremeDuMois, orgs: &Value, signe: i64,
+    totaux: &mut Vec<(String, Decimal)>, r: &Regularisation, bar: &BaremeDuMois, orgs: &Organismes, signe: i64,
 ) -> Resultat<()> {
     let d = &r.declare;
-    let numero = r.apres.engagement.numero.clone().unwrap_or_default();
+    let numero = r.apres.engagement.numero.as_deref().unwrap_or_default().to_string();
     let refus = |quoi: String| {
         format!(
             "Correction de {} (contrat {}) : {}. Les versements de la regularisation portent la difference « corrige moins declare », comme le nominatif ; elle ne se devine pas. Rien n'est ecrit.",
@@ -3052,23 +3028,20 @@ fn lire(v: &[(String, Decimal)], cle: &str) -> Option<Decimal> {
     v.iter().find(|(k, _)| k == cle).map(|(_, x)| *x)
 }
 
-fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
-    if !vrai(g(ctp, "taux_at")) {
+fn taux_at_du_ctp(ctp: &Ctp, bar: &Pile) -> Resultat<String> {
+    if ctp.taux_at.is_none() {
         return Ok(String::new());
     }
     // LE TAUX DU BAREME DU MOIS DECLARE : il peut changer en cours d'annee (1,69 puis 1,65 au 01/06/2025) ; `taux_at` du CTP
     // dit seulement « cette ligne porte le taux AT » ("bareme"), le taux ne se recopie pas.
-    if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
-        if txt(g(ctp, "taux_at")) == "bareme" {
-            return Err(socle::echec::cle(
-                "Le bareme du mois n'a pas de taux AT/MP, et un CTP de la DSN le porte. C'est le taux notifie par l'Assurance Maladie (Configuration › Entreprise). Rien n'est ecrit.",
-                "taux_atmp.valeur",
-            ));
-        }
-        return Ok(en_texte(&ctp["taux_at"]));
-    }
-    let mut valeur = dec_avec_echelle(g(g(bar, "taux_atmp"), "valeur"))?;
-    if txt(g(ctp, "statut")) == "artiste" {
+    let Some(valeur) = bar.taux_atmp.as_ref().and_then(|t| t.valeur).filter(|v| !v.is_zero()) else {
+        return Err(socle::echec::cle(
+            "Le bareme du mois n'a pas de taux AT/MP, et un CTP de la DSN le porte. C'est le taux notifie par l'Assurance Maladie (Configuration › Entreprise). Rien n'est ecrit.",
+            "taux_atmp.valeur",
+        ));
+    };
+    let mut valeur = valeur;
+    if ctp.statut.as_deref() == Some("artiste") {
         valeur = mul(valeur, Decimal::new(70, 2));
     }
     let q = valeur.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
@@ -3097,7 +3070,7 @@ fn ecrire_lignes_23(f: &mut Fichier, lignes: &[LigneBordereau]) {
 }
 
 fn statut(p: &Paie) -> String {
-    let s = txt(g(&p.salarie, "statut"));
+    let s = p.salarie.statut.dite().map_or(String::new(), |s| s.as_str().to_string());
     if s.is_empty() { "artiste".into() } else { s }
 }
 
@@ -3107,7 +3080,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &BaremeDuMois) -> Resultat<HashMap<String
     // (`cle_abattue`, la base 03 ; le 51 de type 001, `brut_du_51`) ; la CSG garde la sienne.
     let mut b = Vec::new();
     for p in paies {
-        let mut x = bases(p, bar)?;
+        let mut x = bases(p, &*bareme_de(p, bar)?)?;
         for cle in ["brut", "brut_x115", "brut_x110", "brut_plafonne", "brut_x115_plafonne"] {
             if x.contains_key(cle) {
                 let k = cle_abattue(p, "03", cle)?;
@@ -3207,7 +3180,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &BaremeDuMois) -> Resultat<HashMap<String
     // Les heures en plus : la reduction salariale (CTP 003) et la deduction patronale (CTP 004, 005), en montant, comme
     // le nominatif les declare (114 et 021, `cotisations`).
     for (cle, id) in [(MONTANT_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (MONTANT_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
-        let m = paies.iter().flat_map(|p| p.lignes.iter()).filter(|l| l.id == id).fold(zero(), |a, l| sub(a, add(l.montant_pat, l.montant_sal)));
+        let m = paies.iter().flat_map(|p| p.lignes.iter()).filter(|l| l.est(id)).fold(zero(), |a, l| sub(a, add(l.montant_pat, l.montant_sal)));
         out.insert(cle.into(), m);
     }
     Ok(out)
@@ -3247,16 +3220,15 @@ fn plafonnee(cle: &str) -> String {
 }
 
 /// La cle d'une ligne de la table des CTP dans `assiettes_ctp` : sa cle de montant, ou son assiette, plafonnee sous 921.
-fn cle_ctp(ctp: &Value) -> Resultat<(String, bool)> {
-    let par_montant = vrai(g(ctp, "montant"));
-    if par_montant {
-        return Ok((en_texte(&ctp["montant"]), true));
+fn cle_ctp(ctp: &Ctp) -> Resultat<(String, bool)> {
+    if let Some(m) = ctp.montant.as_deref().filter(|m| !m.is_empty()) {
+        return Ok((m.to_string(), true));
     }
-    let k = en_texte(req(ctp, "assiette")?);
-    Ok((if txt(g(ctp, "qualifiant")) == QUALIFIANT_PLAFONNEE { plafonnee(&k) } else { k }, false))
+    let k = ctp.assiette.clone().ok_or_else(|| socle::echec::livree("organismes-base.json", &format!("ctp_urssaf.{}.assiette", ctp.code)))?;
+    Ok((if ctp.qualifiant.trim() == QUALIFIANT_PLAFONNEE { plafonnee(&k) } else { k }, false))
 }
 
-fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decimal, bool)> {
+fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Ctp) -> Resultat<(Decimal, bool)> {
     let (k, par_montant) = cle_ctp(ctp)?;
     match somme.get(&k) {
         Some(v) => Ok((*v, par_montant)),
@@ -3265,10 +3237,10 @@ fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decima
                 "La table des CTP livrée avec le logiciel : le CTP {} sous le qualifiant {} (assiette plafonnée, cahier \
 technique 2026.1, p. 168) lit une assiette qui n'a pas de forme plafonnée. Aucune saisie de la compagnie ne le corrige : le \
 signaler au développeur. Rien n'est écrit.",
-                txt(g(ctp, "code")),
+                ctp.code.trim(),
                 QUALIFIANT_PLAFONNEE
             ),
-            serde_json::json!({"fichier": "organismes-base.json", "cle": &k[plafonnee("").len()..]}),
+            socle::echec::APart { fichier: Some("organismes-base.json".into()), cle: Some(k[plafonnee("").len()..].to_string()), ..Default::default() },
         )),
         None => Err(socle::echec::livree("organismes-base.json", &k)),
     }
@@ -3286,11 +3258,6 @@ const CODE81_CFP: &str = "128";
 const CODE81_REDUCTION_HEURES: &str = "114";
 const CODE81_DEDUCTION_HEURES: &str = "021";
 const ASSIETTE_CFP_PERMANENT: &str = "cfp_permanent";
-
-/// La table des CTP des organismes composes (`organismes::composer`), depuis `donnees/organismes-base.json`.
-fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
-    Ok(liste(req(orgs, "ctp_urssaf")?).to_vec())
-}
 
 /// Les seuils d'effectif d'un mois, pour les CTP qui en dependent (`effectif_au_moins`, `effectif_sous` d'une ligne de
 /// `ctp_urssaf`) : l'effectif A01 que l'Urssaf renvoie en CRM 118 (`config/effectifs.json`, regle 8), la regle des cinq
@@ -3314,32 +3281,26 @@ impl Seuils {
     }
 
     /// La ligne `ctp` du fichier des organismes s'ecrit-elle a l'effectif de ce mois ?
-    fn retient(&self, ctp: &Value) -> Resultat<bool> {
-        let seuil = |k: &str| -> Resultat<Option<i64>> {
-            match g(ctp, k) {
-                Value::Null => Ok(None),
-                v => v.as_i64().map(Some).ok_or_else(|| socle::echec::livree("organismes-base.json", &format!("ctp_urssaf.{}.{}", txt(g(ctp, "code")), k))),
-            }
-        };
-        Ok(seuil("effectif_au_moins")?.map_or(true, |s| self.atteint(s)) && seuil("effectif_sous")?.map_or(true, |s| !self.atteint(s)))
+    fn retient(&self, ctp: &Ctp) -> bool {
+        ctp.effectif_au_moins.map_or(true, |s| self.atteint(s)) && ctp.effectif_sous.map_or(true, |s| !self.atteint(s))
     }
 }
 
 /// `assujettissement::taxe_apprentissage_non_due_au_mois` pour un mois `AAAA-MM`.
-fn taxe_apprentissage_non_due_du_mois(ent: &Value, mois: &str) -> Resultat<bool> {
-    let m: u32 = mois.get(5..7).and_then(|m| m.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))?;
-    droit::apprentissage::taxe_apprentissage_non_due_au_mois(ent, annee_du_mois(mois)?, m)
+fn taxe_apprentissage_non_due_du_mois(ent: &ChampsEntreprise, mois: &str) -> Resultat<bool> {
+    let m = Mois::lire(mois)?;
+    droit::apprentissage::taxe_apprentissage_non_due_au_mois(ent, m.annee(), m.numero())
 }
 
 fn lignes_bordereau(
-    paies: &[&Paie], orgs: &Value, ent: &Value, bar: &BaremeDuMois, solde_ta: Option<&SoldeTa>, doeth: Option<&crate::oeth::Declaration>,
+    paies: &[&Paie], orgs: &Organismes, ent: &ChampsEntreprise, bar: &BaremeDuMois, solde_ta: Option<&SoldeTa>, doeth: Option<&crate::oeth::Declaration>,
     csa: Option<&crate::csa::Csa>, mois: &str, effectif: &Seuils,
 ) -> Resultat<Vec<LigneBordereau>> {
     let mut lignes = Vec::new();
     let somme = assiettes_ctp(paies, bar)?;
-    let ctps = crate::assujettissement::ctp_sans_la_taxe_non_due(ctp_urssaf(orgs)?, taxe_apprentissage_non_due_du_mois(ent, mois)?);
+    let ctps = crate::assujettissement::ctp_sans_la_taxe_non_due(orgs.ctp_urssaf().to_vec(), taxe_apprentissage_non_due_du_mois(ent, mois)?);
     let ctps = ctps.as_slice();
-    if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| txt(g(c, "nature")) == "permanent") {
+    if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| c.nature.as_deref() == Some("permanent")) {
         return Err(format!(
             "La DSN de {} porte {} de brut de salariés permanents, et la table des CTP livrée avec le logiciel \
 n'a aucun CTP des permanents. Le bordereau Urssaf serait faux : un \
@@ -3350,17 +3311,17 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
         ));
     }
     for ctp in ctps {
-        if !effectif.retient(ctp)? {
+        if !effectif.retient(ctp) {
             continue;
         }
         let (valeur, par_montant) = valeur_ctp(&somme, ctp)?;
-        if (vrai(g(ctp, "statut")) || vrai(g(ctp, "nature"))) && valeur.is_zero() {
+        if (ctp.statut.as_deref().is_some_and(|s| !s.is_empty()) || ctp.nature.as_deref().is_some_and(|s| !s.is_empty())) && valeur.is_zero() {
             continue;
         }
         let v = rond(valeur);
         lignes.push(ligne(
-            en_texte(req(ctp, "code")?),
-            en_texte(req(ctp, "qualifiant")?),
+            ctp.code.clone(),
+            ctp.qualifiant.clone(),
             taux_at_du_ctp(ctp, bar)?,
             if par_montant { None } else { Some(v) },
             if par_montant { Some(v) } else { None },
@@ -3373,7 +3334,7 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
         // atelier/reference/sources/majoration-caisses-conges/).
         let (mut artistes, mut autres) = (zero(), zero());
         for p in paies {
-            let a = bases(p, bar)?["brut_x115"];
+            let a = bases(p, &*bareme_de(p, bar)?)?["brut_x115"];
             if statut(p) == "artiste" {
                 artistes = add(artistes, a);
             } else {
@@ -3389,13 +3350,12 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
     }
     let mut local = zero();
     for p in paies {
-        if bareme::regime_local(bar, &p.salarie) {
-            local = add(local, bases(p, bar)?["brut"]);
+        if bareme::alsace_moselle(&bar.entreprise.fiche, &p.salarie) {
+            local = add(local, bases(p, &*bareme_de(p, bar)?)?["brut"]);
         }
     }
     if !local.is_zero() {
-        let ctp = g(g(bar, "regime_local_alsace_moselle"), "ctp");
-        let code = if vrai(ctp) { en_texte(ctp) } else { "381".into() };
+        let code = bar.regime_local_alsace_moselle.as_ref().map(|r| r.ctp.clone()).filter(|c| !c.is_empty()).unwrap_or_else(|| "381".into());
         lignes.push(ligne(code, "920".into(), String::new(), Some(rond(local)), None, None));
     }
     if let Some(s) = solde_ta {
@@ -3422,14 +3382,14 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
 /// secondaire valorisait son bordereau regularise au taux AT/MP du principal (23.003, `taux_at_du_ctp`) ; regle 8,
 /// chaque etablissement a le sien.
 fn lignes_regularisees(
-    orgs: &Value, ent: &Value, regs: &[Regularisation], mois_o: &str, bar_o: &BaremeDuMois, effectif: &Seuils,
+    orgs: &Organismes, ent: &ChampsEntreprise, regs: &[Regularisation], mois_o: &str, bar_o: &BaremeDuMois, effectif: &Seuils,
 ) -> Resultat<Vec<LigneBordereau>> {
     let siens: Vec<&Regularisation> = regs.iter().filter(|r| r.mois == mois_o).collect();
     let apres = assiettes_ctp(&siens.iter().map(|r| &r.apres).collect::<Vec<_>>(), bar_o)?;
     let mut lignes = Vec::new();
-    let ctps = crate::assujettissement::ctp_sans_la_taxe_non_due(ctp_urssaf(orgs)?, taxe_apprentissage_non_due_du_mois(ent, mois_o)?);
+    let ctps = crate::assujettissement::ctp_sans_la_taxe_non_due(orgs.ctp_urssaf().to_vec(), taxe_apprentissage_non_due_du_mois(ent, mois_o)?);
     for ctp in &ctps {
-        if !effectif.retient(ctp)? {
+        if !effectif.retient(ctp) {
             continue;
         }
         let (corrige, par_montant) = valeur_ctp(&apres, ctp)?;
@@ -3443,8 +3403,8 @@ fn lignes_regularisees(
                         "Correction de {} (contrat {}) : la ligne {} ({}) du bordereau Urssaf de ce mois, assiette « {} », ne se recompose pas depuis ce que {} a declare pour le contrat : {}. Le bordereau d'une regularisation porte la difference « corrige moins declare », comme le nominatif ; elle ne se devine pas. Rien n'est ecrit.",
                         r.mois,
                         r.apres.engagement.numero.as_deref().unwrap_or("sans numero"),
-                        en_texte(req(ctp, "code")?),
-                        en_texte(req(ctp, "qualifiant")?),
+                        ctp.code.clone(),
+                        ctp.qualifiant.clone(),
                         cle,
                         r.declare.fichier,
                         e
@@ -3457,7 +3417,7 @@ fn lignes_regularisees(
             continue;
         }
         let taux_at = taux_at_du_ctp(ctp, bar_o)?;
-        let code = en_texte(req(ctp, "code")?);
+        let code = ctp.code.clone();
         if par_montant && v.is_sign_negative() {
             // Une reduction qui BAISSE (un salaire corrige a la hausse) : son CTP de regularisation, en assiette (23.004)
             // et sans signe, et non le CTP de la reduction en montant negatif. Guide declaratif Urssaf 5.1, § 8.2,
@@ -3466,7 +3426,7 @@ fn lignes_regularisees(
             // les signes necessaires » (atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes
             // 1341-1362). La table des CTP valorise 669 et 801 (format E) a 100 % : le montant du bordereau est celui
             // qu'aurait deduit le montant negatif.
-            let qualifiant = en_texte(req(ctp, "qualifiant")?);
+            let qualifiant = ctp.qualifiant.clone();
             let regularisation = ctp_de_regularisation(&code, &siens, bar_o)?.ok_or_else(|| {
                 format!(
                     "Correction de {} : la ligne {} ({}) du bordereau Urssaf baisse de {}, et le barème du mois ne dit pas sous quel CTP se régularise cette réduction (`reduction_generale.dsn.ctp_regularisation`) : un montant de réduction ne s'écrit pas négatif (guide déclaratif Urssaf, § 8.2). Rien n'est écrit.",
@@ -3481,7 +3441,7 @@ fn lignes_regularisees(
         }
         lignes.push(ligne(
             code,
-            en_texte(req(ctp, "qualifiant")?),
+            ctp.qualifiant.clone(),
             taux_at,
             if par_montant { None } else { Some(v) },
             if par_montant { Some(v) } else { None },
@@ -3498,9 +3458,9 @@ fn ctp_de_regularisation(code: &str, siens: &[&Regularisation], bar: &BaremeDuMo
     for r in siens {
         for p in [&r.apres, &r.avant] {
             let pile = bareme_de(p, bar)?;
-            let dsn = g(g(&pile, "reduction_generale"), "dsn");
-            if txt(g(dsn, "ctp")) == code {
-                if let Some(x) = opt_txt(g(dsn, "ctp_regularisation")).filter(|x| !x.is_empty()) {
+            let dsn = reduction_dsn(&pile);
+            if dsn.ctp.as_deref() == Some(code) {
+                if let Some(x) = dsn.ctp_regularisation.clone().filter(|x| !x.is_empty()) {
                     return Ok(Some(x));
                 }
             }
@@ -3509,24 +3469,17 @@ fn ctp_de_regularisation(code: &str, siens: &[&Regularisation], bar: &BaremeDuMo
     Ok(None)
 }
 
-/// S21.G00.20.002 d'un versement : la reference de l'organisme.
-pub fn reference_versement(v: &Value, ent: &Value) -> Resultat<Option<String>> {
-    let reference = if vrai(g(v, "reference")) { Some(en_texte(&v["reference"])) } else { None };
-    if txt(g(v, "siret")) != SIRET_FRANCE_TRAVAIL {
-        return Ok(reference);
+/// S21.G00.20.002 d'un versement : la reference de l'organisme, le compte France Travail de la fiche entreprise.
+pub fn reference_versement(v: &Versement, ent: &ChampsEntreprise) -> Option<String> {
+    if v.siret != SIRET_FRANCE_TRAVAIL {
+        return None;
     }
-    let fiche = Some(txt(g(ent, "france_travail_dossier_recouvrement")).trim().to_string()).filter(|s| !s.is_empty());
-    Ok(fiche.or(reference))
+    Some(ent.france_travail_dossier_recouvrement.texte().trim().to_string()).filter(|s| !s.is_empty())
 }
 
-fn montant_versement(v: &Value, totaux: &[(String, Decimal)], brut_mois: Decimal) -> Resultat<Decimal> {
-    let regle = g(v, "montant");
-    if vrai(regle) && txt(g(regle, "mode")) == "taux_sur_brut" {
-        let m = div(mul(brut_mois, dec_avec_echelle(req(regle, "taux")?)?), Decimal::ONE_HUNDRED);
-        return Ok(if txt(g(regle, "arrondi")) == "euro" { rond(m) } else { eur(m) });
-    }
-    req(v, "codes81")?;
-    Ok(codes_du_versement(v).iter().fold(zero(), |s, c| add(s, lire(totaux, c).unwrap_or(zero()))))
+/// Le montant d'un versement : la somme de ses cles de totalisation (`codes81`).
+fn montant_versement(v: &Versement, totaux: &[(String, Decimal)]) -> Decimal {
+    v.codes81.iter().fold(zero(), |s, c| add(s, lire(totaux, c).unwrap_or(zero())))
 }
 
 // ------------------------------------ le versement a un organisme complementaire
@@ -3682,7 +3635,7 @@ contrats ouvert sur le mois déclaré. Rien n'est écrit.",
 
 /// Le bloc 20 d'un organisme complementaire et ses composants 55, ou rien si aucun composant ne porte de montant.
 fn versement_complementaire(
-    v: &Value, ent: &Value, banque: &Value, composants: &[&Composant], debut: Jour, fin: Jour, echeance: Option<Jour>,
+    v: &Versement, ent: &ChampsEntreprise, banque: &droit::fiche::Banque, composants: &[&Composant], debut: Jour, fin: Jour, echeance: Option<Jour>,
 ) -> Resultat<Vec<String>> {
     if composants.iter().all(|c| c.montant.is_zero()) {
         return Ok(Vec::new());
@@ -3691,12 +3644,12 @@ fn versement_complementaire(
     // « sauf si cette somme fait ressortir un montant negatif. Auquel cas un montant nul doit etre renseigne » (p. 157).
     let montant = bordereau::a_verser(somme).montant;
     let mut f = Fichier::nouveau();
-    f.add("S21.G00.20.001", en_texte(req(v, "siret")?));
-    if let Some(r) = reference_versement(v, ent)? {
+    f.add("S21.G00.20.001", v.siret.clone());
+    if let Some(r) = reference_versement(v, ent) {
         f.add("S21.G00.20.002", r);
     }
-    f.add_v("S21.G00.20.003", req(banque, "bic")?)?;
-    f.add_v("S21.G00.20.004", req(banque, "iban")?)?;
+    f.add_case("S21.G00.20.003", &banque.bic, "bic")?;
+    f.add_case("S21.G00.20.004", &banque.iban, "iban")?;
     f.add("S21.G00.20.005", mt(montant));
     f.add("S21.G00.20.006", debut.jjmmaaaa());
     f.add("S21.G00.20.007", fin.jjmmaaaa());
@@ -3728,11 +3681,12 @@ pub const DGFIP_PAS: &str = "DGFIP_PAS";
 
 /// Les coordonnees bancaires du compte preleve (S21.G00.20.003 et .004) : la fiche entreprise, `banque`. Absentes, la
 /// DSN ne s'ecrit pas : un versement en prelevement SEPA (20.010 = 05) les exige (CCH-12 et SIG-13, p. 161).
-fn banque_du_prelevement(ent: &Value) -> Resultat<&Value> {
-    let banque = g(ent, "banque");
-    let manque: Vec<&str> = [("bic", "le BIC (S21.G00.20.003)"), ("iban", "l'IBAN (S21.G00.20.004)")]
+fn banque_du_prelevement(ent: &ChampsEntreprise) -> Resultat<&droit::fiche::Banque> {
+    static SANS: std::sync::OnceLock<droit::fiche::Banque> = std::sync::OnceLock::new();
+    let banque = ent.banque.dite().unwrap_or_else(|| SANS.get_or_init(Default::default));
+    let manque: Vec<&str> = [(&banque.bic, "le BIC (S21.G00.20.003)"), (&banque.iban, "l'IBAN (S21.G00.20.004)")]
         .iter()
-        .filter(|(k, _)| txt(g(banque, k)).trim().is_empty())
+        .filter(|(c, _)| c.texte().trim().is_empty())
         .map(|(_, l)| *l)
         .collect();
     if !manque.is_empty() {
@@ -3768,7 +3722,7 @@ pub fn pas_retenu(lignes: &[String]) -> Resultat<Decimal> {
 /// remplace (type 03 ou 05), et `remplacee_versait_pas` dit si la declaration remplacee portait un versement DGFiP.
 #[allow(clippy::too_many_arguments)]
 fn versement_dgfip(
-    du: Decimal, mois: &str, debut: Jour, fin: Jour, banque: &Value, remplace: bool, remplacee_versait_pas: Option<bool>,
+    du: Decimal, mois: &str, debut: Jour, fin: Jour, banque: &droit::fiche::Banque, remplace: bool, remplacee_versait_pas: Option<bool>,
 ) -> Resultat<Vec<String>> {
     // « arrondi a l'entier le plus proche (les deux decimales etant valorisees a zero) » (p. 157, ligne 194) ; le demi
     // va a l'euro superieur (`bordereau::euro`) : CGI art. 1724, « La liquidation de toutes sommes a recevoir [...] est
@@ -3810,8 +3764,8 @@ pas pu etre relue (le fichier du dernier depot accepte) : on ne devine pas. Rien
     let mut f = Fichier::nouveau();
     f.add("S21.G00.20.001", DGFIP);
     f.add("S21.G00.20.002", DGFIP_PAS);
-    f.add_v("S21.G00.20.003", req(banque, "bic")?)?;
-    f.add_v("S21.G00.20.004", req(banque, "iban")?)?;
+    f.add_case("S21.G00.20.003", &banque.bic, "bic")?;
+    f.add_case("S21.G00.20.004", &banque.iban, "iban")?;
     f.add("S21.G00.20.005", mt(montant));
     f.add("S21.G00.20.006", debut.jjmmaaaa());
     f.add("S21.G00.20.007", fin.jjmmaaaa());
@@ -3820,9 +3774,6 @@ pas pu etre relue (le fichier du dernier depot accepte) : on ne devine pas. Rien
 }
 
 /// L'annee d'un mois `AAAA-MM`.
-fn annee_du_mois(mois: &str) -> Resultat<i32> {
-    mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))
-}
 
 /// Le solde de la taxe d'apprentissage d'avril.
 pub struct SoldeTa {
@@ -3847,7 +3798,7 @@ pub fn paies_declarees_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>, de
             None => v.paie(ctx, &data, i)?,
         };
         if let Some(n) = nic {
-            if bareme::etablissement_du_salarie(&ctx_m.entreprise, &p.salarie)? != n {
+            if bareme::etablissement_de(&ctx_m.entreprise, &p.salarie)? != n {
                 continue;
             }
         }
@@ -3885,12 +3836,12 @@ pub fn assiettes_de_l_annee(ctx: &Contexte, annee: i32, nic: &str, codes: &[&str
     Ok(total)
 }
 
-fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Value, nic: &str, departs: &engagement::departs::Departs) -> Resultat<Option<SoldeTa>> {
+fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Organismes, bar: &Pile, nic: &str, departs: &engagement::departs::Departs) -> Resultat<Option<SoldeTa>> {
     if &mois[5..7] != "04" {
         return Ok(None);
     }
-    let sec = g(bar, "solde_taxe_apprentissage");
-    if g(sec, "taux").is_null() || !liste(g(orgs, "ctp_urssaf")).iter().any(|c| txt(g(c, "code")) == "992") {
+    let Some(taux) = bar.solde_taxe_apprentissage.as_ref().map(|s| s.taux) else { return Ok(None) };
+    if !orgs.ctp_urssaf().iter().any(|c| c.code.trim() == "992") {
         return Ok(None);
     }
     let annee: i32 = mois[..4].parse::<i32>().map_err(|e| e.to_string())? - 1;
@@ -3902,12 +3853,13 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
     if assiette.is_zero() {
         return Ok(None);
     }
-    let org = liste(g(bar, "cotisations_dsn"))
+    let org = bar
+        .cotisations_dsn
         .iter()
-        .find(|c| txt(g(c, "code81")) == "075" && vrai(g(c, "org")))
-        .map(|c| en_texte(&c["org"]))
+        .find(|c| c.code81.as_deref() == Some("075") && c.org.as_deref().is_some_and(|o| !o.is_empty()))
+        .and_then(|c| c.org.clone())
         .unwrap_or_else(|| "78861779300013".into());
-    let montant = div(mul(assiette, dec_avec_echelle(&sec["taux"])?), Decimal::ONE_HUNDRED)
+    let montant = div(mul(assiette, taux), Decimal::ONE_HUNDRED)
         .round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
     Ok(Some(SoldeTa { annee, assiette, montant, org }))
 }
@@ -4031,8 +3983,9 @@ pub fn generer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisatio
     Ok(fabriquer(ctx, paies, mois, regs, arrets, o, departs)?.texte)
 }
 
-fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
-    Jour::nouveau(an + (mo == 12) as i32, mo % 12 + 1, jour).unwrap_or_else(|| fin_mois(an + (mo == 12) as i32, mo % 12 + 1))
+fn echeance_mois_suivant(mois: Mois, jour: u32) -> Jour {
+    let suivant = mois.suivant();
+    suivant.jour(jour).unwrap_or_else(|| suivant.dernier_jour())
 }
 
 /// LE BAREME D'UN MOIS POUR UN ETABLISSEMENT : le bareme empile (`Contexte::bareme`) surcharge par ce que la fiche
@@ -4040,8 +3993,8 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
 /// seule facon de l'obtenir (regle 8 : chaque etablissement a son taux AT/MP) : le bordereau courant, le bordereau
 /// regularise et le nominatif (`bar_du`) passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
-fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat<Value> {
-    Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&premier(mois)?)?).clone(), ent, nic)?).0)
+fn bareme_du_nic(ctx: &Contexte, ent: &ChampsEntreprise, lue: &EntrepriseLue, nic: &str, mois: &str) -> Resultat<Pile> {
+    Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&Mois::lire(mois)?.premier_jour())?).clone(), ent, nic)?, &lue.fiche).0)
 }
 
 /// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
@@ -4049,18 +4002,17 @@ fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat
 /// de ce mois telle que la version sur laquelle elle est partie l'a ecrite (`engagement::etats::paie_declaree`) ; son
 /// bloc 40 s'ecrit comme il s'est ecrit ce mois-la, de la fiche du salarie telle que ce calcul l'a lue. `etats` : les
 /// engagements de `mois` ; `None` : rien de declare.
-fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs, orgs: &Value) -> Resultat<Option<crate::changements_contrat::Declare>> {
-    let (cle, numero) = (cle_salarie(p), p.engagement.numero.clone().unwrap_or_default());
+fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs, orgs: &Organismes) -> Resultat<Option<crate::changements_contrat::Declare>> {
+    let (cle, numero) = (cle_salarie(p), p.engagement.numero.as_deref().unwrap_or_default().to_string());
     let sienne = |e: &engagement::etats::Etat| {
-        let b = &*e.objet().brut;
-        engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
+        e.objet().carte().salarie.as_deref() == Some(cle.as_str()) && e.objet().carte().numero.as_deref() == Some(numero.as_str())
     };
     let Some(v) = etats.iter().filter(|e| sienne(e)).find_map(engagement::etats::Etat::valide) else { return Ok(None) };
-    let premier_mois = p.engagement.debut.mois_iso();
-    let mut m = premier(mois)?.plus_jours(-1)?.mois_iso();
+    let premier_mois = p.engagement.debut.mois_civil().to_string();
+    let mut m = Mois::lire(mois)?.precedent().to_string();
     while m >= premier_mois {
         // La compagnie telle qu'a la fin du mois declare (l'entreprise, ses etablissements) ; la fiche, celle que la paie declaree a lue.
-        let ctx_m = Contexte::nouveau(&ctx.racine, Some(socle::date::dernier_du_mois(&m)?))?;
+        let ctx_m = Contexte::nouveau(&ctx.racine, Some(socle::mois::Mois::lire(&m)?.dernier_jour()))?;
         if let Some(declaree) = engagement::etats::paie_declaree(&ctx_m, v.objet(), departs, &m)? {
             // Les autres contrats du salarie declares ce mois-la : le code emplois multiples (40.036) s'ecrit avec eux.
             let mut autres = Vec::new();
@@ -4073,11 +4025,11 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                     autres.push(q);
                 }
             }
-            let nic = bareme::etablissement_du_salarie(&ctx_m.entreprise, &declaree.salarie)?;
+            let nic = bareme::etablissement_de(&ctx_m.entreprise, &declaree.salarie)?;
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
-            let mut ent = ctx_m.entreprise.as_object().cloned().unwrap_or_default();
-            ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&premier(&m)?)?));
-            let ent_e = bareme::fiche_de_l_etablissement(&Value::Object(ent), &nic)?;
+            let mut ent = ctx_m.entreprise.clone();
+            ent.licence_spectacle = Some(ctx.licence(&Mois::lire(&m)?.premier_jour()));
+            let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
             bloc_contrat(&mut f, &declaree, &ent_e, orgs, 1, &bar, true, &[], "01", emplois_multiples(&declaree, &refs))?;
@@ -4088,26 +4040,21 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                 .filter(|(k, _)| k.starts_with("S21.G00.40."))
                 .map(|(k, x)| (k.to_string(), x.trim_matches('\'').to_string()))
                 .collect();
-            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: txt(g(&ctx_m.entreprise, "siren")) + &nic, nic, bloc }));
+            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: ctx_m.entreprise.siren.texte().trim().to_string() + &nic, nic, bloc }));
         }
-        m = premier(&m)?.plus_jours(-1)?.mois_iso();
+        m = Mois::lire(&m)?.precedent().to_string();
     }
     Ok(None)
 }
 
 /// Le bareme d'un mois pour l'etablissement, avec ses contributions.
-pub fn bar_du(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, m: &str) -> Resultat<BaremeDuMois> {
-    let b = bareme_du_nic(ctx, ent, nic, m)?;
+pub fn bar_du(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Organismes, nic: &str, m: &str) -> Resultat<BaremeDuMois> {
+    let lue = ctx.entreprise_lue(&Mois::lire(m)?.premier_jour())?;
+    let b = bareme_du_nic(ctx, ent, &lue, nic, m)?;
     let c = contributions_dsn(ctx, ent, orgs, m, &b)?;
-    if c.is_empty() {
-        return Ok(BaremeDuMois::nouveau(b));
-    }
-    let mut o = match b {
-        Value::Object(o) => o,
-        _ => Map::new(),
-    };
-    o.insert("_contributions_du_mois".into(), Value::Array(c));
-    Ok(BaremeDuMois::nouveau(Value::Object(o)))
+    let mut bar = BaremeDuMois::nouveau(b, lue);
+    bar.contributions_du_mois = c;
+    Ok(bar)
 }
 
 fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
@@ -4124,13 +4071,15 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// CE QUE LA DSN EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit) : tout ce qui
 /// manque, d'un coup, avant d'ecrire ; le numero d'adherent Conges Spectacles, seulement quand un contrat est declare a la
 /// caisse (`caisse_conges`). La DSN mensuelle et l'amorcage (`amorcage::generer`) declarent le meme individu.
-pub fn exiges<'a>(ent: &Value, salaries: impl Iterator<Item = &'a Value>, caisse_conges: bool) -> Resultat<()> {
-    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+pub fn exiges<'a>(ent: &ChampsEntreprise, salaries: impl Iterator<Item = &'a droit::fiche::SalarieDuContrat>, caisse_conges: bool) -> Resultat<()> {
+    let mut vues: Vec<&droit::fiche::SalarieDuContrat> = Vec::new();
     for s in salaries {
-        if !fiches.iter().any(|(_, _, f)| g(f, "_cle") == g(s, "_cle")) {
-            fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(s), &txt(g(s, "_cle")))), s));
+        if !vues.iter().any(|v| v.id == s.id) {
+            vues.push(s);
         }
     }
+    let mut fiches: Vec<(&str, String, &dyn crate::champs::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+    fiches.extend(vues.iter().map(|s| ("salarie", format!("la fiche de {}", s.nomme().unwrap_or_else(|| s.id.to_string())), &s.champs as &dyn crate::champs::ParCase)));
     match crate::champs::refus_des_manques("dsn", &fiches, if caisse_conges { &[] } else { &[documents::conges_spectacles::CLE_ADHERENT] }).map_err(|e| e.message)? {
         Some(m) => Err(m),
         None => Ok(()),
@@ -4272,20 +4221,20 @@ pub fn exiges<'a>(ent: &Value, salaries: impl Iterator<Item = &'a Value>, caisse
 /// le montant.
 pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options, departs: &engagement::departs::Departs) -> Resultat<Fabriquee> {
     let ctx = &ctx.du_mois(mois)?;
-    let ent0 = ctx.entreprise.clone();
-    let principal_nic = bareme::nic_principal(&ent0);
+    let ent0 = &ctx.entreprise;
+    let principal_nic = ent0.nic_principal();
     let nic = match o.etablissement.as_deref().filter(|n| !n.is_empty()) {
         Some(n) => n.to_string(),
         None => principal_nic.clone(),
     };
     let principal = nic == principal_nic;
-    if !principal && bareme::entree(&ent0, &nic).is_none() {
-        return Err(format!("Etablissement {} inconnu de la fiche entreprise (connus : {}).", nic, nics(&ent0).join(", ")));
+    if !principal && ent0.etablissement(&nic).is_none() {
+        return Err(format!("Etablissement {} inconnu de la fiche entreprise (connus : {}).", nic, ent0.nics().join(", ")));
     }
     let mut egares = BTreeSet::new();
     for s in paies.iter().map(|p| &p.salarie).chain(regs.iter().map(|r| &r.apres.salarie)) {
-        if bareme::etablissement_du_salarie(&ent0, s)? != nic {
-            egares.insert(txt(g(s, "_cle")));
+        if bareme::etablissement_de(ent0, s)? != nic {
+            egares.insert(s.id.to_string());
         }
     }
     if !egares.is_empty() {
@@ -4299,7 +4248,7 @@ etablissement, chacun avec ses salaries. Rien n'est ecrit.",
         ), "etablissement"));
     }
     let caisse = paies.iter().any(|p| p.declaree_a_la_caisse_des_conges().unwrap_or(false));
-    exiges(&ent0, paies.iter().map(|p| &p.salarie).chain(regs.iter().map(|r| &r.apres.salarie)), caisse)?;
+    exiges(ent0, paies.iter().map(|p| &p.salarie).chain(regs.iter().map(|r| &r.apres.salarie)), caisse)?;
     // La correction d'un mois decoupe en periodes elementaires : le declare relu (`versement_declare`) et le
     // corrige se comparent base par base, et un mois decoupe en a une par periode. Un chantier a part.
     if let Some(r) = regs.iter().find(|r| !r.apres.periodes.is_empty() || !r.avant.periodes.is_empty()) {
@@ -4308,37 +4257,35 @@ etablissement, chacun avec ses salaries. Rien n'est ecrit.",
 statut, de categorie ou de duree du travail en cours de mois). La regularisation d'un tel mois, base par base et periode \
 par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
             r.mois,
-            r.apres.engagement.numero.clone().unwrap_or_else(|| "?".into())
+            r.apres.engagement.numero.as_deref().unwrap_or("?").to_string()
         ));
     }
     // Les etablissements, celui de cette DSN d'abord : un contrat declare ailleurs a change d'etablissement (bloc 41).
-    let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(nics(&ent0).into_iter().filter(|n| *n != nic)).collect();
+    let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(ent0.nics().into_iter().filter(|n| *n != nic)).collect();
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, departs)?;
     let orgs = ctx.organismes()?;
-    let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
-    let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
-    let debut_mois = premier(mois)?;
-    // La version de la norme suit le mois principal declare (`norme-dsn-base.json`, une inference : `_inference`) ; un
+    let lu = Mois::lire(mois)?;
+    let debut_mois = lu.premier_jour();
+    // La version de la norme suit le mois principal declare (`norme-dsn-base.json`, une inference : sa `note`) ; un
     // mois que la donnee ne couvre pas refuse ici, avant tout calcul. Un annule-et-remplace prend celle de son mois.
-    let norme = crate::norme::de_la_mensuelle(&debut_mois.mois_iso())?;
+    let norme = crate::norme::de_la_mensuelle(&lu.to_string())?;
     // En P27V01, la fiche entreprise est en NAF 2025 (`naf::verifier_pour`), avant tout calcul.
-    crate::naf::verifier_pour(&norme, &ctx.entreprise)?;
-    let fin_m = fin_mois(an, mo);
+    crate::naf::verifier_pour(&norme, ent0)?;
+    let fin_m = lu.dernier_jour();
     let mut bars: HashMap<String, std::sync::Arc<BaremeDuMois>> = HashMap::new();
     let mut bar_de = |m: &str| -> Resultat<std::sync::Arc<BaremeDuMois>> {
         if let Some(b) = bars.get(m) {
             return Ok(b.clone());
         }
-        let b = std::sync::Arc::new(bar_du(ctx, &ent0, &orgs, &nic, m)?);
+        let b = std::sync::Arc::new(bar_du(ctx, ent0, &orgs, &nic, m)?);
         bars.insert(m.to_string(), b.clone());
         Ok(b)
     };
     let bar = bar_de(mois)?;
-    let contribs = g(&bar, "_contributions_du_mois").clone();
-    let mut ent = ent0.as_object().cloned().unwrap_or_default();
-    ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&debut_mois)?));
-    let ent = Value::Object(ent);
+    let contribs = bar.contributions_du_mois.clone();
+    let mut ent = ent0.clone();
+    ent.licence_spectacle = Some(ctx.licence(&debut_mois));
     let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 
     let mut arrets_du_mois = Vec::new();
@@ -4349,10 +4296,16 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     }
     // Un arret d'un mois anterieur se reporte sous son contrat, que la DSN declare ce mois-ci ou corrige (sa
     // regularisation) ; un arret du mois sans son contrat n'aurait pas de place.
-    let orphelins: Vec<&&Arret> = arrets_du_mois
-        .iter()
-        .filter(|a| !paies.iter().chain(regs.iter().map(|r| &r.apres)).any(|p| a.du_contrat(p)))
-        .collect();
+    let mut orphelins: Vec<&&Arret> = Vec::new();
+    for a in &arrets_du_mois {
+        let mut porte = false;
+        for p in paies.iter().chain(regs.iter().map(|r| &r.apres)) {
+            porte |= a.du_contrat(p)?;
+        }
+        if !porte {
+            orphelins.push(a);
+        }
+    }
     if !orphelins.is_empty() {
         let liste_o: Vec<String> = orphelins
             .iter()
@@ -4369,11 +4322,12 @@ mois (il y figure sans cachet), ou corriger les dates de l'arret. Rien n'est ecr
             liste_o.join(", ")
         ));
     }
-    let manquants: Vec<String> = paies
-        .iter()
-        .filter(|p| p.remuneration.iter().any(|l| l.arret_de_travail) && !arrets_du_mois.iter().any(|a| a.du_contrat(p)))
-        .map(|p| format!("{} contrat {}", cle_salarie(p), p.engagement.numero.clone().unwrap_or_else(|| "None".into())))
-        .collect();
+    let mut manquants: Vec<String> = Vec::new();
+    for p in paies {
+        if p.remuneration.iter().any(|l| l.arret_de_travail) && arrets_du_contrat(&arrets_du_mois, p)?.is_empty() {
+            manquants.push(format!("{} contrat {}", cle_salarie(p), p.engagement.numero.as_deref().unwrap_or("None").to_string()));
+        }
+    }
     if !manquants.is_empty() {
         return Err(format!(
             "Absence pour arret de travail dans la paie de {}, mais aucun arret saisi en face : {}. La ligne retire \
@@ -4392,7 +4346,7 @@ retirer la ligne. Rien n'est ecrit.",
     let mut suspendus_absents = Vec::new();
     for imp in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION))? {
         let fiche = engagement::imprevus::fiche_du_salarie(ctx, &imp)?;
-        if bareme::etablissement_du_salarie(&ent0, &fiche)? != nic {
+        if bareme::etablissement_de(ent0, &fiche)? != nic {
             continue;
         }
         let mut declare = false;
@@ -4401,14 +4355,14 @@ retirer la ligne. Rien n'est ecrit.",
                 declare = true;
             }
         }
-        if !declare {
+        if let (false, engagement::imprevus::Imprevu::Suspension(s)) = (declare, &imp) {
             suspendus_absents.push(format!(
-                "{} contrat {} (suspension {} du {} au {})",
-                txt(g(&imp, "salarie")),
-                txt(g(&imp, "contrat_numero")),
-                txt(g(&imp, "motif")),
-                txt(g(&imp, "debut")),
-                txt(g(&imp, "fin"))
+                "{} contrat{} (suspension {} du {} au {})",
+                s.salarie,
+                s.contrat_numero.as_deref().map_or_else(String::new, |n| format!(" {}", n)),
+                s.motif,
+                s.debut,
+                s.fin
             ));
         }
     }
@@ -4459,7 +4413,6 @@ certificat de conformite du depot precedent.",
         }
     }
     let mut f = Fichier::en_norme(norme);
-    let e = |k: &str| -> Resultat<&Value> { req(&ent, k) };
 
     f.add("S10.G00.00.001", LOGICIEL);
     f.add("S10.G00.00.002", LOGICIEL);
@@ -4468,14 +4421,14 @@ certificat de conformite du depot precedent.",
     f.ecrire_la_version()?;
     f.add("S10.G00.00.007", "01");
     f.add("S10.G00.00.008", if sans_individu { "02" } else { "01" });
-    f.add_v("S10.G00.01.001", e("siren")?)?;
-    f.add_v("S10.G00.01.002", e("nic")?)?;
-    f.add_v("S10.G00.01.003", e("raison_sociale")?)?;
-    f.add_v("S10.G00.01.004", e("adresse")?)?;
-    f.add_v("S10.G00.01.005", e("code_postal")?)?;
-    f.add_v("S10.G00.01.006", e("commune")?)?;
+    f.add_case("S10.G00.01.001", &ent.siren, "siren")?;
+    f.add_case("S10.G00.01.002", &ent.nic, "nic")?;
+    f.add_case("S10.G00.01.003", &ent.raison_sociale, "raison_sociale")?;
+    f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
+    f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
+    f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent.complement_adresse);
     contact_emetteur(&mut f, &ent)?;
-    let decl = e("declarant_dsn")?;
 
     f.add("S20.G00.05.001", "01");
     f.add("S20.G00.05.002", &type_declaration);
@@ -4485,27 +4438,25 @@ certificat de conformite du depot precedent.",
     f.add("S20.G00.05.007", constitution.jjmmaaaa());
     f.add("S20.G00.05.008", "01");
     f.add("S20.G00.05.010", "01");
-    f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
-    f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
-    f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    crate::dsn::contact_chez_le_declare(&mut f, &ent)?;
     contact_sante_travail(&mut f, &ent_e)?;
     if sans_individu {
-        for code in liste(req(req(&orgs, "sans_individu")?, "absence_de_rattachement")?) {
-            f.add_v("S20.G00.08.001", code)?;
+        for code in orgs.absence_de_rattachement() {
+            f.add("S20.G00.08.001", code);
         }
     }
 
-    f.add_v("S21.G00.06.001", e("siren")?)?;
-    f.add_v("S21.G00.06.002", e("nic")?)?;
+    f.add_case("S21.G00.06.001", &ent.siren, "siren")?;
+    f.add_case("S21.G00.06.002", &ent.nic, "nic")?;
     // Le code APEN (06.003) et le code APET (11.002) : obligatoires en P26V01, retires de la norme P27V01 (cahier
     // 2027.1.1, p. 142 et 145 ; usages p. 371 ). Le tableau des usages de la version du fichier en decide.
     if usage_admet(&f, "S21.G00.06.003", "01")? {
-        f.add_v("S21.G00.06.003", e("naf")?)?;
+        f.add_case("S21.G00.06.003", &ent.naf, "naf")?;
     }
-    f.add_v("S21.G00.06.004", e("adresse")?)?;
-    f.add_v("S21.G00.06.005", e("code_postal")?)?;
-    f.add_v("S21.G00.06.006", e("commune")?)?;
+    f.add_case("S21.G00.06.004", &ent.adresse, "adresse")?;
+    f.add_case("S21.G00.06.005", &ent.code_postal, "code_postal")?;
+    f.add_case("S21.G00.06.006", &ent.commune, "commune")?;
+    f.add_complement("S21.G00.06.007", &ent.complement_adresse);
     let doeth = if principal { crate::oeth::declaration(ctx, mois)? } else { None };
     // La contribution supplementaire a l'apprentissage, sur l'etablissement principal seul (fiches 2588 et 2963 :
     // « sur un seul établissement »).
@@ -4521,11 +4472,21 @@ certificat de conformite du depot precedent.",
             f.add("S21.G00.13.004", d.millesime);
         }
     }
-    for k in [("S21.G00.11.001", "nic"), ("S21.G00.11.002", "naf"), ("S21.G00.11.003", "adresse"), ("S21.G00.11.004", "code_postal"), ("S21.G00.11.005", "commune"), ("S21.G00.11.022", "idcc")] {
-        if k.0 == "S21.G00.11.002" && !usage_admet(&f, k.0, "01")? {
+    for (rubrique, case, cle) in [
+        ("S21.G00.11.001", &ent_e.nic, "nic"),
+        ("S21.G00.11.002", &ent_e.naf.en_texte(), "naf"),
+        ("S21.G00.11.003", &ent_e.adresse.en_texte(), "adresse"),
+        ("S21.G00.11.004", &ent_e.code_postal.en_texte(), "code_postal"),
+        ("S21.G00.11.005", &ent_e.commune.en_texte(), "commune"),
+        ("S21.G00.11.022", &ent_e.idcc, "idcc"),
+    ] {
+        if rubrique == "S21.G00.11.002" && !usage_admet(&f, rubrique, "01")? {
             continue;
         }
-        f.add_v(k.0, req(&ent_e, k.1)?)?;
+        f.add_case(rubrique, case, cle)?;
+        if rubrique == "S21.G00.11.005" {
+            f.add_complement("S21.G00.11.006", &ent_e.complement_adresse);
+        }
     }
     if let Some(spst) = spst_ecrit(&f, &ent_e)? {
         f.add("S21.G00.11.025", spst);
@@ -4536,22 +4497,22 @@ certificat de conformite du depot precedent.",
     // (`rattachements`), pas toutes celles de leur nature (CCH-13 et CCH-14 de 15.004, p. 151).
     for p in paies {
         let refs = affiliations(&orgs, &*p.engagement.nat()?, &contribs, (p.engagement.debut_periode()?, p.engagement.fin_periode()?))?;
-        couvertes.extend(rattachements(p, &orgs, droit::bareme::entreprise_du(&bar, &ent_e), refs)?.into_iter().map(|a| a.reference));
+        couvertes.extend(rattachements(p, &orgs, &bar.entreprise.fiche, refs)?.into_iter().map(|a| a.reference));
     }
     for r in regs {
         let b = bar_de(&r.mois)?;
-        let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, g(&b, "_contributions_du_mois"), (r.apres.engagement.debut_periode()?, r.apres.engagement.fin_periode()?))?;
-        couvertes.extend(rattachements(&r.apres, &orgs, droit::bareme::entreprise_du(&b, &ent_e), refs)?.into_iter().map(|a| a.reference));
+        let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, &b.contributions_du_mois, (r.apres.engagement.debut_periode()?, r.apres.engagement.fin_periode()?))?;
+        couvertes.extend(rattachements(&r.apres, &orgs, &b.entreprise.fiche, refs)?.into_iter().map(|a| a.reference));
     }
-    for a in liste(req(&orgs, "adhesions_prevoyance")?) {
-        let reference = en_texte(req(a, "reference")?);
-        if !couvertes.contains(&reference) && !adhesion_en_vigueur(&orgs, &reference, &premier_du_mois, &dernier_du_mois)? {
+    for a in &orgs.adhesions_prevoyance {
+        let reference = a.reference.clone();
+        if !couvertes.contains(&reference) && !orgs.adhesion_en_vigueur(&reference, &premier_du_mois, &dernier_du_mois) {
             continue;
         }
-        f.add_v("S21.G00.15.001", req(a, "libelle")?)?;
-        f.add_v("S21.G00.15.002", req(a, "delegataire")?)?;
+        f.add("S21.G00.15.001", &a.libelle);
+        f.add("S21.G00.15.002", &a.delegataire);
         f.add("S21.G00.15.004", if sans_individu || !couvertes.contains(&reference) { "02" } else { "01" });
-        f.add_v("S21.G00.15.005", &a["reference"])?;
+        f.add("S21.G00.15.005", &a.reference);
     }
 
     let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic, departs)?;
@@ -4562,12 +4523,12 @@ certificat de conformite du depot precedent.",
         f.add("S21.G00.82.004", format!("3112{}", s.annee));
         f.add("S21.G00.82.005", &s.org);
     }
-    let versements = liste(req(&orgs, "versements")?);
+    let versements = orgs.versements();
     if let Some(d) = &doeth {
         let org_urssaf = versements
             .iter()
-            .find(|v| txt(g(v, "libelle")) == "URSSAF")
-            .map(|v| en_texte(g(v, "siret")))
+            .find(|v| v.est_urssaf())
+            .map(|v| v.siret.clone())
             .ok_or("StopIteration")?;
         for (code, montant) in d.blocs_82() {
             f.add("S21.G00.82.001", mt(montant));
@@ -4580,8 +4541,8 @@ certificat de conformite du depot precedent.",
     if let Some(c) = &csa {
         let org_urssaf = versements
             .iter()
-            .find(|v| txt(g(v, "libelle")) == "URSSAF")
-            .map(|v| en_texte(g(v, "siret")))
+            .find(|v| v.est_urssaf())
+            .map(|v| v.siret.clone())
             .ok_or("StopIteration")?;
         let (code, montant) = c.bloc_82();
         f.add("S21.G00.82.001", mt(montant));
@@ -4615,7 +4576,7 @@ certificat de conformite du depot precedent.",
 
     let echeance_dsn = ctx.echeance_dsn()?;
     let echeances: HashMap<&str, Jour> = [
-        ("13000548100010", echeance_mois_suivant(an, mo, echeance_dsn)),
+        ("13000548100010", echeance_mois_suivant(lu, echeance_dsn)),
         // AUDIENS SANTE PREVOYANCE : le 25 du mois qui suit le mois declare, date qui « doit etre
         // renseignee dans le bloc paiement a destination d'Audiens Sante Prevoyance (P0983) » (Audiens, dossier DSN,
         // `atelier/reference/sources/audiens-dsn/` ; `jour_de_paiement` de `donnees/organismes-base.json`). Elle etait
@@ -4623,24 +4584,22 @@ certificat de conformite du depot precedent.",
         (
             "P0983",
             echeance_mois_suivant(
-                an,
-                mo,
+                lu,
                 crate::ordres_paiement::jour_de_paiement("P0983")?.ok_or_else(|| socle::echec::livree("organismes-base.json", "P0983.jour_de_paiement"))?,
             ),
         ),
     ]
     .into_iter()
     .collect();
-    let brut_mois = paies.iter().fold(zero(), |s, p| add(s, p.brut));
-    let urssaf = versements.iter().find(|v| txt(g(v, "libelle")) == "URSSAF").ok_or("StopIteration")?;
-    let lignes_23 = lignes_bordereau(&refs, &orgs, &ent0, &bar, solde_ta.as_ref(), doeth.as_ref(), csa.as_ref(), mois, &Seuils::du_mois(ctx, mois)?)?;
+    let urssaf = orgs.urssaf().ok_or("StopIteration")?;
+    let lignes_23 = lignes_bordereau(&refs, &orgs, ent0, &bar, solde_ta.as_ref(), doeth.as_ref(), csa.as_ref(), mois, &Seuils::du_mois(ctx, mois)?)?;
     let mut lignes_o = Vec::new();
     let mut montants_o = Vec::new();
     for m in &origines {
         // Le bareme du mois d'origine pour CET etablissement, comme celui du bordereau courant (`bar`) : point 25.
         let bar_o = bar_de(m)?;
-        let l = lignes_regularisees(&orgs, &ent0, regs, m, &bar_o, &Seuils::du_mois(ctx, m)?)?;
-        montants_o.push((m.clone(), bordereau::montant(&l, &premier(m)?)?));
+        let l = lignes_regularisees(&orgs, ent0, regs, m, &bar_o, &Seuils::du_mois(ctx, m)?)?;
+        montants_o.push((m.clone(), bordereau::montant(&l, &Mois::lire(m)?.premier_jour())?));
         lignes_o.push((m.clone(), l));
     }
     // LE TROP-VERSE A L'URSSAF (les bordereaux negatifs des mois corriges) se reprend sur le versement du mois, dans la
@@ -4657,14 +4616,13 @@ certificat de conformite du depot precedent.",
     let mut places_ordres_oc: Vec<(String, usize)> = Vec::new();
     // Un organisme complementaire : celui d'une adhesion prevoyance (S21.G00.15.002 = S21.G00.20.001).
     let organismes_complementaires: HashSet<String> =
-        liste(g(&orgs, "adhesions_prevoyance")).iter().map(|a| en_texte(g(a, "delegataire"))).collect();
-    let mut places_oc: Vec<(usize, &Value)> = Vec::new();
+        orgs.adhesions_prevoyance.iter().map(|a| a.delegataire.clone()).collect();
+    let mut places_oc: Vec<(usize, &Versement)> = Vec::new();
     for v in versements {
-        let libelle = txt(g(v, "libelle"));
-        if sans_individu && libelle != "URSSAF" {
+        if sans_individu && !v.est_urssaf() {
             continue;
         }
-        let siret = en_texte(req(v, "siret")?);
+        let siret = v.siret.clone();
         if organismes_complementaires.contains(&siret) {
             // Le versement d'un organisme complementaire s'ecrit ici, ses composants lus dans les individus ecrits.
             places_oc.push((f.lignes.len(), v));
@@ -4672,10 +4630,10 @@ certificat de conformite du depot precedent.",
             ordres.push(None);
             continue;
         }
-        let (montant, destinataire, reste, deduit) = if libelle == "URSSAF" {
+        let (montant, destinataire, reste, deduit) = if v.est_urssaf() {
             (verse_urssaf.montant, Destinataire::Urssaf, sub(credit.max(zero()), deduit_urssaf), deduit_urssaf)
         } else {
-            let m = montant_versement(v, &totaux_avec_regs, brut_mois)?;
+            let m = montant_versement(v, &totaux_avec_regs);
             if m.is_zero() {
                 continue;
             }
@@ -4686,7 +4644,7 @@ certificat de conformite du depot precedent.",
         };
         ordres.push(Some(Ordre {
             organisme: siret.clone(),
-            reference: reference_versement(v, &ent)?,
+            reference: reference_versement(v, &ent),
             montant,
             debut: debut_mois,
             fin: fin_m,
@@ -4696,11 +4654,11 @@ certificat de conformite du depot precedent.",
             deduit,
         }));
         f.add("S21.G00.20.001", &siret);
-        if let Some(r) = reference_versement(v, &ent)? {
+        if let Some(r) = reference_versement(v, &ent) {
             f.add("S21.G00.20.002", r);
         }
-        f.add_v("S21.G00.20.003", req(banque, "bic")?)?;
-        f.add_v("S21.G00.20.004", req(banque, "iban")?)?;
+        f.add_case("S21.G00.20.003", &banque.bic, "bic")?;
+        f.add_case("S21.G00.20.004", &banque.iban, "iban")?;
         f.add("S21.G00.20.005", mt(montant));
         f.add("S21.G00.20.006", debut_mois.jjmmaaaa());
         f.add("S21.G00.20.007", fin_m.jjmmaaaa());
@@ -4709,32 +4667,29 @@ certificat de conformite du depot precedent.",
             f.add("S21.G00.20.011", j.jjmmaaaa());
         }
     }
-    let siret_urssaf = en_texte(req(urssaf, "siret")?);
+    let siret_urssaf = urssaf.siret.clone();
     for (mois_o, mt_o) in &montants_o {
         if *mt_o < Decimal::ZERO {
             continue;
         }
-        let d_o = premier(mois_o)?;
+        let d_o = Mois::lire(mois_o)?.premier_jour();
         ordres.push(Some(Ordre {
             organisme: siret_urssaf.clone(),
-            reference: vrai(g(urssaf, "reference")).then(|| en_texte(&urssaf["reference"])),
+            reference: None,
             montant: *mt_o,
             debut: d_o,
-            fin: fin_mois(d_o.an, d_o.mois),
+            fin: d_o.mois_civil().dernier_jour(),
             date_paiement: echeances.get(siret_urssaf.as_str()).copied(),
             destinataire: Destinataire::Urssaf,
             reste: zero(),
             deduit: zero(),
         }));
         f.add("S21.G00.20.001", &siret_urssaf);
-        if vrai(g(urssaf, "reference")) {
-            f.add("S21.G00.20.002", en_texte(&urssaf["reference"]));
-        }
-        f.add_v("S21.G00.20.003", req(banque, "bic")?)?;
-        f.add_v("S21.G00.20.004", req(banque, "iban")?)?;
+        f.add_case("S21.G00.20.003", &banque.bic, "bic")?;
+        f.add_case("S21.G00.20.004", &banque.iban, "iban")?;
         f.add("S21.G00.20.005", mt(*mt_o));
         f.add("S21.G00.20.006", d_o.jjmmaaaa());
-        f.add("S21.G00.20.007", fin_mois(d_o.an, d_o.mois).jjmmaaaa());
+        f.add("S21.G00.20.007", d_o.mois_civil().dernier_jour().jjmmaaaa());
         f.add("S21.G00.20.010", "05");
         if let Some(j) = echeances.get(siret_urssaf.as_str()) {
             f.add("S21.G00.20.011", j.jjmmaaaa());
@@ -4748,23 +4703,23 @@ certificat de conformite du depot precedent.",
     ecrire_lignes_23(&mut f, &lignes_23);
     let mut bordereaux = vec![BordereauEcrit { debut: debut_mois, fin: fin_m, total: mt_urssaf, lignes: lignes_23.clone() }];
     for ((mois_o, lignes), (_, montant)) in lignes_o.iter().zip(&montants_o) {
-        let d_o = premier(mois_o)?;
+        let d_o = Mois::lire(mois_o)?.premier_jour();
         f.add("S21.G00.22.001", &siret_urssaf);
         f.add("S21.G00.22.003", d_o.jjmmaaaa());
-        f.add("S21.G00.22.004", fin_mois(d_o.an, d_o.mois).jjmmaaaa());
+        f.add("S21.G00.22.004", d_o.mois_civil().dernier_jour().jjmmaaaa());
         f.add("S21.G00.22.005", mt(*montant));
         ecrire_lignes_23(&mut f, lignes);
-        bordereaux.push(BordereauEcrit { debut: d_o, fin: fin_mois(d_o.an, d_o.mois), total: *montant, lignes: lignes.clone() });
+        bordereaux.push(BordereauEcrit { debut: d_o, fin: d_o.mois_civil().dernier_jour(), total: *montant, lignes: lignes.clone() });
     }
     // L'assujettissement fiscal : une fois l'an, dans la DSN de decembre, apres les bordereaux et avant les
     // individus (arborescence de la norme, p. 118, `chapitre-8-arborescences.txt` : 20, 55, 22, 23, 44, 30) ;
     // `assujettissement.rs` dit d'ou vient chaque code.
-    for b in crate::assujettissement::blocs(ctx, &ent0, &ent_e, &orgs, &bar, &nic, mois, paies, departs)? {
+    for b in crate::assujettissement::blocs(ctx, ent0, &ent_e, &orgs, &bar, &nic, mois, paies, departs)? {
         f.add("S21.G00.44.001", b.code);
         if let Some(m) = b.montant {
             f.add("S21.G00.44.002", mt(m));
         }
-        f.add("S21.G00.44.003", an);
+        f.add("S21.G00.44.003", lu.annee());
         if let Some(m) = &b.motif {
             f.add("S21.G00.44.004", m);
         }
@@ -4791,62 +4746,26 @@ certificat de conformite du depot precedent.",
     for cle in &ordre {
         let lot: Vec<&Paie> = paies.iter().filter(|p| &cle_salarie(p) == cle).collect();
         let corrections: Vec<&Regularisation> = regs.iter().filter(|r| &cle_salarie(&r.apres) == cle).collect();
-        let s = match lot.first() {
+        let fiche = match lot.first() {
             Some(p) => &p.salarie,
             None => &corrections[0].apres.salarie,
         };
         // LES IDENTIFIANTS DU MOIS DECLARE : NIR, nom, prenoms et date de naissance tels qu'au dernier jour du
         // mois, pour qu'un changement date apres lui n'entre pas dans sa DSN (`changements_individu::identite_du_mois`).
-        let brute = ctx.salarie_brut(&txt(g(s, "_cle"))).cloned().unwrap_or(Value::Null);
-        let ident = crate::changements_individu::identite_du_mois(s, &brute, &fin_m)?;
-        crate::ntt::poser_nir(&mut f, &ident)?;
-        for (rub, k) in [
-            ("S21.G00.30.002", "nom"),
-            ("S21.G00.30.004", "prenom"),
-        ] {
-            f.add_v(rub, req(&ident, k)?)?;
-        }
-        f.add("S21.G00.30.006", jj(req(&ident, "date_naissance")?)?);
-        for (rub, k) in [
-            ("S21.G00.30.007", "lieu_naissance"),
-            ("S21.G00.30.008", "adresse"),
-            ("S21.G00.30.009", "code_postal"),
-            ("S21.G00.30.010", "commune"),
-        ] {
-            f.add_v(rub, req(s, k)?)?;
-        }
-        // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-        f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
-        for (rub, k) in [
-            ("S21.G00.30.014", "departement_naissance"),
-            ("S21.G00.30.015", "pays_naissance"),
-            ("S21.G00.30.018", "email"),
-            ("S21.G00.30.019", "code_salarie"),
-        ] {
-            // L'adresse mel est conditionnelle (usage « C » en DSN mensuelle, et « conditionne a l'accord explicite » de
-            // l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) :
-            // une fiche sans courriel n'en declare pas.
-            if k == "email" {
-                if let Some(v) = s.get(k).filter(|v| vrai(v)) {
-                    f.add_v(rub, v)?;
-                }
-                continue;
-            }
-            // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
-            let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
-            f.add_v(rub, &v)?;
-        }
+        let brute = ctx.salarie_brut(fiche.id.as_str());
+        let ident = crate::changements_individu::identite_du_mois(fiche, brute, &fin_m)?;
+        bloc_individu(&mut f, &ident, true)?;
         // L'identite DECLAREE, relue dans la derniere paie declaree qui le porte : son NTT, s'il etait declare sans NIR
         // (`ntt::poser_ntt`).
-        let declaree = declarations.derniere(&ident, &brute)?;
+        let declaree = declarations.derniere(&ident, brute)?;
         crate::ntt::poser_ntt(&mut f, &ent_e, &ident, declaree.as_ref())?;
         // LE BLOC 31 : ce qui differe de l'identite declaree, a l'ancienne valeur, date par l'historique de la fiche ; un
         // changement que la fiche ne date pas refuse.
-        crate::changements_individu::ecrire(&mut f, &ident, &brute, declaree.as_ref(), mois, &fin_m)?;
+        crate::changements_individu::ecrire(&mut f, &ident, brute, declaree.as_ref(), mois, &fin_m)?;
         let taux_pas = pas_par_salarie.get(cle).cloned().flatten();
 
         for (i, p) in lot.iter().enumerate() {
-            let siens: Vec<&Arret> = arrets_du_mois.iter().copied().filter(|a| a.du_contrat(p)).collect();
+            let siens: Vec<&Arret> = arrets_du_contrat(&arrets_du_mois, p)?;
             let debut_bloc = f.lignes.len();
             bloc_contrat(&mut f, p, &ent_e, &orgs, i as i64 + 1, &bar, true, &siens, "01", emplois_multiples(p, &periode))?;
             // Ce qui a change depuis la derniere DSN deposee du contrat : le bloc S21.G00.41, sous son bloc 40.
@@ -4885,7 +4804,7 @@ certificat de conformite du depot precedent.",
                     let ajoute = |x: &Regularisation| x.declare.lignes.is_empty() && x.declare.fichier.is_empty();
                     let fin = groupe.iter().any(|x| ajoute(x) || x.apres.engagement.fin != x.avant.engagement.fin);
                     let debut_bloc = f.lignes.len();
-                    let siens: Vec<&Arret> = arrets_du_mois.iter().copied().filter(|a| a.du_contrat(&dernier.apres)).collect();
+                    let siens: Vec<&Arret> = arrets_du_contrat(&arrets_du_mois, &dernier.apres)?;
                     bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &siens, "01", emplois_multiples(&dernier.apres, &autres))?;
                     // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans ce qui a ete declare, sous le bloc 40 (fiche 1952) --
                     // une fois, depuis la correction du dernier mois qui a declare le contrat.
@@ -4917,7 +4836,7 @@ certificat de conformite du depot precedent.",
             bloc_regularisation(&mut f, r, &b, *rang, numero, &pas_c, fin_m)?;
         }
         f.contrat_unique = false;
-        let anciennete = anciennete_du_mois(s, cle, &fin_m)?;
+        let anciennete = anciennete_du_mois(fiche, cle, &fin_m)?;
         for p in &lot {
             bloc_anciennete(&mut f, p, anciennete)?;
         }
@@ -4939,7 +4858,7 @@ affiliation (S21.G00.78.005). Rien n'est écrit.",
             socle::texte::euros(somme_composants)
         ));
     }
-    if let Some(c) = composants.iter().find(|c| !places_oc.iter().any(|(_, v)| en_texte(g(v, "siret")) == c.organisme)) {
+    if let Some(c) = composants.iter().find(|c| !places_oc.iter().any(|(_, v)| v.siret == c.organisme)) {
         if !sans_individu {
             return Err(format!(
                 "Des cotisations sont déclarées sous l'adhésion {} de l'organisme {} (S21.G00.15.002), et le logiciel ne \
@@ -4951,7 +4870,7 @@ contrats, le vérifier sur le certificat d'adhésion. Rien n'est écrit.",
         }
     }
     for (place, v) in places_oc.iter().rev() {
-        let siret = en_texte(req(v, "siret")?);
+        let siret = v.siret.clone();
         let siens: Vec<&Composant> = composants.iter().filter(|c| c.organisme == siret).collect();
         let bloc = versement_complementaire(v, &ent, banque, &siens, debut_mois, fin_m, echeances.get(siret.as_str()).copied())?;
         if !bloc.is_empty() {
@@ -4959,7 +4878,7 @@ contrats, le vérifier sur le certificat d'adhésion. Rien n'est écrit.",
             if let Some((_, i)) = places_ordres_oc.iter().find(|(s, _)| *s == siret) {
                 ordres[*i] = Some(Ordre {
                     organisme: siret.clone(),
-                    reference: reference_versement(v, &ent)?,
+                    reference: reference_versement(v, &ent),
                     montant: a.montant,
                     debut: debut_mois,
                     fin: fin_m,
@@ -5014,7 +4933,7 @@ pub fn ecrire(texte: &str, chemin: &Path) -> Resultat<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use socle::date::d;
+    use documents::valeur::d;
     use serde_json::json;
     use std::path::PathBuf;
 
@@ -5031,17 +4950,30 @@ mod tests {
         Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap()
     }
 
-    fn orgs_casc() -> Value {
-        json!({"adhesions_prevoyance": [{"libelle": "CASCSVP", "reference": "100"},
-                                        {"libelle": "INTERBRANCHE", "reference": "102"}],
-               "affiliations_par_nature": {"intermittent": {"references": ["103", "102"]},
-                                           "permanent": {"references": ["100", "101"]}}})
+    fn orgs_casc() -> Organismes {
+        use droit::organismes::{Adhesion, ParNature, Rattachement};
+        let adh = |libelle: &str, reference: &str| Adhesion {
+            cle: libelle.to_lowercase(),
+            libelle: libelle.into(),
+            delegataire: "P0983".into(),
+            r#type: "01".into(),
+            reference: reference.into(),
+            contribution: None,
+            depuis: None,
+            jusqu_a: None,
+        };
+        let refs = |r: &[&str]| Rattachement { references: r.iter().map(|x| x.to_string()).collect(), a_confirmer: None };
+        Organismes {
+            base: droit::organismes::base().unwrap(),
+            adhesions_prevoyance: vec![adh("CASCSVP", "100"), adh("INTERBRANCHE", "102")],
+            par_nature: ParNature { intermittent: refs(&["103", "102"]), permanent: refs(&["100", "101"]) },
+        }
     }
 
     // La CASC-SVP de la 3090 (`atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt`).
     #[test]
     fn la_dsn_de_la_3090_porte_la_casc_en_troisieme_affiliation() {
-        let c = casc_svp(&ctx_dsn("a", &[]), &json!({"idcc": "3090"}), &orgs_casc(), "2026-09").unwrap().unwrap();
+        let c = casc_svp(&ctx_dsn("a", &[]), &ChampsEntreprise { idcc: Some("3090".into()), ..Default::default() }, &orgs_casc(), "2026-09").unwrap().unwrap();
         assert_eq!(c["reference"], json!("100"));
         assert_eq!(c["lignes"], json!(["ccn"]));
         // l'intermittent : apres 103 et 102, donc 204 ; le permanent l'a deja.
@@ -5052,31 +4984,20 @@ mod tests {
     #[test]
     fn pas_de_casc_hors_3090_avant_2025_ni_sur_un_mois_regularise() {
         let o = orgs_casc();
-        assert!(casc_svp(&ctx_dsn("b1", &[]), &json!({"idcc": "1285"}), &o, "2026-09").unwrap().is_none());
-        assert!(casc_svp(&ctx_dsn("b2", &[]), &json!({"idcc": "3090"}), &o, "2024-12").unwrap().is_none());
-        assert!(casc_svp(&ctx_dsn("b3", &["2026-08"]), &json!({"idcc": "3090"}), &o, "2026-08").unwrap().is_none());
+        assert!(casc_svp(&ctx_dsn("b1", &[]), &ChampsEntreprise { idcc: Some("1285".into()), ..Default::default() }, &o, "2026-09").unwrap().is_none());
+        assert!(casc_svp(&ctx_dsn("b2", &[]), &ChampsEntreprise { idcc: Some("3090".into()), ..Default::default() }, &o, "2024-12").unwrap().is_none());
+        assert!(casc_svp(&ctx_dsn("b3", &["2026-08"]), &ChampsEntreprise { idcc: Some("3090".into()), ..Default::default() }, &o, "2026-08").unwrap().is_none());
     }
 
     // S21.G00.20.002 de France Travail (`atelier/reference/sources/francetravail-100-dsn/net-entreprises-fiche-3344-intermittents-20251113.html`).
     #[test]
     fn le_dossier_france_travail_de_la_fiche_part_dans_la_dsn() {
-        let ft = json!({"siret": SIRET_FRANCE_TRAVAIL, "reference": "CS00012345"});
-        assert_eq!(reference_versement(&ft, &json!({})).unwrap().as_deref(), Some("CS00012345"));
-        assert_eq!(
-            reference_versement(&json!({"siret": SIRET_FRANCE_TRAVAIL}), &json!({"france_travail_dossier_recouvrement": "CS00000001"}))
-                .unwrap()
-                .as_deref(),
-            Some("CS00000001")
-        );
-        assert_eq!(
-            reference_versement(
-                &json!({"siret": "78861779300013", "reference": "X"}),
-                &json!({"france_travail_dossier_recouvrement": "CS00000001"})
-            )
-            .unwrap()
-            .as_deref(),
-            Some("X")
-        );
+        let base = droit::organismes::base().unwrap();
+        let fiche = ChampsEntreprise { france_travail_dossier_recouvrement: Some("CS00000001".into()), ..Default::default() };
+        let ft = base.versement(SIRET_FRANCE_TRAVAIL).unwrap();
+        assert_eq!(reference_versement(ft, &fiche).as_deref(), Some("CS00000001"));
+        assert_eq!(reference_versement(ft, &ChampsEntreprise::default()), None);
+        assert_eq!(reference_versement(base.versement("78861779300013").unwrap(), &fiche), None);
         assert_eq!(SIRET_FRANCE_TRAVAIL, "13000548100010");
     }
 
@@ -5099,7 +5020,7 @@ mod tests {
     // `atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1931-situations-creditrices-versement-20250323.txt`.
     #[test]
     fn le_versement_dgfip_s_arrondit_a_l_euro_et_verse_zero_pour_un_pas_negatif() {
-        let banque = json!({"bic": "BANQFRPPXXX", "iban": "FR7630001007941234567890185"});
+        let banque: droit::fiche::Banque = droit::fiche::lire_champs(&json!({"bic": "BANQFRPPXXX", "iban": "FR7630001007941234567890185"}), "banque").unwrap();
         let (debut, fin) = (Jour::nouveau(2026, 7, 1).unwrap(), Jour::nouveau(2026, 7, 31).unwrap());
         let montant = |du: &str| -> Option<String> {
             let l = versement_dgfip(Decimal::from_str_exact(du).unwrap(), "2026-07", debut, fin, &banque, false, None).unwrap();
@@ -5129,7 +5050,7 @@ mod tests {
         f.extend([
             l("S21.G00.30.001", "1"),
             l("S21.G00.30.002", "MARTIN"),
-            l("S21.G00.40.009", "C1"),
+            l("S21.G00.40.009", "MA1.26.01"),
             l("S21.G00.70.012", "202"),
             l("S21.G00.70.013", "100"),
             l("S21.G00.78.001", "31"),
@@ -5177,9 +5098,12 @@ mod tests {
     fn arret(reprise: Option<&str>, fin_previsionnelle: &str) -> Arret {
         Arret {
             v: json!({
-                "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
+                "genre": "arret", "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
                 "dernier_jour_travaille": "2026-06-20", "debut": "2026-06-21", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
-                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null,
+                "subrogation_debut": null, "subrogation_fin": null,
+                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null, "jours_deja_indemnises": null,
+                "ij_brute": null, "ij_nette": null, "ij_brute_majoree": null, "ij_nette_majoree": null,
+                "prolongations": [], "reprises": [], "saisi_le": "2026-06-21T10:00:00", "qui": "interface", "note": "",
             }),
         }
     }

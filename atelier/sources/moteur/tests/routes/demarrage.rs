@@ -57,10 +57,12 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
         for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
             let nom = format!("grille-{}-{}-{}", if idcc.is_empty() { "sans" } else { idcc }, permanents, spectacle);
             let racine = neuve(&nom);
-            let mut ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
-            ent["idcc"] = json!(idcc);
-            ent["emploie_des_permanents"] = json!(permanents);
-            ecrire(&racine, "config/entreprise.json", &datee(&ent));
+            let mut fichier = droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&racine.join("config/entreprise.json"), "config/entreprise.json").unwrap();
+            let valeur = Some(idcc.clone()).filter(|i| !i.is_empty());
+            fichier.idcc = vec![droit::fiche::Datee { depuis: None, valeur, note: None }];
+            fichier.emploie_des_permanents = vec![droit::fiche::Datee { depuis: None, valeur: Some(permanents), note: None }];
+            ecrire(&racine, "config/entreprise.json", &socle::ecriture::en_valeur(&fichier));
+            let ent = fichier.au(&socle::date::Jour::lire(JOUR).unwrap());
             if spectacle {
                 ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": datee(&json!({"titre": "Le Banc", "actif": true}))}));
             }
@@ -102,27 +104,31 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
 #[test]
 fn un_matricule_deja_porte_se_refuse() {
     let racine = neuve("matricule");
-    let fiche = |nom: &str, nir: &str, cle: &str, matricule: &str| {
-        json!({"nom": "salarie", "cle": null, "donnees": {
-            "prenom_affichage": "Loïe", "nom_affichage": nom, "nir": nir, "nir_cle": cle, "date_naissance": "1982-01-15",
-            "lieu_naissance_affichage": "Nantes", "departement_naissance": "44", "pays_naissance": "FR",
-            "code_nationalite_dsn": "01", "adresse_affichage": "7 rue de la Paix", "code_postal": "44000",
-            "commune_affichage": "Nantes", "emploi_affichage": "Comédien", "statut": "artiste", "statut_categoriel_rc": "04",
-            "pcs_ese": "354c", "code_emploi_ft": "COM010", "statut_conventionnel": "05", "code_salarie": matricule, "actif": true}})
+    let fiche = |nom: &str, nir: &str, cle: &str, matricule: Option<&str>| {
+        json!({"nom": "salarie", "cle": null, "changements": [
+            {"case": "prenom_affichage", "valeur": "Loïe"}, {"case": "nom_affichage", "valeur": nom}, {"case": "nir", "valeur": nir},
+            {"case": "nir_cle", "valeur": cle}, {"case": "date_naissance", "valeur": "1982-01-15"},
+            {"case": "lieu_naissance_affichage", "valeur": "Nantes"}, {"case": "departement_naissance", "valeur": "44"},
+            {"case": "pays_naissance", "valeur": "FR"}, {"case": "code_nationalite_dsn", "valeur": "01"},
+            {"case": "adresse_affichage", "valeur": "7 rue de la Paix"}, {"case": "code_postal", "valeur": "44000"},
+            {"case": "commune_affichage", "valeur": "Nantes"}, {"case": "emploi_affichage", "valeur": "Comédien"},
+            {"case": "statut", "valeur": "artiste"}, {"case": "statut_categoriel_rc", "valeur": "04"}, {"case": "pcs_ese", "valeur": "354c"},
+            {"case": "code_emploi_ft", "valeur": "COM010"}, {"case": "statut_conventionnel", "valeur": "05"},
+            {"case": "code_salarie", "valeur": matricule}, {"case": "actif", "valeur": true}]})
     };
-    reussi(&route(&racine, "enregistrer-fiche", fiche("Fuller", "2820144999002", "46", "1"), JOUR));
+    reussi(&route(&racine, "enregistrer-fiche", fiche("Fuller", "2820144999002", "46", Some("1")), JOUR));
     let avant = lire(&racine, "config/salaries.json");
-    let (_, phrase) = crate::outils::refus(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", "1"), JOUR));
+    let (_, phrase) = crate::outils::refus(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", Some("1")), JOUR));
     assert!(phrase.contains("matricule 1") && phrase.contains("FULLER"), "{}", phrase);
     assert_eq!(lire(&racine, "config/salaries.json"), avant, "un refus n'ecrit rien");
-    reussi(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", ""), JOUR));
+    reussi(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", None), JOUR));
     let salaries = lire(&racine, "config/salaries.json");
     let matricules: Vec<String> = salaries
         .as_object()
         .unwrap()
         .iter()
         .filter(|(k, _)| !k.starts_with('_'))
-        .map(|(_, s)| fiche_au(s, JOUR)["code_salarie"].as_str().unwrap_or_default().to_string())
+        .map(|(_, s)| fiche_au::<droit::fiche::FicheSalarieDatee>(s, JOUR)["code_salarie"].as_str().unwrap_or_default().to_string())
         .collect();
     assert_eq!(matricules.len(), 2);
     assert!(matricules.contains(&"1".to_string()) && matricules.contains(&"2".to_string()), "{:?}", matricules);

@@ -191,3 +191,17 @@ conformité (nature 11) rendu KO le 14/10/2026 au dépôt de test du FCTU d'un C
 `fctu::verifier` (le signalement ne s'écrit pas sans la date) et par `routes_listes::ce_qui_manque` (la liste des fins à signaler
 et les rappels de l'accueil la demandent). Test : `tests/dsn/fin_cddu.rs`,
 `la_rupture_qui_se_notifie_ne_se_signale_pas_sans_sa_date_de_notification`.
+
+## Transcription de la grille « Indemnités » de net-entreprises (05/11/2026)
+
+**`netentreprises-grille-aide-remplissage-indemnites.txt`** : le texte de la grille d'aide au remplissage « Indemnités »
+(une page, tableau des codes de la rubrique S21.G00.52.001). D'où : le PDF déposé à côté
+(`netentreprises-grille-aide-remplissage-indemnites.pdf`, qui reste l'original, intact). Faite le 05/11/2026 par
+`pdftotext -layout`, puis refondue à la main contre le PDF vu page entière : une ligne par code (« Code NNN | indemnité |
+commentaire | [types de contrat cochés] | description Pôle emploi »), les colonnes mélangées par l'extraction remises à leur
+place, les croix de la colonne « Types de contrat » relues sur l'image. Les mots et la ponctuation du PDF sont gardés tels
+quels, fautes comprises (« rattachment », « Licencement », « Art ; L 1234-13 »), pour qu'une citation copiée du PDF s'y
+retrouve. Seule la mise en forme est ajoutée : les en-têtes de colonnes et la ligne « Sur toutes les lignes… » résument le
+tableau. Où le moteur s'en sert : `logiciel/donnees/permanents-base.json`, les citations des indemnités de fin de contrat
+(code 017, « rupture de période d'essai (on parle délai de prévenance) » ; codes 004 et 006, « vient s'ajouter
+éventuellement à l'indemnité légale »).

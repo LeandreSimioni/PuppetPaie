@@ -20,7 +20,7 @@ use sha2::{Digest, Sha256};
 
 use crate::compagnie::coffre::Coffre;
 use crate::compagnie::maj::{
-    b64, code, condensat, courante, ecrire_json, installation, lire_depot, nom_d_archive, nom_d_installation, plus_recente, programme_de, reglage,
+    b64, code, condensat, courante, derniere_lue, ecrire_json, installation, lire_depot, Archives, ArchivePubliee, FictivesPubliees, Publiee, nom_d_archive, nom_d_installation, plus_recente, programme_de, reglage,
     signature_valide, systeme_du_fichier, version_lue, CLE_PUBLIQUE, CLE_PUBLIQUE_GITHUB, DERNIERE, LIVRAISON, LIVREE, LOGICIEL,
     PROPRES_A_L_INSTALLATION, SYSTEMES, TOUT_SYSTEME,
 };
@@ -372,7 +372,7 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
 }
 
 /// Chez l'editeur : les archives signees et `derniere.json` dans le depot (un dossier).
-pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, exigee: &str) -> R<Value> {
+pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, exigee: &str) -> R<Publication> {
     exiger_editeur(racine, "la publication d'une version")?;
     let depot = match depot {
         Some(d) => d.to_string(),
@@ -390,7 +390,7 @@ pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, ex
 /// et `derniere.json` qui les nomme, dans le dossier `d` ; a cote, les archives d'installation (Linux, Mac, tous), ni
 /// signees ni nommees, rendues sous `installations`. Le moteur livre n'y passe que par `publier` (la cle du poste, `CLE_PUBLIQUE`) ;
 /// les essais de bout en bout y passent une cle d'essai (`tests/fichiers/mise_a_jour.rs`).
-pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, notes: &str, calcul: &str, exigee: &str) -> R<Value> {
+pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, notes: &str, calcul: &str, exigee: &str) -> R<Publication> {
     let version = courante(c);
     if version == "0.0.0" {
         return Err(format!("pas de fichier VERSION dans {}", c.display()));
@@ -398,10 +398,9 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
     let depot = d.display().to_string();
     std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
     if d.join(DERNIERE).exists() {
-        // Seule sa version compte ici : le `derniere.json` de la Release precedente peut etre d'une autre forme (une
-        // seule archive), que `derniere` refuserait a juste titre chez celui qui recoit.
-        let avant: Value = serde_json::from_slice(&lire_depot(&depot, DERNIERE)?).map_err(|e| format!("derniere.json illisible : {}", e))?;
-        let av = avant["version"].as_str().filter(|v| !v.is_empty()).ok_or("le derniere.json deja la n'a pas de « version »")?;
+        // Le `derniere.json` de la Release precedente, lu comme chaque installation le lit (`derniere_lue`).
+        let avant = derniere_lue(&lire_depot(&depot, DERNIERE)?)?;
+        let av = avant.version.as_str();
         if !plus_recente(&version, av) {
             return Err(format!(
                 "le depot est deja en {} ; augmenter VERSION (aujourd'hui {}, le fichier s'ecrit AAAA.MM.JJ : {}) avant de publier",
@@ -422,8 +421,8 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
             SYSTEMES.map(|s| programme_de(Path::new(""), s, "puppetpaie").to_string_lossy().replace('\\', "/")).join(", ni ")
         ));
     }
-    let mut archives = serde_json::Map::new();
-    let mut octets_de = serde_json::Map::new();
+    let mut archives = Archives::default();
+    let mut tailles: Vec<(String, usize)> = Vec::new();
     let mut faites: Vec<(String, Vec<u8>)> = Vec::new();
     for systeme in presents.iter().copied().chain([TOUT_SYSTEME]) {
         let octets = archiver(c, systeme)?;
@@ -432,22 +431,9 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
             return Err("la cle privee de ce poste ne correspond pas a la cle publique du code : refaire `moteur maj --cle` et reporter la cle publique".into());
         }
         let nom = nom_d_archive(&version, systeme);
-        let mut a = json!({"archive": nom, "sha256": condensat(&octets), "signature": signature});
-        if systeme == TOUT_SYSTEME {
-            a["systemes"] = json!(presents);
-        }
-        archives.insert(systeme.to_string(), a);
-        octets_de.insert(systeme.to_string(), json!(octets.len()));
-        faites.push((nom, octets));
-    }
-    // LES ARCHIVES D'INSTALLATION, a cote (`archiver_installation`) : Linux et Mac s'ils sont publies, et tous les
-    // systemes (le dossier portable) ; Windows a son installeur. Ni signees ni nommees dans `derniere.json` : aucune
-    // installation ne les telecharge.
-    let mut installations = serde_json::Map::new();
-    for systeme in presents.iter().copied().filter(|s| *s != "windows").chain([TOUT_SYSTEME]) {
-        let octets = archiver_installation(c, systeme)?;
-        let nom = nom_d_installation(&version, systeme);
-        installations.insert(systeme.to_string(), json!({"archive": nom, "sha256": condensat(&octets), "octets": octets.len()}));
+        let systemes = if systeme == TOUT_SYSTEME { presents.iter().map(|s| s.to_string()).collect() } else { Vec::new() };
+        archives.poser(systeme, ArchivePubliee { archive: nom.clone(), sha256: condensat(&octets), signature, systemes });
+        tailles.push((nom.clone(), octets.len()));
         faites.push((nom, octets));
     }
     // LES FICTIVES, a part (`archiver_fictives`) : signees comme les archives, nommees sous `fictives` avec leur empreinte.
@@ -457,43 +443,54 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
         return Err("la cle privee de ce poste ne correspond pas a la cle publique du code : refaire `moteur maj --cle` et reporter la cle publique".into());
     }
     let nom = nom_des_fictives(&version);
-    let fictives = json!({"archive": nom, "sha256": condensat(&octets), "signature": signature, "empreinte": empreinte});
-    octets_de.insert("fictives".into(), json!(octets.len()));
+    let fictives = FictivesPubliees { archive: nom.clone(), sha256: condensat(&octets), signature, empreinte };
+    tailles.push((nom.clone(), octets.len()));
     faites.push((nom, octets));
+    // LES ARCHIVES D'INSTALLATION, a cote (`archiver_installation`) : Linux et Mac s'ils sont publies, et tous les
+    // systemes (le dossier portable) ; Windows a son installeur. Ni signees ni nommees dans `derniere.json` : aucune
+    // installation ne les telecharge.
+    for systeme in presents.iter().copied().filter(|s| *s != "windows").chain([TOUT_SYSTEME]) {
+        let octets = archiver_installation(c, systeme)?;
+        let nom = nom_d_installation(&version, systeme);
+        tailles.push((nom.clone(), octets.len()));
+        faites.push((nom, octets));
+    }
     // Rien n'est ecrit avant que toutes soient signees et verifiees.
     for (nom, octets) in &faites {
         std::fs::write(d.join(nom), octets).map_err(|e| e.to_string())?;
     }
-    let mut manifeste = json!({
-        "version": version,
-        "publiee_le": socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..10].to_string(),
-        "notes": notes, "calcul": calcul, "exigee": exigee,
-        "archives": archives,
-        "fictives": fictives,
-    });
     // LES INSTALLATIONS POSEES QUI NE CONNAISSENT QU'UNE ARCHIVE (celle de Windows) lisent a la racine `archive`,
-    // `sha256` et `signature` : l'archive de Windows y est nommee, et elles se mettent a jour. `compagnie::maj` ne lit
-    // pas ces cles.
-    if let Some(w) = manifeste["archives"].get("windows").cloned() {
-        for k in ["archive", "sha256", "signature"] {
-            manifeste[k] = w[k].clone();
-        }
-    }
-    ecrire_json(&d.join(DERNIERE), &manifeste)?;
-    let mut r = manifeste;
-    r["installations"] = Value::Object(installations);
-    r["octets"] = Value::Object(octets_de);
-    r["dossier"] = json!(d.display().to_string());
-    Ok(r)
+    // `sha256` et `signature` : l'archive de Windows y est nommee, et elles se mettent a jour.
+    let windows = archives.windows.clone();
+    let manifeste = Publiee {
+        version,
+        publiee_le: socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..10].to_string(),
+        notes: notes.to_string(),
+        calcul: calcul.to_string(),
+        exigee: exigee.to_string(),
+        archives,
+        fictives,
+        archive: windows.as_ref().map(|w| w.archive.clone()),
+        sha256: windows.as_ref().map(|w| w.sha256.clone()),
+        signature: windows.map(|w| w.signature),
+    };
+    ecrire_json(&d.join(DERNIERE), &serde_json::to_value(&manifeste).map_err(|e| e.to_string())?)?;
+    Ok(Publication { manifeste, tailles, dossier: d.to_path_buf() })
 }
 
-/// Ce que `moteur maj --publier` et `--publier-github` disent des archives publiees : leur nom et leur taille, celles de
-/// mise a jour, celle des fictives, puis celles d'installation.
-pub(crate) fn dire_les_archives(r: &Value) -> String {
-    let maj = r["archives"].as_object().into_iter().flatten().map(|(k, v)| (v["archive"].as_str().unwrap_or(""), r["octets"][k].as_u64().unwrap_or(0)));
-    let installations = r["installations"].as_object().into_iter().flatten().map(|(_, v)| (v["archive"].as_str().unwrap_or(""), v["octets"].as_u64().unwrap_or(0)));
-    let fictives = r["fictives"]["archive"].as_str().map(|a| (a, r["octets"]["fictives"].as_u64().unwrap_or(0)));
-    maj.chain(fictives).chain(installations).map(|(nom, n)| format!("{} ({} Ko)", nom, n / 1024)).collect::<Vec<_>>().join(", ")
+/// Ce qu'une publication a pose : `derniere.json` (`manifeste`), chaque archive et sa taille en octets (celles de mise a
+/// jour, celle des fictives, puis celles d'installation), et le dossier.
+pub struct Publication {
+    pub manifeste: Publiee,
+    pub tailles: Vec<(String, usize)>,
+    pub dossier: PathBuf,
+}
+
+impl Publication {
+    /// Ce que `moteur maj --publier` et `--publier-github` disent des archives publiees : leur nom et leur taille.
+    pub(crate) fn dire_les_archives(&self) -> String {
+        self.tailles.iter().map(|(nom, n)| format!("{} ({} Ko)", nom, n / 1024)).collect::<Vec<_>>().join(", ")
+    }
 }
 
 /// LA CLE DE GITHUB, fabriquee sur le poste de l'editeur (`moteur maj --cle-github [DOSSIER]`). Une cle neuve,
@@ -530,7 +527,7 @@ pub fn generer_cle_github(dossier: &Path) -> R<Value> {
 
 /// `publier_signe` depuis une graine en base64 (celle du secret de GitHub), verifiee contre `cle_publique` : refuse si
 /// la cle publique n'est pas reportee (vide) ou si la graine n'est pas la sienne. Aucun message ne porte la graine.
-pub fn publier_par_graine(logiciel: &Path, sortie: &Path, graine_b64: &str, cle_publique: &str, notes: &str, calcul: &str, exigee: &str) -> R<Value> {
+pub fn publier_par_graine(logiciel: &Path, sortie: &Path, graine_b64: &str, cle_publique: &str, notes: &str, calcul: &str, exigee: &str) -> R<Publication> {
     if cle_publique.is_empty() {
         return Err("la cle publique de GitHub n'est pas reportee dans le code (moteur/src/compagnie/maj.rs, CLE_PUBLIQUE_GITHUB) : rien n'est publie".into());
     }
@@ -549,7 +546,7 @@ pub fn publier_par_graine(logiciel: &Path, sortie: &Path, graine_b64: &str, cle_
 /// `S`. Si `S` porte deja le `derniere.json` de la derniere Release (le flux l'y telecharge), une version qui n'est pas
 /// plus recente est refusee (`publier_signe`). Ni le reglage « editeur » ni le coffre n'y jouent : le secret n'existe
 /// que dans le travail approuve par l'editeur.
-pub fn publier_depuis_l_environnement(logiciel: &Path, sortie: &Path, notes: &str, calcul: &str, exigee: &str) -> R<Value> {
+pub fn publier_depuis_l_environnement(logiciel: &Path, sortie: &Path, notes: &str, calcul: &str, exigee: &str) -> R<Publication> {
     let g = std::env::var(VARIABLE_GRAINE).ok().filter(|g| !g.trim().is_empty()).ok_or_else(|| format!("{} absente : rien n'est publie", VARIABLE_GRAINE))?;
     publier_par_graine(logiciel, sortie, &g, CLE_PUBLIQUE_GITHUB, notes, calcul, exigee)
 }

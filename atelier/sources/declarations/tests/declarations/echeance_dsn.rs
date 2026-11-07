@@ -69,10 +69,10 @@ fn une_date_ouvree_ne_bouge_pas() {
 fn l_heure_limite_est_midi_et_la_veille_suit_le_report() {
     let e = reporter(j("2026-11-15")).unwrap();
     assert_eq!(HEURE_LIMITE, "12:00");
-    let v = e.en_json();
-    assert_eq!((v["jour"].as_str(), v["heure"].as_str(), v["nominale"].as_str()), (Some("2026-11-16"), Some("12:00"), Some("2026-11-15")));
-    assert_eq!(v["veille_annule_et_remplace"].as_str(), Some("2026-11-15"));
-    assert!(!v["inference"].as_str().unwrap().is_empty(), "l'inference se dit comme telle");
-    assert!(v["textes"].to_string().contains("R133-14.xml"));
+    let v = e.dite();
+    assert_eq!((v.jour.as_str(), v.heure, v.nominale.as_str()), ("2026-11-16", "12:00", "2026-11-15"));
+    assert_eq!(v.veille_annule_et_remplace.as_deref(), Some("2026-11-15"));
+    assert!(!v.inference.is_empty(), "l'inference se dit comme telle");
+    assert!(v.textes.iter().any(|t| t.contains("R133-14.xml")));
     assert!(e.phrase().contains("lundi 16/11/2026"), "{}", e.phrase());
 }

@@ -13,17 +13,18 @@
 //! declare) : le releve des retours et l'import remettent d'eux-memes au journal ce que les bilans archives attestent
 //! (`reprendre_les_depots`), comme l'effectif se refait seul des retours 118. Un test que ce logiciel n'a pas envoye reste dehors (voir `reprise`).
 
+use droit::fiche::Lue as _;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use crate::etats::AvecIncidents;
-use crate::journal::{self, Note};
+use crate::journal::{self, DetailDsn, Envoi, Ligne, Mode};
 
 fn texte(b: &Value, cle: &str) -> String {
-    b.get(cle).filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte).unwrap_or_default()
+    b.get(cle).filter(|v| vrai(v)).map(documents::valeur::valeur_en_texte).unwrap_or_default()
 }
 
 fn accepte(b: &Value) -> bool {
@@ -80,7 +81,7 @@ fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
         .map_err(socle::echec::Echec::from)?
         .iter()
-        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte))
+        .filter(|l| !l.flux().is_empty()).map(|l| l.flux().to_string())
         .collect();
     let mut out: Vec<Atteste> = par_flux
         .into_iter()
@@ -159,43 +160,33 @@ fn reprise_et_incidents(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &st
         let origine = format!("retours/{}", d.pieces.last().map_or("?", String::as_str));
         let reponse = texte(b, "certificat");
         let quand = texte(b, "recu_le");
-        let detail = json!({
-            "reconstruit": true,
-            "logiciel": texte(b, "logiciel"),
-            "type": texte(b, "type_declaration"),
-            "fraction": texte(b, "fraction"),
-            "ordre": texte(b, "ordre"),
-            "salaries": texte(b, "salaries"),
-            "contrats": texte(b, "contrats"),
-            "etat_envoi": texte(b, "etat_envoi"),
-            "etat_declaration": texte(b, "etat_declaration"),
-            "verdict_connu": vrai(&b["etat_declaration"]),
-            "pieces": d.pieces,
-        });
-        let note = Note {
-            quoi: "dsn",
-            mois: if mois.is_empty() { None } else { Some(&mois) },
-            fichier: None,
-            mode: if reel { "reel" } else { "test" },
-            qui,
-            accepte: accepte(b),
-            destinataire: "net-entreprises",
-            flux: &d.flux,
-            reponse: &reponse,
-            trace: None,
-            detail: Some(&detail),
-            versions: None,
-            quand: &quand,
-            origine: &origine,
+        let detail = DetailDsn {
+            reconstruit: true,
+            logiciel: Some(texte(b, "logiciel")),
+            type_declaration: Some(texte(b, "type_declaration")),
+            fraction: Some(texte(b, "fraction")),
+            ordre: Some(texte(b, "ordre")),
+            salaries: texte(b, "salaries").trim().parse().ok(),
+            contrats: Some(texte(b, "contrats")),
+            etat_envoi: Some(texte(b, "etat_envoi")),
+            etat_declaration: Some(texte(b, "etat_declaration")),
+            verdict_connu: Some(vrai(&b["etat_declaration"])),
+            pieces: Some(d.pieces.clone()),
+            ..Default::default()
         };
-        journal::noter(&ctx.racine, &note, maintenant).map_err(socle::echec::Echec::from)?;
+        let mut e = Envoi::nouveau(Mode::de(reel), qui, accepte(b), "net-entreprises", &reponse, detail);
+        e.mois = socle::mois::Mois::lire(&mois).ok();
+        e.flux = d.flux.clone();
+        e.quand = quand;
+        e.origine = origine;
+        journal::noter(&ctx.racine, Ligne::Dsn(e), None, maintenant).map_err(socle::echec::Echec::from)?;
     }
     // Les retours deja archives se rangent en face des lignes qui viennent d'apparaitre -- par le flux.
     let p = ctx.racine.join(crate::retours::RETOURS).join("journal.json");
     if p.exists() {
         let texte_j = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let retours: Value = serde_json::from_slice(&texte_j).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
-        let r = crate::etats::rattacher_retours_ecrits(&ctx.racine, &retours);
+        let r = crate::etats::rattacher_retours_ecrits(&ctx.racine, retours.as_array().map(Vec::as_slice).unwrap_or(&[]));
         incidents.extend(r.incidents);
         let n = r.resultat?;
         rapport.insert("rattaches".into(), json!(n));
@@ -217,11 +208,11 @@ pub fn reprendre_les_depots(ctx: &Contexte, qui: &str, maintenant: &str) -> Avec
 fn salarie_par_nir(ctx: &Contexte) -> Vec<(String, String)> {
     let mut v: Vec<(String, String)> = Vec::new();
     for (cle, s) in &ctx.salaries {
-        let Some(nir) = s.get("nir").filter(|n| vrai(n)).and_then(Value::as_str) else { continue };
+        let Some(nir) = s.nir.dite().filter(|n| !n.is_empty()) else { continue };
         let nir = nir.trim().to_string();
         match v.iter_mut().find(|(n, _)| *n == nir) {
-            Some(e) => e.1 = cle.clone(),
-            None => v.push((nir, cle.clone())),
+            Some(e) => e.1 = cle.to_string(),
+            None => v.push((nir, cle.to_string())),
         }
     }
     v
@@ -297,7 +288,7 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
         .map_err(socle::echec::Echec::from)?
         .iter()
-        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte))
+        .filter(|l| !l.flux().is_empty()).map(|l| l.flux().to_string())
         .collect();
 
     // Le bilan XML du meme flux, quand il est la : il porte l'idflux ENTIER et dit si le depot etait reel ou de test.
@@ -347,24 +338,14 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
         for vue in &ajoutes {
             let mois = texte(vue, "mois");
             let origine = format!("retours/dpae/{}", texte(vue, "piece"));
-            let detail = json!({"reconstruit": true, "embauches": vue["embauches"], "certificat": true});
-            let note = Note {
-                quoi: "dpae",
-                mois: if mois.is_empty() { None } else { Some(&mois) },
-                fichier: None,
-                mode: if texte(vue, "mode") == "test" { "test" } else { "reel" },
-                qui,
-                accepte: vrai(&vue["accepte"]),
-                destinataire: "urssaf-dpae",
-                flux: &texte(vue, "flux"),
-                reponse: "",
-                trace: None,
-                detail: Some(&detail),
-                versions: None,
-                quand: &texte(vue, "quand"),
-                origine: &origine,
-            };
-            journal::noter(&ctx.racine, &note, maintenant).map_err(socle::echec::Echec::from)?;
+            let embauches: Vec<crate::journal::EmbaucheDeclaree> = socle::forme::lire(&vue["embauches"], "Une embauche attestée ne se lit pas.")?;
+            let detail = crate::journal::DetailDpae { reconstruit: true, embauches, certificat: true, ..Default::default() };
+            let mut e = Envoi::nouveau(Mode::de(texte(vue, "mode") != "test"), qui, vrai(&vue["accepte"]), "urssaf-dpae", "", detail);
+            e.mois = socle::mois::Mois::lire(&mois).ok();
+            e.flux = texte(vue, "flux");
+            e.quand = texte(vue, "quand");
+            e.origine = origine;
+            journal::noter(&ctx.racine, Ligne::Dpae(e), None, maintenant).map_err(socle::echec::Echec::from)?;
         }
     }
     Ok(json!({"trouves": trouves, "ajoutes": ajoutes, "deja": deja, "inconnus": inconnus, "ecrit": ecrire}))

@@ -8,6 +8,7 @@
 //! Les pannes : `ErreurApi` (message et `code`) ; un delai de lecture, une reponse coupee, une connexion rompue, un gzip
 //! illisible portent chacun leur `classe`, que l'appelant releve.
 
+use droit::fiche::Lue as _;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -132,18 +133,6 @@ fn horodatage(iso: &str) -> Result<String, String> {
         "000000".to_string()
     };
     Ok(jour + &heure)
-}
-
-/// Vrai pour une valeur presente et non vide (ni `null`, `false`, `0`, `""`, `[]`, `{}`).
-fn vrai(v: Option<&Value>) -> bool {
-    match v {
-        None | Some(Value::Null) | Some(Value::Bool(false)) => false,
-        Some(Value::String(s)) => !s.is_empty(),
-        Some(Value::Array(a)) => !a.is_empty(),
-        Some(Value::Object(o)) => !o.is_empty(),
-        Some(Value::Number(n)) => n.as_f64().map(|f| f != 0.0).unwrap_or(true),
-        Some(Value::Bool(true)) => true,
-    }
 }
 
 // ------------------------------------------------------------------- gzip
@@ -603,38 +592,43 @@ pub fn consulter(base: &str, jeton: Option<&str>, debut: &str, fin: Option<&str>
     appeler(&url, jeton).map(|(corps, _)| corps)
 }
 
-/// L'identite du declarant inscrit au service DSN. Une fiche
-/// dont `declarant_dsn` n'est pas un objet, ou dont `nom_prenom` n'est pas un
-/// texte, leve `AttributeError`.
-pub fn declarant(ent: &Value) -> Result<Value, Value> {
-    if vrai(ent.get("declarant")) {
-        return Ok(ent["declarant"].clone());
+/// LE DECLARANT QUI S'AUTHENTIFIE : le SIRET, le nom et le prenom du compte ouvert pour le service (vides : la fiche ne
+/// les dit pas).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Identite {
+    pub siret: String,
+    pub nom: String,
+    pub prenom: String,
+}
+
+impl Identite {
+    /// Ce qui lui manque pour s'authentifier, dit en mots.
+    pub fn manquants(&self) -> Vec<&'static str> {
+        [(&self.siret, "le SIRET"), (&self.nom, "le nom"), (&self.prenom, "le prénom")].into_iter().filter(|(c, _)| c.trim().is_empty()).map(|(_, m)| m).collect()
     }
-    let mut brut = "";
-    if let Some(dsn) = ent.get("declarant_dsn").filter(|v| vrai(Some(v))) {
-        let o = dsn.as_object().ok_or_else(|| echec("AttributeError", "le declarant_dsn n'est pas un objet".into(), None))?;
-        brut = match o.get("nom_prenom") {
-            None => "",
-            Some(Value::String(t)) => t,
-            Some(_) => return Err(echec("AttributeError", "`nom_prenom` n'est pas un texte".into(), None)),
-        };
+}
+
+/// L'identite du declarant inscrit au service DSN, telle que l'authentification l'envoie : celle que la fiche dit
+/// (`declarant`), sinon le SIRET et le contact DSN coupe au premier espace (le nom, puis le prenom).
+pub fn declarant(ent: &droit::fiche::ChampsEntreprise) -> Identite {
+    if let Some(d) = ent.declarant.dite().filter(|d| !d.est_vide()) {
+        return Identite { siret: d.siret.texte().to_string(), nom: d.nom.texte().to_string(), prenom: d.prenom.texte().to_string() };
     }
+    let brut = ent.declarant_dsn.dite().map_or("", |d| d.nom_prenom.texte());
     let morceaux = mots(socle::texte::strip(brut));
-    let siret = ent.get("siret").cloned().unwrap_or(Value::Null);
-    let mut m = Map::new();
-    m.insert("siret".into(), siret);
+    let mut i = Identite { siret: ent.siret.texte().to_string(), ..Identite::default() };
     if morceaux.len() >= 2 {
-        m.insert("nom".into(), Value::String(morceaux[0].into()));
-        m.insert("prenom".into(), Value::String(morceaux[1..].join(" ")));
+        i.nom = morceaux[0].to_string();
+        i.prenom = morceaux[1..].join(" ");
     }
-    Ok(Value::Object(m))
+    i
 }
 
 /// Ce qu'une authentification envoie : le declarant inscrit au service, le mot de passe deja prepare par l'appelant, le
 /// service, et le jeton d'une session deja ouverte.
 pub struct Authentification<'a> {
     pub url: &'a str,
-    pub declarant: &'a Value,
+    pub declarant: &'a Identite,
     pub motdepasse: Option<&'a str>,
     /// La variable d'environnement que le refus nomme quand le mot de passe manque.
     pub variable: &'a str,
@@ -667,8 +661,7 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
         }
     };
     let decl = a.declarant;
-    let manquants: Vec<&str> =
-        [("siret", "le SIRET"), ("nom", "le nom"), ("prenom", "le prénom")].into_iter().filter(|(c, _)| !vrai(decl.get(*c))).map(|(_, m)| m).collect();
+    let manquants = decl.manquants();
     if !manquants.is_empty() {
         return Err(echec(
             "ErreurApi",
@@ -682,9 +675,9 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
     let service = a.service.filter(|s| !s.is_empty());
     let corps = format!(
         "<identifiants><siret>{}</siret><nom>{}</nom><prenom>{}</prenom><motdepasse>{}</motdepasse>{}</identifiants>",
-        socle::valeur::valeur_en_texte(&decl["siret"]),
-        socle::valeur::valeur_en_texte(&decl["nom"]),
-        socle::valeur::valeur_en_texte(&decl["prenom"]),
+        decl.siret,
+        decl.nom,
+        decl.prenom,
         echapper(mdp),
         service.map(|s| format!("<service>{}</service>", s)).unwrap_or_default()
     );
@@ -795,10 +788,10 @@ pub fn archiver(racine: &Path, canal: &str, retour: &Value, contenu: &[u8], ctyp
     };
     let nature = match retour.get("nature") {
         None => "??".to_string(),
-        Some(v) => socle::valeur::valeur_en_texte(v),
+        Some(v) => documents::valeur::valeur_en_texte(v),
     };
     let flux = chaine("flux")?;
-    let flux = if flux.is_empty() { "sansflux".to_string() } else { debut(&flux, 24) };
+    let flux = if flux.is_empty() { "sansflux".to_string() } else { flux };
     let nom = format!("{}_nature{}_{}{}", horo, nature, flux, ext);
     let dest = dossier_archive(racine, canal)?.join(nom);
     if !dest.exists() {
@@ -833,7 +826,7 @@ fn cle_de_retour(e: &Value) -> Result<[Value; 3], Value> {
 }
 
 fn meme_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| socle::valeur::valeurs_egales(x, y))
+    a.iter().zip(b).all(|(x, y)| documents::valeur::valeurs_egales(x, y))
 }
 
 /// Ajoute au journal du canal les retours qu'il n'a pas encore vus ; LF, deux espaces, l'accent tel quel.

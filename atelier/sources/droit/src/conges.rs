@@ -2,16 +2,16 @@
 //! samedi), travailles (la fiche du salarie, `JoursTravailles`), et l'indemnite retenue entre le dixieme et le maintien
 //! (L3141-24). Le compteur d'un salarie, qui se derive de ses paies, est l'affaire de l'engagement (`engagement::conges`).
 
-use serde_json::Value;
 
+use crate::fiche::Lue;
 use socle::date::Jour;
 use socle::feries;
 use socle::num::{div, eur2, mul, Decimal, Resultat};
 
 /// Le nombre de jours ouvrables entre deux dates, bornes incluses : du lundi
-/// au samedi, moins les feries que l'entreprise chome.
-pub fn jours_ouvrables(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
-    jours_de_semaine(debut, fin, entreprise, 6)
+/// au samedi, moins les feries que l'entreprise chome (`chomes` : ce que sa fiche en dit, `ChampsEntreprise::feries_chomes`).
+pub fn jours_ouvrables(debut: &Jour, fin: &Jour, chomes: Option<&str>) -> Resultat<i64> {
+    jours_de_semaine(debut, fin, chomes, 6)
 }
 
 /// Les jours de la semaine, dans l'ordre (lundi = 0), tels que la fiche les ecrit.
@@ -38,28 +38,23 @@ impl JoursTravailles {
         JoursTravailles { jours: [true, true, true, true, true, false, false], dits: false }
     }
 
-    /// Les jours que dit la fiche `fiche` (sa valeur au jour lu). Refus : une liste vide, ou un nom qui n'est pas un jour.
-    pub fn de_la_fiche(fiche: &Value) -> Resultat<Self> {
-        let v = match fiche.get("jours_travailles") {
-            // Une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur (`contexte::dater`).
-            None | Some(Value::Null) => return Ok(Self::du_lundi_au_vendredi()),
-            Some(Value::String(s)) if s.trim().is_empty() => return Ok(Self::du_lundi_au_vendredi()),
-            Some(v) => v,
-        };
-        let qui = fiche.get("_cle").and_then(Value::as_str).unwrap_or("le salarie");
-        let liste = v.as_array().ok_or_else(|| {
-            format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui)
-        })?;
+    /// Les jours que dit la fiche `fiche` (sa valeur au jour lu).
+    pub fn de_la_fiche(fiche: &crate::fiche::FicheSalarie) -> Resultat<Self> {
+        Self::de_la_case(&fiche.jours_travailles, fiche.id.as_str())
+    }
+
+    /// Le refus d'une case `jours_travailles` qui ne se lit pas par sa forme (`qui` : la cle du salarie).
+    pub fn case_illisible(qui: &str) -> String {
+        format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui)
+    }
+
+    /// Les jours que dit la case `jours_travailles` d'une fiche (`qui` : la cle du salarie) ; une case que la fiche ne
+    /// dit pas : du lundi au vendredi. Refus : une liste vide.
+    pub fn de_la_case(case: &Option<Vec<crate::fiche::JourDeLaSemaine>>, qui: &str) -> Resultat<Self> {
+        let Some(liste) = case.dite() else { return Ok(Self::du_lundi_au_vendredi()) };
         let mut jours = [false; 7];
         for j in liste {
-            let nom = j.as_str().unwrap_or_default().trim().to_lowercase();
-            let rang = JOURS_DE_LA_SEMAINE.iter().position(|x| *x == nom).ok_or_else(|| {
-                format!(
-                    "Fiche de {} : « Jours travaillés » porte {}, qui n'est pas un jour de la semaine (lundi ... dimanche).",
-                    qui, j
-                )
-            })?;
-            jours[rang] = true;
+            jours[*j as usize] = true;
         }
         if !jours.iter().any(|x| *x) {
             return Err(format!(
@@ -126,12 +121,12 @@ l'horaire programme (Cass. soc., 20/01/1999) : cocher ceux de son contrat.",
 pub fn feries_non_payes(
     debut: &Jour,
     fin: &Jour,
-    entreprise: Option<&Value>,
+    chomes: Option<&str>,
     jours: &JoursTravailles,
     anciennete: &Jour,
 ) -> Resultat<Vec<(Jour, String)>> {
     let mut out = Vec::new();
-    for (j, nom) in feries::chomes_entre(debut, fin, entreprise)? {
+    for (j, nom) in feries::chomes_entre(debut, fin, chomes)? {
         let premier_mai = feries::chomes_de_droit(j.an)?.iter().any(|(x, _)| *x == j);
         if jours.travaille(&j) && !premier_mai && crate::permanents::anciennete_mois(anciennete, &j) < Decimal::from(3) {
             out.push((j, nom));
@@ -141,8 +136,8 @@ pub fn feries_non_payes(
 }
 
 /// Les jours de `debut` a `fin` dont le rang dans la semaine (lundi = 0) est sous `jusqu_a`, moins les feries chomes.
-fn jours_de_semaine(debut: &Jour, fin: &Jour, entreprise: Option<&Value>, jusqu_a: u32) -> Resultat<i64> {
-    let chomes = feries::chomes_entre(debut, fin, entreprise)?;
+fn jours_de_semaine(debut: &Jour, fin: &Jour, dits: Option<&str>, jusqu_a: u32) -> Resultat<i64> {
+    let chomes = feries::chomes_entre(debut, fin, dits)?;
     let (mut n, mut jour) = (0, *debut);
     while jour <= *fin {
         if jour.jour_de_la_semaine() < jusqu_a && !chomes.iter().any(|(j, _)| *j == jour) {

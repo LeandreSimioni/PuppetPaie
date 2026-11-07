@@ -4,13 +4,35 @@
 //! I et IV (`atelier/reference/sources/code-de-la-securite-sociale/xml/D241-10.xml`, LEGIARTI000054252223) : « Coefficient = (Tmin +
 //! (Tdelta x [...]P)) x b », b = 100/90 pour les professions dont les conges sont payes par une caisse.
 
-use crate::outils::{code_livre, dec, lire};
+use crate::outils::typee::{code_livre, lire};
 use droit::reduction::reduction_generale;
+use rust_decimal::Decimal;
+use serde::Deserialize;
+
+/// Du bareme livre, la seule partie que ce test lit.
+#[derive(Deserialize)]
+struct Bareme {
+    par_statut: ParStatut,
+}
+
+#[derive(Deserialize)]
+struct ParStatut {
+    technicien: Technicien,
+}
+
+#[derive(Deserialize)]
+struct Technicien {
+    reduction_generale: droit::forme_bareme::ReductionGenerale,
+}
+
+fn dec(s: &str) -> Decimal {
+    s.parse().unwrap()
+}
 
 #[test]
 fn le_coefficient_majore_ne_s_arrondit_qu_une_fois() {
-    let socle = lire(&code_livre(), "baremes/2026.json");
-    let technicien = &socle["par_statut"]["technicien"];
+    let bareme: Bareme = lire(&code_livre(), "baremes/2026.json");
+    let technicien = Some(&bareme.par_statut.technicien.reduction_generale);
     // Une journee de 7 h payee 100 : SMIC de reference 12,02 x 7 = 84,14 ; (0,02 + 0,3781 x 0,7621^1,75) = 0,25503...
     let sans = reduction_generale(technicien, Some("technicien"), dec("100"), dec("7"), false).unwrap().unwrap();
     assert_eq!(sans.coefficient, dec("0.2550"));

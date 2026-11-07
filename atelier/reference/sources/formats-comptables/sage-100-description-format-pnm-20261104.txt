@@ -1,0 +1,331 @@
+Sage 100 Comptabilité
+
+
+Description du format
+PNM
+Retrouvez dans cette documentation le détail du format pnm intégrable
+dans Sage 100 Comptabilité.
+
+
+
+
+                                    ©2021 THE SAGE GROUP PLC OR ITS LICENSORS. SAGE, SAGE LOGOS,SAGE PRODUCT AND
+                                    SERVICE NAMES
+                                        TITLE: QUIAMMENTIONED  HEREINILARE
+                                                     ET VERE VOLESTINT      THE AB
+                                                                        IL ETUR TRADEMARKS   OF THE SAGE GROUP PLC OR ITS
+                                                                                   INCIASIMOST                              1
+                                    LICENSORS. ALL OTHER TRADEMARKS ARE THE PROPERTY OF THEIR RESPECTIVE OWNERS.
+
+
+                                    TITLE: QUIAM ETVEREVOLESTINT IL IL ETUR AB INCIASIMOST
+Table des matières
+Extension et structure .................................................................................................................. 3
+   Structure ..................................................................................................................................................................... 3
+Description d’une ligne de mouvement comptable .................................................................. 5
+   Précisions pour certains champs............................................................................................................................. 6
+
+
+
+
+                                                                                                 ©2022 THE SAGE GROUP PLC OR ITS LICENSORS. SAGE, SAGE LOGOS,SAGE PRODUCT AND
+                                                                                                 SERVICE NAMES MENTIONED HEREIN ARE THE TRADEMARKS OF THE SAGE GROUP PLC OR2ITS
+                                                                              SAGE 100 COMPTABILITÉ
+                                                                                                 LICENSORS. ALL OTHER TRADEMARKS ARE THE PROPERTY OF THEIR RESPECTIVE OWNERS.
+Extension et structure
+Le fichier Ecritures Sage a pour extension : *.pnm
+
+
+Structure
+La première ligne du fichier est réservée au nom de la société (30 caractères maximum).
+Les lignes suivantes correspondent aux écritures comptables. Chaque ligne est séparée par un
+retour chariot.
+Les deux dernières lignes peuvent être des retours chariot.
+Pour l'import de fichier au format Écritures Sage, sont acceptés les différents formats de fichier
+suivants :
+
+•   Format 105 caractères.
+
+•   Format 112 caractères.
+
+•   Format 138 caractères.
+
+•   Format 141 caractères.
+
+•   Format 164 caractères.
+
+•   Format 199 caractères.
+
+L'import s'effectue grâce à la fonction Fichier > Importer après sélection du format Écritures
+Sage (*.pnm) dans la zone Types de fichiers.
+
+
+
+
+                                                              ©2022 THE SAGE GROUP PLC OR ITS LICENSORS. SAGE, SAGE LOGOS,SAGE PRODUCT AND
+                                                              SERVICE NAMES MENTIONED HEREIN ARE THE TRADEMARKS OF THE SAGE GROUP PLC OR3ITS
+                                           SAGE 100 COMPTABILITÉ
+                                                              LICENSORS. ALL OTHER TRADEMARKS ARE THE PROPERTY OF THEIR RESPECTIVE OWNERS.
+Pour l'export de fichier au format Écritures Sage, sont générés des fichiers au format :
+
+•   Format 138 caractères.
+
+•   Format 199 caractères (Si l'option "Exporter les zones devises et multi plan analytique" est
+    cochée dans la fenêtre de génération du fichier)
+
+
+
+
+                                            SAGE 100 COMPTABILITÉ                                  4
+Description d’une ligne
+de mouvement comptable
+    Les différents
+                                                                                                                                                 Champs                        Pos.     Long.   Commentaire
+    formats
+
+                                                                                                                                                 Code journal                  1        3
+
+                                                                                                                                                 Date de pièce                 4        6       JJMMAA
+
+                                                                                                                                                                                                FC Facture client
+                                                                                                                                                                                                AC Avoir client
+                                                                                                                                                                                                RC Règlement client
+                                                                                                                                                                                                FF Facture fournisseur
+                                                                                                                                                 Type de pièce                 10       2
+                                                                                                                                                                                                AF Avoir fournisseur
+                                                                                                                                                                                                RF Règlement fournisseur
+                                                                                                                                                                                                OD Opérations diverses
+                                                                                                                                                                                                Blanc
+
+                                                                                                                                                 Compte general                12       13
+                                                                                                                                                                                                G ou Blanc : Général
+                                                                                                                                                                                                A : Analytique
+                                                                                                                                                 Type de compte*               25       1
+                                                                                                                                                                                                X : Auxiliaire
+                                                                                                                                                                                                E : Echéance
+                         Format 164 caractères
+ Format 199 caractères
+
+
+
+
+                                                                         Format 138 caractères
+
+
+
+
+                                                                                                                                                 Compte auxiliaire
+                                                 Format 141 caractères
+
+
+
+
+                                                                                                 Format 112 caractères
+
+                                                                                                                         Format 105 caractères
+
+
+
+
+                                                                                                                                                                               26       13
+                                                                                                                                                 ou analytique
+
+                                                                                                                                                 Référence de                                   Référence Pièce ou Numéro de pièce
+                                                                                                                                                                               39       13
+                                                                                                                                                 l’écriture*                                    selon option en import
+
+
+                                                                                                                                                 Libellé de l’écriture         52       25
+                                                                                                                                                                                                E : Espèce
+                                                                                                                                                                                                C : Chèque
+                                                                                                                                                                                                T : Traite
+                                                                                                                                                                                                L : LCR
+                                                                                                                                                 Mode de paiement*             77       1
+                                                                                                                                                                                                V : Virement
+                                                                                                                                                                                                P : Prélèvement
+                                                                                                                                                                                                U : Carte Bleue (si intitulé Ucarte bleue)
+                                                                                                                                                                                                S : Aucun
+
+                                                                                                                                                 Date d’échéance               78       6       JJMMAA
+
+                                                                                                                                                                                                D : Débit
+
+                                                                                                                                                 Sens                          84       1       C : Crédit
+                                                                                                                                                                                                M : Mixte
+
+
+
+
+                                                                                                                                                                SAGE 100 COMPTABILITÉ                                                        5
+                                                                                                                                                                        Format 105 caractères (suite)
+                                                                                                                                                                                                        Montant en monnaie
+                                                                                                                                                                                                        de tenue de                  85       20
+
+
+
+
+                                                                                                                                        Format 112 caractères (suite)
+                                                                                                                                                                                                        compte*
+
+
+
+
+                                                                                                        Format 138 caractères (suite)
+                                                                                                                                                                                                                                                   N : Normale
+
+                                                                                                                                                                                                        Type d’écriture              105      1    A : A-Nouveau
+                                                                                                                                                                                                                                                   S : Simulation
+                                                                        Format 141 caractères (suite)
+
+
+
+                                                                                                                                                                                                        Numéro de pièce              106      7    Non utilisé
+
+                                                                                                                                                                                                        Zone réservée                113      26   Variable selon les produits
+                                        Format 164 caractères (suite)
+
+
+
+
+                                                                                                                                                                                                        Code ISO de la
+                                                                                                                                                                                                        devise dans laquelle
+                                                                                                                                                                                                        est exprimée le              139      3
+                                                                                                                                                                                                        montant de
+                                                                                                                                                                                                        l’écriture*
+        Format 199 caractères (suite)
+
+
+
+
+                                                                                                                                                                                                        Montant en devise*           142      20
+
+                                                                                                                                                                                                        Code ISO de la
+                                                                                                                                                                                                                                     162      3
+                                                                                                                                                                                                        devise de l’écriture*
+
+                                                                                                                                                                                                        Plan / Axe                                 Numéro du Plan analytique dans la
+                                                                                                                                                                                                                                     165      10
+                                                                                                                                                                                                        analytique*                                comptabilité 100
+
+
+                                                                                                                                                                                                        Section analytique*          175      25   Non utilisé
+
+
+‘* Retrouvez dans le chapitre suivant des précisions sur ces champs.
+
+
+
+Précisions pour certains champs
+Type de compte :
+Une ligne de mouvement dont le Type de compte est X (Auxiliaire) peut être éventuellement suivie
+d’une ou plusieurs autres lignes dont le Type de compte est E (Echéance). Ces lignes 'E' et 'X'
+doivent avoir :
+
+•   Le même numéro d'écriture,
+
+•   Le même compte général,
+
+•   Le même compte tiers,
+
+•   Le même code journal,
+
+•   La même période contenue dans Date de pièce,
+
+•   La somme des montants des lignes E doit être égale au montant de la ligne X
+
+
+
+
+                                                                                                                                                                                                                      SAGE 100 COMPTABILITÉ                                            6
+Référence de l’écriture :
+Dans la fenêtre d'import de fichier, il est possible de cocher l’option Conserver la référence pièce
+d’origine.
+
+•   Non cochée : La zone Référence de l’écriture est reprise dans les zones N° pièce de
+    l'écriture comptable et N° Facture. La référence pièce est alors à blanc.
+
+•   Cochée : la zone Référence de l’écriture est reprise dans les colonnes N° pièce, N° facture et
+    Référence pièce de l'écriture comptable. Le Numéro de pièce est alors automatiquement
+    incrémenté selon l’option de numérotation du journal.
+
+
+Mode de paiement
+Le mode de paiement est comparé au 1er caractère des intitulés de modes de règlement définis
+dans le menu Fichier > Paramètres société > Tiers > Mode de règlement. Si ce code n’existe
+pas ou est à blanc, le mode de règlement est alors ‘Aucun’. En cas de doublon, c’est le premier
+mode de règlement de la liste qui est affecté à l’écriture.
+
+
+Montant en monnaie de tenue de compte
+Lors de l’import, les lignes d’écritures dont le montant est à 0 sont ignorées.
+
+
+Code ISO de la devise dans laquelle est exprimée le montant de l’écriture
+Cette zone permet de renseigner le code ISO de la devise dans laquelle est exprimée le montant de
+l'écriture. Si ce n'est pas la devise de tenue de compte, le montant sera converti lors de l'import.
+
+
+Zones Devise (positions 142 et 162)
+Lorsque ces zones sont renseignées, elles sont reportées au niveau de la ligne d’écriture importée
+afin de conserver une trace de la devise de transaction.
+
+
+Zones analytiques (positions 165 et 175)
+Exemple : Le jeu d'essai BIJOU comporte 2 plans Activité et Produit.
+Soit une facture d'achat marchandises de 100,00 Euros répartie de la manière suivante :
+        Plan                         Section                           Répartition
+
+                                     922LY3                            50,00
+        Activité
+                                     922ME3                            50,00
+
+                                     9301AR                            60,00
+
+        Produit                      9311AR                            20,00
+
+                                     9321AR                            20,00
+
+
+
+
+                                               SAGE 100 COMPTABILITÉ                                   7
+Dans le fichier PNM, l'écriture de charge se présente ainsi :
+Type   Compte tiers ou analytique         …         Sens        Montant   …   Plan
+
+601020        G                    D      100.00
+
+601020        A      922LY3               D         50.00
+
+601020        A      922ME3               D         50.00
+
+601020        A      9301AR               D         60.00
+
+601020        A      9311AR               D         20.00
+
+601020        A      9321AR               D         20.00
+
+4456619       G                    D      19.60
+
+4010000       X      JASER         C      119.60
+
+En fonction du format PNM, le champ ‘Plan’ est présent ou non. Seul le Format 199 caractères
+contient le plan (Position 165).
+Si le N° du plan est indiqué, l’import des sections analytiques se fera sur le plan indiqué.
+Si le champ plan n’est pas présent, l’import des sections se fera sur le plan principal de la
+comptabilité (Option Définir comme plan principal dans Fichier > Paramètres société >
+Analytique > Plan Anaytique).
+
+
+
+
+                                              SAGE 100 COMPTABILITÉ                             8
+                                 sage.com
+
+
+
+
+                   ©2022 THE SAGE GROUP PLC OR ITS LICENSORS. SAGE, SAGE LOGOS,SAGE PRODUCT AND
+                   SERVICE NAMES MENTIONED HEREIN ARE THE TRADEMARKS OF THE SAGE GROUP PLC OR9ITS
+SAGE 100 COMPTABILITÉ
+                   LICENSORS. ALL OTHER TRADEMARKS ARE THE PROPERTY OF THEIR RESPECTIVE OWNERS.
+

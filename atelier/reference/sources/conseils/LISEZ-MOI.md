@@ -26,16 +26,17 @@ Les montants et délais de ces pages changent chaque année : ils sont datés du
 
 - `logiciel/donnees/conseils.json` : la banque. Un conseil a un `id`, un `domaine`, un `public`, un `texte` (sans le titre
   « Le saviez-vous ? », que l'écran pose ; la phrase courte d'un conseil de saisie), un `detail` pour certains conseils de
-  saisie (déplié derrière « pourquoi ? »), une ou plusieurs `source` {`fichier`, `article` (et `code` pour l'entrepôt
-  LEGI), `citation`, et `annexe` (« X » ou « VIII ») pour une source tirée d'une annexe du régime des intermittents :
+  saisie (déplié derrière « pourquoi ? »), une liste de `source` (`droit::source::Source` : {`fichier` (`<entrepôt>#<code>` pour un article
+  de l'entrepôt LEGI), `emetteur`, `article`, `citation`, et `annexe` (« X » ou « VIII ») pour une source tirée d'une annexe du régime des intermittents :
   le moteur ne cite que celles des salariés dont parle le conseil}, un `quand` (« toujours » : un conseil général, celui du démarrage ; `saisie:<condition>` ;
   `historique:<condition>`), le `ciblage` voulu et la `certitude` du rédacteur. Un chiffre daté n'y est jamais écrit en
   dur : `{bareme:…}` et `{minima:…}` le lisent dans `donnees/baremes/<année>.json` et `donnees/minima-conventionnels.json`.
 - `atelier/sources/paie/src/conseils.rs` : l'option de la compagnie (fiche Entreprise, `conseils`), la rotation du conseil
   du jour, les conditions de saisie et d'historique, et les constantes de l'article 30 des annexes (`annexes` dans la
   banque).
-- `atelier/sources/paie/tests/fichiers/conseils_banque.rs` vérifie que chaque fichier cité existe et que chaque citation
-  s'y lit (à la casse, aux blancs, aux apostrophes et aux guillemets près ; « […] » sépare des fragments).
+- `atelier/sources/moteur/tests/fichiers/sources.rs` vérifie que chaque fichier cité existe et que chaque citation
+  s'y lit (à la casse, aux blancs, aux apostrophes et aux guillemets près ; « […] » sépare des fragments), pour les
+  conseils comme pour les barèmes.
 
 ## La rédaction (21/10/2026)
 

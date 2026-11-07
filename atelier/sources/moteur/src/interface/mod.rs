@@ -33,6 +33,7 @@ use serde_json::{json, Value};
 use http::{Reponse, Requete};
 use crate::etat_garde::{Fil, FileDesEtats};
 use veille::Veille;
+use crate::routes::catalogue::Route;
 
 pub const MINUTES_VEILLE: u64 = 20;
 
@@ -167,7 +168,8 @@ fn ressources() -> PathBuf {
 fn empreinte() -> String {
     use sha2::{Digest, Sha256};
     use std::sync::OnceLock;
-    let mut noms: Vec<(String, Option<(u128, u64)>)> = Vec::new();
+    type Signature = socle::num::Resultat<Option<(u128, u64)>>;
+    let mut noms: Vec<(String, Signature)> = Vec::new();
     for dossier in ["", "js"] {
         let Ok(it) = std::fs::read_dir(ressources().join(dossier)) else { continue };
         for e in it.flatten() {
@@ -182,7 +184,7 @@ fn empreinte() -> String {
     noms.sort();
     // LE CONTENU NE SE RELIT QUE S'IL A CHANGE : la date et la taille de chaque fichier suffisent a savoir
     // que rien n'a bouge depuis la derniere page -- la relecture et le condensat de 800 Ko a chaque `GET /` coutaient.
-    static DERNIERE: OnceLock<Mutex<Option<(Vec<(String, Option<(u128, u64)>)>, String)>>> = OnceLock::new();
+    static DERNIERE: OnceLock<Mutex<Option<(Vec<(String, Signature)>, String)>>> = OnceLock::new();
     let memo = DERNIERE.get_or_init(|| Mutex::new(None));
     if let Some((vus, e)) = memo.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
         if *vus == noms {
@@ -255,8 +257,8 @@ fn jeton(local: &Path) -> String {
 }
 
 /// Un JSON pose dans la page, dans un `<script type="application/json">` : rien ne peut y fermer la balise.
-fn json_dans_la_page(v: &Value) -> String {
-    v.to_string().replace('<', "\\u003c").replace('>', "\\u003e").replace('&', "\\u0026")
+fn json_dans_la_page(v: &impl serde::Serialize) -> String {
+    serde_json::to_string(v).unwrap_or_default().replace('<', "\\u003c").replace('>', "\\u003e").replace('&', "\\u0026")
 }
 
 fn page(corps: &str, jeton: &str, noms: &str) -> String {
@@ -281,7 +283,7 @@ fn logo_en_ligne(logo: Option<&str>) -> String {
 
 /// L'accueil : les tuiles des compagnies, telles que la route `compagnies` les dit.
 fn page_accueil() -> String {
-    let lu = api::route_de_l_installation("compagnies", &json!({}));
+    let lu = api::route_de_l_installation(Route::Compagnies, &json!({}));
     let r = &lu["resultat"];
     let t = |c: &Value, k: &str| c.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
     let mut tuiles = Vec::new();
@@ -659,15 +661,15 @@ impl Fenetre {
     /// avant que les compagnies creees en demo soient gardees ou supprimees, elle lache ce qu'elle en tient (`lacher`) ;
     /// le tableau de l'administrateur se lit, comme l'ecran d'un mois, dans ce que son fil a deja refait (`prechauffer`),
     /// et ne releve les comptes rendus (le reseau, le coffre) qu'une fois le mot de passe de l'administrateur tape ici.
-    fn route_de_l_installation(&self, nom: &str, charge: &Value) -> Value {
+    fn route_de_l_installation(&self, nom: Route, charge: &Value) -> Value {
         let inst = compagnies::base();
-        if nom == "compagnies-garder" {
+        if nom == Route::CompagniesGarder {
             for c in suppression::a_garder(&inst) {
                 self.lacher(&c.racine);
             }
         }
-        let vrai = |k: &str| charge.get(k).is_some_and(socle::fichiers::vrai);
-        if nom == "administrateur-tableau" && !vrai("garde") && !vrai("relever") {
+        let vrai = |k: &str| charge.get(k).is_some_and(documents::valeur::vrai);
+        if nom == Route::AdministrateurTableau && !vrai("garde") && !vrai("relever") {
             if self.administrateur.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
                 return api::route_de_l_installation(nom, &json!({"relever": true}));
             }
@@ -779,7 +781,13 @@ impl Fenetre {
             if let Some(nom) = r.chemin.strip_prefix("/atelier/") {
                 return Reponse::json(200, &self.atelier(nom, &charge));
             }
-            if let Some(nom) = r.chemin.strip_prefix("/api/") {
+            if let Some(texte) = r.chemin.strip_prefix("/api/") {
+                // LE NOM DE LA ROUTE SE LIT ICI, UNE FOIS : un nom qui n'est celui d'aucune route se refuse.
+                let Some(nom) = Route::lire(texte) else {
+                    let mut refus = api::Refus::simple("CalculRefuse", crate::routes::catalogue::ROUTE_INCONNUE);
+                    refus.plus.insert("route".into(), json!(texte));
+                    return Reponse::json(200, &api::en_page(Err(refus)));
+                };
                 // LA SEULE PORTE DE LA PAGE VERS LE MOTEUR : une route du catalogue. Celle de l'installation se sert a tout
                 // moment ; celle d'une compagnie, quand la compagnie est ouverte -- ou quand elle n'a pas encore de mot de
                 // passe (rien a deverrouiller : la page du premier mot de passe le pose par sa route).
@@ -812,7 +820,7 @@ impl Fenetre {
                 // (`suppression::route`) ; la fenetre lache d'abord ce qu'elle tient de la compagnie (sa veille, sa file
                 // des etats, son journal), et ne note rien apres dans un dossier qui n'est plus. Un passage de la veille en
                 // cours ecrit dans ce dossier : on attend qu'il finisse.
-                if nom == crate::routes::COMPAGNIE_SUPPRIMER && charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+                if nom == Route::CompagnieSupprimer && charge.get("confirme").is_some_and(documents::valeur::vrai) {
                     let rendu = if veille.as_ref().is_some_and(|v| v.occupee()) {
                         Err(api::Refus::simple("ErreurOperation", "Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé."))
                     } else {
@@ -846,7 +854,7 @@ impl Fenetre {
                     Phase::MotDePasse { racine, premiere } => {
                         // Ce que l'administrateur est pour cette compagnie (la route `administrateur-etat`) : la page le lit,
                         // sans rien decider.
-                        let etat = api::route(&racine, "administrateur-etat", &json!({})).unwrap_or_else(|_| json!({}));
+                        let etat = crate::routes::coffre::administrateur_etat(&racine);
                         let gabarit = if premiere { CHOIX_MOT_DE_PASSE } else { MOT_DE_PASSE };
                         page(&gabarit.replace("{{ADMINISTRATEUR}}", &json_dans_la_page(&etat)), &self.jeton, NOMS_ACCUEIL)
                     }
@@ -901,8 +909,8 @@ impl Fenetre {
             .avec("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'")
     }
 
-    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait
-    /// dans le processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
+    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait dans le
+    /// processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
     fn apercu_bulletin(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
         let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
@@ -913,9 +921,13 @@ impl Fenetre {
         let Some(modele) = crate::routes::bulletin::modele_de_l_adresse(demande) else {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         };
-        let pdf = api::route(&racine, "bulletin-modele-apercu", &json!({"modele": modele.cle()}))
+        // La route, comme la page l'appellerait : sa charge et sa reponse lues par leur forme.
+        let charge = crate::routes::bulletin::ChargeModele { modele: modele.cle().to_string() };
+        let pdf = serde_json::to_value(charge)
             .ok()
-            .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| socle::base64::lire(b).ok()));
+            .and_then(|c| api::route(&racine, Route::BulletinModeleApercu, &c).ok())
+            .and_then(|v| crate::routes::lire_charge::<crate::routes::bulletin::ApercuModele>(&v).ok())
+            .and_then(|a| socle::base64::lire(&a.pdf).ok());
         match pdf {
             Some(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
                 .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == documents::bulletin::Modele::Complet { "complet" } else { "simplifie" }))
@@ -932,7 +944,7 @@ impl Fenetre {
         }
         let Phase::Ouverte { racine, .. } = self.phase() else { return rien() };
         if quoi == "cachet-automatique" {
-            let ent = droit::contexte::Contexte::nouveau(&racine, None).map(|c| c.entreprise.clone()).unwrap_or(Value::Null);
+            let ent = droit::contexte::Contexte::nouveau(&racine, None).map(|c| c.entreprise).unwrap_or_default();
             return match engagement::cachet::svg(&ent) {
                 Some(d) => Reponse::nouvelle(200, "image/svg+xml; charset=utf-8", d),
                 None => rien(),
@@ -958,9 +970,8 @@ impl Fenetre {
 
 /// La ligne du journal de l'interface pour une route servie : `HH:MM:SS route NOM N ms`, et ` refus CLASSE` quand elle a
 /// refuse. Ni la charge ni la reponse : seulement de quoi mesurer.
-pub fn ligne_de_route(nom: &str, duree: Duration, rendu: &Value) -> String {
+pub fn ligne_de_route(nom: Route, duree: Duration, rendu: &Value) -> String {
     let heure = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
-    let nom: String = nom.chars().filter(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c)).take(80).collect();
     let refus = match rendu.get("ok").and_then(Value::as_bool) {
         Some(true) => String::new(),
         _ => format!(" refus {}", rendu.pointer("/erreur/type").and_then(Value::as_str).unwrap_or("?")),

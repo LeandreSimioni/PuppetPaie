@@ -87,7 +87,7 @@ pub fn chemin_unique(nom: &str) -> PathBuf {
 
 /// Les lignes du journal des envois de la compagnie `racine`, telles que le moteur les lit (`envois::journal::lu`).
 pub fn journal(racine: &Path) -> Value {
-    Value::Array(envois::journal::lu(racine).unwrap().lignes.to_vec())
+    serde_json::to_value(envois::journal::lu(racine).unwrap().lignes.as_slice()).unwrap()
 }
 
 pub fn lire(racine: &Path, rel: &str) -> Value {
@@ -95,10 +95,10 @@ pub fn lire(racine: &Path, rel: &str) -> Value {
 }
 
 /// La paie ecrite de `mois` du contrat du salarie `salarie` (le premier qu'il a dans le mois, ou celui du numero
-/// `numero`), telle que `paies/<mois>.json` la porte ; `Null` s'il n'en a pas.
+/// `numero`), telle que `paies/<mois>.json` la porte (`presente`) ; `Null` s'il n'en a pas.
 pub fn paie_ecrite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> Value {
     let f = lire(racine, &format!("paies/{}.json", mois));
-    f["paies"].as_array().into_iter().flatten().find(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).cloned().unwrap_or(Value::Null)
+    f["paies"].as_array().into_iter().flatten().find(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).map(|e| e["presente"].clone()).unwrap_or(Value::Null)
 }
 
 pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
@@ -107,14 +107,15 @@ pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
     std::fs::write(p, serde_json::to_vec_pretty(v).unwrap()).unwrap();
 }
 
-/// Une fiche de la configuration datee (`contexte::fiche_au`), lue a `jour` (AAAA-MM-JJ).
-pub fn fiche_au(datee: &Value, jour: &str) -> Value {
-    droit::contexte::fiche_au(datee, &socle::date::Jour::lire(jour).unwrap(), "test").unwrap()
+/// Une fiche de la configuration datee, lue par sa forme `F` (`droit::fiche::FicheDatee`) a `jour` (AAAA-MM-JJ).
+pub fn fiche_au<F: droit::fiche::FicheDatee>(datee: &Value, jour: &str) -> Value {
+    socle::ecriture::en_valeur(&droit::fiche::lire_champs::<F>(datee, "test").unwrap().au(&socle::date::Jour::lire(jour).unwrap()))
 }
 
-/// La fiche datee d'une compagnie de test : chaque valeur de `plate` de tout temps (`contexte::fiche_datee`).
+/// La fiche datee d'une compagnie de test : chaque valeur de `plate` de tout temps (`droit::fiche::dater`), ses notes `_…`
+/// telles quelles.
 pub fn datee(plate: &Value) -> Value {
-    Value::Object(droit::contexte::fiche_datee(plate.as_object().unwrap()))
+    Value::Object(plate.as_object().unwrap().iter().map(|(k, v)| (k.clone(), if k.starts_with('_') { v.clone() } else { serde_json::json!([{"valeur": v}]) })).collect())
 }
 
 /// Les noms des fichiers d'un dossier, triés (vide s'il n'existe pas).
@@ -148,30 +149,106 @@ pub mod compagnie {
 
 /// La saisie de `mois` telle que ses engagements la montrent (`engagement::vue_requise`).
 pub fn saisie(racine: &Path, mois: &str) -> Value {
-    let mut v = engagement::vue_requise(racine, mois).unwrap();
-    v["mois"] = Value::String(mois.to_string());
-    v
+    socle::ecriture::en_valeur(&engagement::vue_requise(racine, mois).unwrap())
 }
 
 /// « Valider l'engagement » sur la carte du premier engagement en saisie de `salarie` que l'ecran de `mois` montre,
-/// telle qu'elle est enregistree (son identite, `saisie`).
+/// telle qu'elle est enregistree (son identite).
 pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) -> Value {
-    let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap();
+    let vue = socle::ecriture::en_valeur(&engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap());
     let es = vue["engagements"].as_array().unwrap();
-    let k = es.iter().position(|e| e["salarie"] == salarie && e.get("valide").is_none()).expect("une carte en saisie");
-    route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k), "saisie": es[k]}), jour)
+    let k = es.iter().position(|e| e["salarie"] == salarie && e["valide"].is_null()).expect("une carte en saisie");
+    route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k)}), jour)
+}
+
+/// La valeur d'une case telle que la porte la prend : une ligne de la vue porte l'etiquette de sa forme (`forme`), que
+/// le moteur ecrit lui-meme et que l'appelant ne donne pas (`engagement::ligne::LigneDonnee`).
+fn a_la_porte(case: &str, v: &Value) -> Value {
+    match (case, v) {
+        ("lignes", Value::Array(ls)) => Value::Array(
+            ls.iter()
+                .map(|l| {
+                    let mut l = l.clone();
+                    l.as_object_mut().expect("une ligne").remove("forme");
+                    l
+                })
+                .collect(),
+        ),
+        _ => v.clone(),
+    }
+}
+
+/// LA CARTE `saisie` ECRITE D'UN APPEL (`enregistrer-saisie`) : sur l'engagement `engagement` (son identite), ou sur une
+/// carte neuve de sa nature ; sa nature, son salarie, chaque case qu'elle dit, puis, d'un second appel, chaque case du
+/// brouillon qu'elle ne dit pas, videe. Rend la derniere reponse, ou le premier refus.
+pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Value, jour: &str) -> Value {
+    let s = saisie.as_object().expect("une carte");
+    let carte = match engagement.filter(|e| !e.is_null()) {
+        Some(id) => json!({"ecrite": id}),
+        None => json!({"neuve": s["nature"]}),
+    };
+    let mut changements: Vec<Value> = vec![json!({"case": "nature", "valeur": s["nature"]})];
+    if let Some(x) = s.get("salarie") {
+        changements.push(json!({"case": "salarie", "valeur": x}));
+    }
+    // Ce que la vue d'un mois deduit, ou dit de l'engagement ecrit, n'est pas une case (`engagement::saisie::Groupe`).
+    let pas_une_case = ["nature", "salarie", "jours_contrat", "date_modification", "avant", "valide", "importe"];
+    // Une carte de la vue ecrit chacune de ses cases, nulle quand elle ne dit rien (celles d'une autre nature comprises) :
+    // une case nulle ne se change pas.
+    changements.extend(s.iter().filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null()).map(|(k, v)| json!({"case": k, "valeur": a_la_porte(k, v)})));
+    let r = route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": carte, "changements": changements}), jour);
+    if r["ok"] != json!(true) {
+        return r;
+    }
+    let restes: Vec<Value> = r["resultat"]["brouillon"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter(|(k, v)| *k != "nature" && !v.is_null() && s.get(k.as_str()).is_none_or(Value::is_null))
+        .map(|(k, _)| json!({"case": k, "valeur": null}))
+        .collect();
+    if restes.is_empty() {
+        return r;
+    }
+    route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": {"ecrite": r["resultat"]["engagement"]}, "changements": restes}), jour)
+}
+
+/// « MODIFIER L'ENGAGEMENT » `engagement` (son identite) de `mois` : chaque case que `cases` dit, posee (`null` la vide),
+/// d'un appel (`modifier-engagement`), avec `confirme` et `jour`. Ce que la vue d'un mois deduit, ou dit de l'engagement
+/// ecrit, n'est pas une case : `cases` peut etre une carte de la vue, renvoyee ; elle ecrit chacune de ses cases, nulle
+/// quand elle ne dit rien (celles d'une autre nature comprises), et une case nulle ne se change pas.
+pub fn modifier(racine: &Path, mois: &str, engagement: &Value, cases: &Value, confirme: bool, jour: Option<u32>, date: &str) -> Value {
+    let pas_une_case = ["jours_contrat", "date_modification", "avant", "valide", "importe"];
+    let changements: Vec<Value> = cases
+        .as_object()
+        .expect("des cases")
+        .iter()
+        .filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null())
+        .map(|(k, v)| json!({"case": k, "valeur": a_la_porte(k, v)}))
+        .collect();
+    route(racine, "modifier-engagement", json!({"mois": mois, "engagement": engagement, "changements": changements, "confirme": confirme, "jour": jour}), date)
+}
+
+/// LA CARTE `saisie` ECRITE CASE PAR CASE (`saisir`) PUIS VALIDEE (`valider-engagement`) : rend la reponse de la
+/// validation, ou le premier refus.
+pub fn valider(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Value, jour: &str) -> Value {
+    let r = saisir(racine, mois, engagement, saisie, jour);
+    if r["ok"] != json!(true) {
+        return r;
+    }
+    route(racine, "valider-engagement", json!({"mois": mois, "engagement": r["resultat"]["engagement"]}), jour)
 }
 
 /// L'identite (`engagement::stock::identites`) de la carte du premier engagement de `salarie` dans l'ecran de `mois`
 /// (de numero `numero` s'il est dit).
-pub fn identite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> Value {
-    let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap();
+pub fn identite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> engagement::stock::Identite {
+    let vue = socle::ecriture::en_valeur(&engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap());
     let k = vue["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).expect("la carte");
     identite_a(racine, mois, k)
 }
 
 /// L'identite de la `k`-ieme carte de l'ecran de `mois`.
-pub fn identite_a(racine: &Path, mois: &str, k: usize) -> Value {
+pub fn identite_a(racine: &Path, mois: &str, k: usize) -> engagement::stock::Identite {
     engagement::stock::identites(&engagement::stock::objets_du_mois(racine, mois).unwrap()).swap_remove(k)
 }
 

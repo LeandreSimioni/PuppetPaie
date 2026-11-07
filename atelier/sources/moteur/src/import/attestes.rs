@@ -15,12 +15,10 @@
 
 use std::collections::{BTreeSet, HashMap};
 
-use serde_json::{json, Value};
-
 use droit::contexte::Contexte;
+use engagement::importe::{Attestation, ContratLu};
 use socle::echec::{Echec, R};
 use socle::num::Decimal;
-use socle::valeur::valeur_en_texte;
 
 /// Un contrat atteste : de qui (NIR), quand, par quoi, et ce qu'il compte.
 #[derive(Clone, Debug)]
@@ -30,30 +28,30 @@ pub(crate) struct Atteste {
     pub(crate) fin: String,
     /// « AEM », « bulletin », « certificat » (la piece de cet import), ou « historique ».
     pub(crate) source: &'static str,
-    /// Ce qui l'atteste (`atteste_par` de sa ligne) : « AEM », « bulletin », « certificat ».
-    pub(crate) par: String,
+    /// Ce qui l'atteste.
+    pub(crate) par: Attestation,
     pub(crate) heures: i128,
     pub(crate) cachets: i128,
     pub(crate) jours: i128,
     pub(crate) brut: Option<Decimal>,
     /// Sa ligne, telle qu'elle s'ecrit.
-    ligne: Value,
+    ligne: ContratLu,
     /// Pour un contrat de l'historique : sa ligne telle que l'historique la porte (l'ecriture la retrouve par elle).
-    historique: Option<Value>,
+    historique: Option<ContratLu>,
 }
 
 impl Atteste {
     /// Son nom dans le compte rendu.
     pub(crate) fn d_ou(&self) -> String {
-        match (self.source, self.par.as_str()) {
-            ("historique", "certificat") => "historique, d'un certificat".into(),
-            ("historique", "AEM") => "historique, d'une AEM".into(),
+        match (self.source, self.par) {
+            ("historique", Attestation::Certificat) => "historique, d'un certificat".into(),
+            ("historique", Attestation::Aem) => "historique, d'une AEM".into(),
             (s, _) => s.into(),
         }
     }
 
     pub(crate) fn de_certificat(&self) -> bool {
-        self.par == "certificat"
+        self.par == Attestation::Certificat
     }
 
     /// Ce qu'il compte, en mots, pour dire un ecart avec ses deux valeurs.
@@ -73,20 +71,20 @@ fn jj(iso: &str) -> String {
     socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
 }
 
-/// Ce qu'une ligne de contrat (la forme qu'un engagement importe porte) dit, pour le registre.
-fn lu(nir: &str, ligne: &Value, source: &'static str) -> Atteste {
-    let t = |k: &str| ligne.get(k).map(valeur_en_texte).unwrap_or_default();
-    let n = |k: &str| ligne.get(k).and_then(Value::as_i64).unwrap_or(0) as i128;
+/// Ce qu'un contrat atteste dit, pour le registre.
+fn lu(nir: &str, ligne: &ContratLu, source: &'static str) -> Atteste {
+    let c = &ligne.contrat;
+    let n = |x: Option<i64>| i128::from(x.unwrap_or(0));
     Atteste {
         nir: nir.to_string(),
-        debut: t("debut"),
-        fin: t("fin"),
+        debut: ligne.debut.clone().unwrap_or_default(),
+        fin: ligne.fin.clone().unwrap_or_default(),
         source,
-        par: t("atteste_par"),
-        heures: n("heures"),
-        cachets: n("cachets"),
-        jours: n("jours"),
-        brut: socle::num::decimal_lu(&t("brut")),
+        par: c.atteste_par,
+        heures: n(c.heures),
+        cachets: n(c.cachets),
+        jours: n(c.jours),
+        brut: c.brut,
         ligne: ligne.clone(),
         historique: (source == "historique").then(|| ligne.clone()),
     }
@@ -100,7 +98,7 @@ pub(crate) fn chevauche(d1: &str, f1: &str, d: &str, f: &str) -> bool {
 /// Les mois `AAAA-MM` de `debut` a `fin` (ISO) ; vide si une date ne se lit pas.
 fn mois_de(debut: &str, fin: &str) -> Vec<String> {
     match (socle::date::Jour::lire(debut), socle::date::Jour::lire(fin)) {
-        (Ok(d), Ok(f)) => socle::date::mois_entre(&d, &f),
+        (Ok(d), Ok(f)) => socle::mois::Mois::entre(&d, &f).iter().map(socle::mois::Mois::to_string).collect(),
         _ => Vec::new(),
     }
 }
@@ -112,12 +110,12 @@ fn mois_de(debut: &str, fin: &str) -> Vec<String> {
 /// il ne reste rien. Ce qui ne se soustrait pas se refuse (regle 1) : des mois restants de part et d'autre d'un mois
 /// coupe (les compteurs ne se partagent pas entre eux), des pieces qui comptent dans une autre unite que lui, un reste
 /// nul ou negatif. La base conge du certificat ne dit que le contrat entier : le reste ne la porte pas.
-fn reste_du_certificat(c: &Atteste, par: &[&Atteste]) -> Result<Option<Value>, String> {
+fn reste_du_certificat(c: &Atteste, par: &[&Atteste]) -> Result<Option<ContratLu>, String> {
     let siens = mois_de(&c.debut, &c.fin);
     let coupes: BTreeSet<String> = par.iter().filter(|p| chevauche(&p.debut, &p.fin, &c.debut, &c.fin)).flat_map(|p| mois_de(&p.debut, &p.fin)).collect();
     let restent: Vec<usize> = (0..siens.len()).filter(|i| !coupes.contains(&siens[*i])).collect();
     let (Some(&premier), Some(&dernier)) = (restent.first(), restent.last()) else { return Ok(None) };
-    let libelle = |m: &str| socle::date::libelle_du_mois_ou_tel_quel(m, socle::date::Graphie::Accentuee);
+    let libelle = |m: &str| socle::mois::Mois::en_clair(m);
     let mois_restants = restent.iter().map(|i| libelle(&siens[*i])).collect::<Vec<_>>().join(", ");
     if dernier - premier + 1 != restent.len() {
         return Err(format!(
@@ -141,27 +139,24 @@ fn reste_du_certificat(c: &Atteste, par: &[&Atteste]) -> Result<Option<Value>, S
             en_mots(coupants.iter().map(|p| p.heures).sum(), cachets, jours, brut)
         ));
     }
-    let debut = socle::date::premier_du_mois(&siens[premier]).map(|j| j.iso()).unwrap_or_default().max(c.debut.clone());
-    let fin = socle::date::dernier_du_mois(&siens[dernier]).map(|j| j.iso()).unwrap_or_default().min(c.fin.clone());
+    let debut = socle::mois::Mois::lire(&siens[premier]).map(socle::mois::Mois::premier_jour).map(|j| j.iso()).unwrap_or_default().max(c.debut.clone());
+    let fin = socle::mois::Mois::lire(&siens[dernier]).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()).unwrap_or_default().min(c.fin.clone());
     let mut ligne = c.ligne.clone();
     let mut b = reste_brut.unwrap_or_default().round_dp(2);
     b.rescale(2);
-    ligne["debut"] = json!(debut);
-    ligne["fin"] = json!(fin);
-    ligne["cachets"] = json!(reste_cachets as i64);
-    ligne["jours"] = json!(reste_jours as i64);
-    ligne["brut"] = json!(b.to_string());
-    if let Some(m) = ligne.as_object_mut() {
-        m.remove("base_conge");
-    }
+    (ligne.debut, ligne.fin) = (Some(debut), Some(fin));
+    ligne.contrat.cachets = Some(reste_cachets as i64);
+    ligne.contrat.jours = Some(reste_jours as i64);
+    ligne.contrat.brut = Some(b);
+    ligne.contrat.base_conge = None;
     Ok(Some(ligne))
 }
 
 /// Ce que l'import retient : (NIR, la ligne du contrat, le bloc du compte rendu qui le compte).
-pub(crate) type Retenu = (String, Value, &'static str);
+pub(crate) type Retenu = (String, ContratLu, &'static str);
 
 /// Ce qu'un contrat de l'historique devient : (sa ligne, sa ligne nouvelle ; `None` : il est retire).
-pub(crate) type Change = (Value, Option<Value>);
+pub(crate) type Change = (ContratLu, Option<ContratLu>);
 
 pub(crate) struct Registre {
     tous: Vec<Atteste>,
@@ -177,23 +172,43 @@ pub(crate) type Remplaces = Vec<String>;
 
 impl Registre {
     /// Le registre de l'historique : les contrats des engagements importes, rattaches a leur NIR par la fiche
-    /// (`par_cle` : cle de fiche -> NIR). Un contrat sans salarie, sans debut ou sans fin, ou dont la fiche n'a pas de
-    /// NIR, ne se compare a rien : il n'atteste rien, et le registre le dit (`muets`).
+    /// (`par_cle` : cle de fiche -> NIR). LE CONTRAT D'UN PERMANENT (`Importe::permanent`, celui que l'ecriture fond en un
+    /// engagement : `import::ecrite`) s'atteste mois par mois, comme ses bulletins l'ont atteste : chaque mois verse, aux
+    /// dates du mois dans le contrat, compte ce que sa paie porte ; un contrat sans terme (un CDI : « Date de fin
+    /// previsionnelle : un CDI n'en a pas », `contrats-base.json`, S21.G00.40.010) n'est donc pas muet. Un autre contrat
+    /// sans salarie, sans debut ou sans fin, ou dont la fiche n'a pas de NIR, ne se compare a rien : il n'atteste rien,
+    /// et le registre le dit (`muets`).
     pub(crate) fn de_l_historique(ctx: &Contexte, par_cle: &HashMap<String, String>) -> R<Registre> {
         let mut tous = Vec::new();
         let mut muets = Vec::new();
-        for e in engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)? {
-            let t = |k: &str| e.get(k).map(valeur_en_texte).unwrap_or_default();
-            let (cle, debut, fin) = (t("salarie"), t("debut"), t("fin"));
-            let manque: Vec<&str> = [(cle.is_empty(), "salarié"), (debut.is_empty(), "début"), (fin.is_empty(), "fin")].iter().filter(|m| m.0).map(|m| m.1).collect();
+        for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
+            let Some(c) = i.contrat_lu().map_err(Echec::from)? else { continue };
+            let (cle, debut, fin) = (c.salarie.clone(), c.debut.clone().unwrap_or_default(), c.fin.clone().unwrap_or_default());
+            let permanent = i.permanent();
+            let manque: Vec<&str> =
+                [(cle.is_empty(), "salarié"), (debut.is_empty(), "début"), (fin.is_empty() && !permanent, "fin")].iter().filter(|m| m.0).map(|m| m.1).collect();
             let quel = format!("le contrat de l'historique {}{} du {} au {}", if cle.is_empty() { "" } else { "de " }, cle, if debut.is_empty() { "?".into() } else { jj(&debut) }, if fin.is_empty() { "?".into() } else { jj(&fin) });
             if !manque.is_empty() {
                 muets.push(format!("{} n'a pas de {} : il ne se compare à aucune pièce, une pièce du même contrat l'ajouterait une seconde fois", quel, manque.join(", ni de ")));
                 continue;
             }
-            match par_cle.get(&cle) {
-                Some(nir) => tous.push(lu(nir, &e, "historique")),
-                None => muets.push(format!("{} : la fiche de ce salarié n'a pas de NIR, il ne se compare à aucune pièce, une pièce du même contrat l'ajouterait une seconde fois", quel)),
+            let Some(nir) = par_cle.get(&cle) else {
+                muets.push(format!("{} : la fiche de ce salarié n'a pas de NIR, il ne se compare à aucune pièce, une pièce du même contrat l'ajouterait une seconde fois", quel));
+                continue;
+            };
+            if !permanent {
+                tous.push(lu(nir, &c, "historique"));
+                continue;
+            }
+            for (mois, p) in i.paies() {
+                let Ok(m) = socle::mois::Mois::lire(mois) else { continue };
+                let (premier, dernier) = (m.premier_jour().iso(), m.dernier_jour().iso());
+                let mut a = lu(nir, &c, "historique");
+                a.debut = premier.max(debut.clone());
+                a.fin = if fin.is_empty() { dernier } else { dernier.min(fin.clone()) };
+                let n = |x: Option<i64>| i128::from(x.unwrap_or(0));
+                (a.heures, a.cachets, a.jours, a.brut) = (n(p.heures), n(p.cachets), n(p.jours), p.brut);
+                tous.push(a);
             }
         }
         Ok(Registre { tous, retenus: Vec::new(), changes: Vec::new(), muets })
@@ -208,21 +223,21 @@ impl Registre {
 
     /// Ce qu'un certificat atteste seul, une fois retires les mois que les contrats `pareils` (ni des certificats, ni
     /// vides) attestent : `reste_du_certificat`.
-    pub(crate) fn reste_du_certificat(&self, nir: &str, ligne: &Value, pareils: &[Atteste]) -> Result<Option<Value>, String> {
+    pub(crate) fn reste_du_certificat(&self, nir: &str, ligne: &ContratLu, pareils: &[Atteste]) -> Result<Option<ContratLu>, String> {
         reste_du_certificat(&lu(nir, ligne, "certificat"), &pareils.iter().collect::<Vec<_>>())
     }
 
     /// Retient le contrat `ligne` de la piece `source`, compte au bloc `bloc`. Il remplace, du meme salarie et aux dates
     /// qui chevauchent les siennes, les mois des certificats qu'il atteste, et, pour un bulletin, le contrat d'une AEM
     /// (l'appelant l'a compare : d'autres compteurs). Rend une phrase par contrat remplace.
-    pub(crate) fn ajouter(&mut self, nir: &str, ligne: Value, source: &'static str, bloc: &'static str) -> Remplaces {
+    pub(crate) fn ajouter(&mut self, nir: &str, ligne: ContratLu, source: &'static str, bloc: &'static str) -> Remplaces {
         let a = lu(nir, &ligne, source);
         let mut phrases = Vec::new();
         if !a.de_certificat() {
             let remplaces: Vec<usize> = (0..self.tous.len())
                 .filter(|i| {
                     let x = &self.tous[*i];
-                    x.nir == nir && chevauche(&x.debut, &x.fin, &a.debut, &a.fin) && (x.de_certificat() || (source == "bulletin" && x.par == "AEM"))
+                    x.nir == nir && chevauche(&x.debut, &x.fin, &a.debut, &a.fin) && (x.de_certificat() || (source == "bulletin" && x.par == Attestation::Aem))
                 })
                 .collect();
             for i in remplaces.into_iter().rev() {
@@ -268,7 +283,7 @@ impl Registre {
 
     /// `x`, retire du registre, devient `nouvelle` (`None` : il disparait), dans ce que l'import retient ou dans ce qu'il
     /// change a l'historique.
-    fn changer(&mut self, x: Atteste, nouvelle: Option<Value>) {
+    fn changer(&mut self, x: Atteste, nouvelle: Option<ContratLu>) {
         match &x.historique {
             Some(h) => {
                 self.changes.retain(|c| &c.0 != h);
@@ -298,7 +313,7 @@ impl Registre {
     }
 
     /// Les lignes que ce bloc retient.
-    pub(crate) fn lignes(&self, bloc: &str) -> Vec<Value> {
+    pub(crate) fn lignes(&self, bloc: &str) -> Vec<ContratLu> {
         self.retenus.iter().filter(|r| r.2 == bloc).map(|r| r.1.clone()).collect()
     }
 }

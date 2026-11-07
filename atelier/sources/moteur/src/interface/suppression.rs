@@ -126,7 +126,7 @@ pub fn question(racine: &Path) -> Result<Value, String> {
 /// reelle comprise (le `motdepasse` que la page a fait taper ; sinon le moteur le demande lui-meme a un humain). `avant` :
 /// ce que la fenetre lache de la compagnie avant qu'elle parte (rien, par `moteur route`).
 pub fn route(racine: &Path, charge: &Value, avant: &dyn Fn(&Path)) -> Result<Value, String> {
-    if !charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+    if !charge.get("confirme").is_some_and(documents::valeur::vrai) {
         let mut q = question(racine)?;
         if q.get("genre").is_some() {
             q["avertissement"] = json!(format!(
@@ -233,13 +233,13 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
         cible = parent.join(format!("{}-{}", base, n));
         n += 1;
     }
-    let mention = json!({
-        "creee_le": creee_le,
-        "gardee_le": socle::paris::maintenant(),
-        "mois": engagement::stock::mois_saisis(racine).unwrap_or_default(),
-        "_quoi": "Cette compagnie a ete creee dans la version demo de PuppetPaie, puis gardee au deblocage : rien de ce qui y a ete fait avant n'est parti (ni DPAE, ni contrat a la signature, ni DSN, ni document).",
-    });
-    socle::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &mention, 2)?;
+    let mention = FichierDemo {
+        creee_le,
+        gardee_le: socle::paris::maintenant(),
+        mois: engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect(),
+        quoi: QUOI_DEMO.to_string(),
+    };
+    socle::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &serde_json::to_value(&mention).map_err(|e| e.to_string())?, 2)?;
     if let Err(e) = std::fs::rename(racine, &cible) {
         let _ = std::fs::remove_file(racine.join(FICHIER_DEMO));
         return Err(format!("{} ne se garde pas ({}) : rien n'a changé.", nom, e));
@@ -289,24 +289,53 @@ pub fn repondre(inst: &Path, garder_ids: &[String], ne_pas_garder: &[String], po
 
 // --------------------------------------------------------- la mention de demo
 
-/// LA MENTION DE DEMO d'une compagnie gardee (`config/demo.json`), telle que la page la montre : quand elle a ete creee
-/// et gardee, les mois saisis en demo, et la phrase. `None` : une compagnie qui n'a pas ete creee en demo.
-pub fn mention(racine: &Path) -> Option<Value> {
-    let v: Value = serde_json::from_str(&std::fs::read_to_string(racine.join(FICHIER_DEMO)).ok()?).ok()?;
-    let jour = |cle: &str| {
-        let t = v.get(cle).and_then(Value::as_str).unwrap_or("");
-        envois::etats::quand_lisible(&json!(t.chars().take(10).collect::<String>()))
-    };
-    let (creee, gardee) = (jour("creee_le"), jour("gardee_le"));
+/// `config/demo.json` : quand la compagnie a ete creee en demo et gardee, et les mois saisis en demo qu'elle n'a pas
+/// retravailles depuis. `garder` l'ecrit, `sortir_de_la_demo` le reecrit, `lire_la_demo` seule le lit.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct FichierDemo {
+    creee_le: String,
+    gardee_le: String,
+    mois: Vec<String>,
+    quoi: String,
+}
+
+const QUOI_DEMO: &str = "Cette compagnie a ete creee dans la version demo de PuppetPaie, puis gardee au deblocage : rien de ce qui y a ete fait avant n'est parti (ni DPAE, ni contrat a la signature, ni DSN, ni document).";
+
+/// `config/demo.json`, lu par sa forme ; `None` pour une compagnie qui n'a pas ete creee en demo.
+fn lire_la_demo(racine: &Path) -> Result<Option<FichierDemo>, String> {
+    let p = racine.join(FICHIER_DEMO);
+    if !p.is_file() {
+        return Ok(None);
+    }
+    let v = documents::valeur::lire_json(&p)?;
+    socle::forme::lire(&v, "La mention de démo de la compagnie (config/demo.json) ne se lit pas.").map(Some)
+}
+
+/// LA MENTION DE DEMO d'une compagnie gardee, telle que la page la montre : quand elle a ete creee et gardee, les mois
+/// saisis en demo, et la phrase.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MentionDemo {
+    creee_le: String,
+    gardee_le: String,
+    mois: Vec<String>,
+    phrase: String,
+}
+
+/// La mention de demo de la compagnie ; `None` : une compagnie qui n'a pas ete creee en demo.
+pub fn mention(racine: &Path) -> Result<Option<MentionDemo>, String> {
+    let Some(d) = lire_la_demo(racine)? else { return Ok(None) };
+    let jour = |t: &str| envois::etats::quand_lisible(&t.chars().take(10).collect::<String>());
+    let (creee, gardee) = (jour(&d.creee_le), jour(&d.gardee_le));
     let depuis = if creee.is_empty() { String::new() } else { format!(" le {}", creee) };
-    Some(json!({
-        "creee_le": v.get("creee_le").cloned().unwrap_or(Value::Null),
-        "gardee_le": v.get("gardee_le").cloned().unwrap_or(Value::Null),
-        "mois": v.get("mois").cloned().unwrap_or_else(|| json!([])),
-        "phrase": format!(
+    Ok(Some(MentionDemo {
+        phrase: format!(
             "Compagnie créée en démo{}, gardée le {}. Les paies faites en démo n'ont été ni déclarées ni envoyées par PuppetPaie : aucune DPAE, aucun contrat envoyé à la signature, aucune DSN déposée, aucun document envoyé.",
             depuis, gardee
         ),
+        creee_le: d.creee_le,
+        gardee_le: d.gardee_le,
+        mois: d.mois,
     }))
 }
 
@@ -315,13 +344,11 @@ pub fn mention(racine: &Path) -> Option<Value> {
 /// declarer : il sort de la mention (`config/demo.json`, `mois`), et la page ne le dit plus « fait en demo ». Rien a faire
 /// pour une compagnie sans mention, ni pour un mois qui n'y est pas.
 pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {
-    let p = racine.join(FICHIER_DEMO);
-    let Some(mut v) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else { return Ok(()) };
-    let Some(liste) = v.get_mut("mois").and_then(Value::as_array_mut) else { return Ok(()) };
-    let avant = liste.len();
-    liste.retain(|m| m.as_str() != Some(mois));
-    if liste.len() == avant {
+    let Some(mut d) = lire_la_demo(racine)? else { return Ok(()) };
+    let avant = d.mois.len();
+    d.mois.retain(|m| m != mois);
+    if d.mois.len() == avant {
         return Ok(());
     }
-    socle::ecriture::ecrire_json(&p, &v, 2)
+    socle::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &serde_json::to_value(&d).map_err(|e| e.to_string())?, 2)
 }

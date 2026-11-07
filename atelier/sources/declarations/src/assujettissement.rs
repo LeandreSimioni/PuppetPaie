@@ -28,7 +28,7 @@
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
 //!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS) : 003 si l'effectif
 //!   atteint 250, 004 sinon. C'est un grand seuil, comme la PEEC : sans la case « Au moins 50 salariés » de la fiche
-//!   (`droit::contexte::CHAMP_CINQUANTE_SALARIES`), ni l'un ni l'autre ne lit l'effectif (`Effectif::atteint`) ; cochee,
+//!   (`cinquante_salaries_et_plus`, `droit::contexte::cinquante_salaries_et_plus`), ni l'un ni l'autre ne lit l'effectif (`Effectif::atteint`) ; cochee,
 //!   un effectif qui manque refuse et dit quoi remplir. Le quotient des contrats d'alternance ne se calcule pas en
 //!   decembre (l'Urssaf le renvoie debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
 //!   contribution elle-meme, calculee : `csa`).
@@ -50,16 +50,15 @@
 //! taxe sur les salaires s'applique aux montants 009, 015 et 016 ; un CDDU (motif 05) est un contrat d'intermittent au
 //! sens de L. 6331-55 ; 013 se declare seulement si l'annee a eu un CDD soumis a la contribution.
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
-
-use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::apprentissage::{champ_du_motif, motif_de_la_fiche, taxe_apprentissage_non_due, MILLESIME_ASSOCIATIONS_REDEVABLES, MNATA_ASSOCIATIONS};
-use crate::dsn::{g, liste, txt};
+
 use documents::taxe_sur_les_salaires::{assiette_taxe_sur_les_salaires, fractions_majorees, taxe_sur_les_salaires_de_la_fiche};
-use socle::num::{add, dec_avec_echelle, div, eur, mul, Decimal, Resultat};
+use socle::num::{add, div, eur, mul, Decimal, Resultat};
 
 /// Un bloc S21.G00.44 : le code taxe (44.001) et, s'il y en a un, le montant (44.002). Le millesime (44.003) est
 /// l'annee de la DSN de decembre.
@@ -91,7 +90,7 @@ enum MoisDeLAnnee {
 /// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
 /// declare) ; un autre mois se lit dans ses engagements : leurs paies declarees (`dsn::paies_declarees_du_mois`) si
 /// `montants`, sinon leurs seuls contrats. Un mois sans saisie n'a pas eu de salarie.
-fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool, departs: &engagement::departs::Departs) -> Resultat<Vec<MoisDeLAnnee>> {
+fn mois_de_l_annee(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, nic: &str, mois: &str, paies: &[Paie], montants: bool, departs: &engagement::departs::Departs) -> Resultat<Vec<MoisDeLAnnee>> {
     let an = &mois[..4];
     let mut out = Vec::new();
     for m in 1..=12u32 {
@@ -109,7 +108,7 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
         } else {
             let mut garde = Vec::new();
             for p in crate::dsn::contrats_du_mois(ctx, &m, departs)? {
-                if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
+                if droit::bareme::etablissement_de(ent, &p.salarie)? == nic {
                     garde.push(p);
                 }
             }
@@ -122,12 +121,12 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
 // ------------------------------------------------------------ la contribution CPF-CDD
 
 /// Ce que la DSN ecrit d'un contrat calcule ou saisi : nature, dispositif, motif.
-fn codes_du_contrat(p: &Paie) -> Resultat<(String, String, String)> {
+fn codes_du_contrat(p: &Paie) -> Resultat<(Option<String>, Option<String>, Option<String>)> {
     Ok(droit::cpf_cdd::codes_de(&*p.engagement.nat()?, p.engagement.motif_recours.as_deref()))
 }
 
 fn qui(p: &Paie) -> String {
-    droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &txt(g(&p.salarie, "_cle")))
+    droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.salarie.id.to_string())
 }
 
 fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
@@ -137,7 +136,7 @@ fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
             MoisDeLAnnee::Calcules(_, ps) | MoisDeLAnnee::Contrats(ps) => {
                 for p in ps {
                     let (n, d, mo) = codes_du_contrat(p)?;
-                    soumis |= droit::cpf_cdd::ouvre_cpf_cdd(&n, &d, &mo, &qui(p))?;
+                    soumis |= droit::cpf_cdd::ouvre_cpf_cdd(n.as_deref(), d.as_deref(), mo.as_deref(), &qui(p))?;
                 }
             }
         }
@@ -151,28 +150,21 @@ fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
 /// la part assujettie appliquee a chacune (CGI art. 231, 1 et 2 bis ; BOFiP BOI-TPS-TS-30, § 240 : « en appliquant le
 /// rapport d'assujettissement [...] à chacune des fractions des rémunérations individuelles passibles des taux
 /// majorés »).
-fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Decimal) -> Resultat<(Decimal, Decimal, Decimal)> {
-    let ts = g(bar, "taxe_sur_les_salaires");
-    let seuil = |k: &str| -> Resultat<Decimal> {
-        match ts.get(k) {
-            Some(v) => dec_avec_echelle(v),
-            None => Err(socle::echec::cle(
-                "Le barème de l'année ne porte pas la taxe sur les salaires : ses seuils se lisent sur la notice 2501-SD de l'année ; le signaler au développeur.",
-                &format!("taxe_sur_les_salaires.{}", k),
-            )),
-        }
-    };
-    let (s1, s2) = (seuil("seuil_1")?, seuil("seuil_2")?);
-    let abattement = match bar.get("abattement_csg").filter(|v| socle::fichiers::vrai(v)) {
-        Some(v) => dec_avec_echelle(v)?,
-        None => Decimal::ONE,
-    };
+fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &droit::forme_bareme::Pile, pct: Decimal) -> Resultat<(Decimal, Decimal, Decimal)> {
+    let ts = bar.taxe_sur_les_salaires.as_ref().ok_or_else(|| {
+        socle::echec::cle(
+            "Le barème de l'année ne porte pas la taxe sur les salaires : ses seuils se lisent sur la notice 2501-SD de l'année ; le signaler au développeur.",
+            "taxe_sur_les_salaires.seuil_1",
+        )
+    })?;
+    let (s1, s2) = (ts.seuil_1, ts.seuil_2);
+    let abattement = if bar.abattement_csg.is_zero() { Decimal::ONE } else { bar.abattement_csg };
     let mut par_salarie: BTreeMap<String, Decimal> = BTreeMap::new();
     for m in annee {
         match m {
             MoisDeLAnnee::Calcules(_, ps) => {
                 for p in ps.iter().filter(|p| !p.engagement.sans_paie()) {
-                    let b = par_salarie.entry(txt(g(&p.salarie, "_cle"))).or_insert(Decimal::ZERO);
+                    let b = par_salarie.entry(p.salarie.id.to_string()).or_insert(Decimal::ZERO);
                     *b = add(*b, assiette_taxe_sur_les_salaires(p, abattement));
                 }
             }
@@ -192,7 +184,7 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Dec
 
 /// L'assiette de la PEEC de l'etablissement : les remunerations de l'annee qui servent de base aux cotisations de
 /// securite sociale, la base 03 de chaque contrat (celle que la DSN de chaque mois a declaree ou declare).
-fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
+fn assiette_peec(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, orgs: &droit::organismes::Organismes, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
     let mut total = Decimal::ZERO;
     for m in annee {
         match m {
@@ -223,18 +215,18 @@ fn effectif_atteint(ctx: &Contexte, seuil: i64, annee_paie: i32, quoi: &str) -> 
 /// Les CTP du bordereau (`ctp_urssaf` du fichier des organismes), sans ceux de la taxe d'apprentissage (992, 993) quand
 /// elle n'est pas due (`non_due` : `taxe_apprentissage_non_due_au_mois` pour le bordereau d'un mois,
 /// `taxe_apprentissage_non_due` pour le bloc 44 d'un millesime).
-pub fn ctp_sans_la_taxe_non_due(ctps: Vec<Value>, non_due: bool) -> Vec<Value> {
+pub fn ctp_sans_la_taxe_non_due(ctps: Vec<droit::organismes::Ctp>, non_due: bool) -> Vec<droit::organismes::Ctp> {
     if !non_due {
         return ctps;
     }
-    ctps.into_iter().filter(|c| !CTP_TAXE_APPRENTISSAGE.contains(&txt(g(c, "code")).as_str())).collect()
+    ctps.into_iter().filter(|c| !CTP_TAXE_APPRENTISSAGE.contains(&c.code.trim())).collect()
 }
 
 /// Le bloc de la taxe d'apprentissage : 001 si le bordereau la paie (CTP 992 ou 993), 002 et son motif MNATA (44.004)
 /// sinon, le motif lu dans la fiche entreprise. `ctp` : les codes du bordereau, deja sans la taxe quand le motif vaut
 /// (`ctp_sans_la_taxe_non_due`). Un motif hors de la table, le motif 007 a partir du millesime 2026, une fiche qui dit
 /// un motif quand le bordereau paie la taxe (garde-fou : `blocs` lui donne un bordereau qui ne la paie plus) : refus.
-fn taxe_d_apprentissage(ent: &Value, ctp: &[String], an: i32) -> Resultat<Bloc44> {
+fn taxe_d_apprentissage(ent: &droit::fiche::ChampsEntreprise, ctp: &[String], an: i32) -> Resultat<Bloc44> {
     let paye = ctp.iter().any(|c| CTP_TAXE_APPRENTISSAGE.contains(&c.as_str()));
     let champ = champ_du_motif();
     let motif = motif_de_la_fiche(ent).map_err(|e| format!("DSN de decembre {} : {}", an, e))?;
@@ -277,7 +269,7 @@ ou la table livrée. Rien n'est écrit.",
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
 pub fn blocs(
-    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
+    ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, ent_e: &droit::fiche::ChampsEntreprise, orgs: &droit::organismes::Organismes, bar: &droit::forme_bareme::Pile, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {
         return Ok(Vec::new());
@@ -286,9 +278,9 @@ pub fn blocs(
     let an: i32 = an_txt.parse().map_err(|_| format!("mois illisible : {}", mois))?;
     // Le bordereau que la DSN ecrit : sans la taxe d'apprentissage quand la fiche dit un motif qui vaut (R12).
     let ctp: Vec<String> =
-        ctp_sans_la_taxe_non_due(liste(g(orgs, "ctp_urssaf")).to_vec(), taxe_apprentissage_non_due(ent, an)?)
+        ctp_sans_la_taxe_non_due(orgs.ctp_urssaf().to_vec(), taxe_apprentissage_non_due(ent, an)?)
             .iter()
-            .map(|c| txt(g(c, "code")))
+            .map(|c| c.code.trim().to_string())
             .collect();
     let mut out = Vec::new();
 
@@ -303,7 +295,7 @@ pub fn blocs(
     // Ce qui demande les montants de l'annee : la taxe sur les salaires et la PEEC.
     let ts = taxe_sur_les_salaires_de_la_fiche(ent).map_err(|m| format!("DSN de decembre {}, bloc S21.G00.44 : {} Rien n'est ecrit.", an, m))?;
     if ts.is_some() {
-        let cp = txt(g(ent_e, "code_postal"));
+        let cp = ent_e.code_postal.texte().to_string();
         if cp.starts_with("97") || cp.starts_with("98") {
             return Err(format!(
                 "DSN de decembre {} : l'etablissement {} est outre-mer (code postal {}), ou la taxe sur les salaires a un taux \
@@ -353,14 +345,14 @@ pas son assiette. Rien n'est ecrit.",
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::dsn::{g, liste, txt};
 
     #[test]
     fn la_fiche_propose_les_motifs_de_la_table_mnata_livree() {
         let motifs = droit::apprentissage::motifs_mnata().unwrap();
         assert_eq!(motifs.len(), 19);
         assert_eq!(motifs.iter().find(|(c, _)| c == "007").map(|(_, l)| l.as_str()), Some("Associations sans but lucratif"));
-        let champs = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("champs-base.json")).unwrap();
+        let champs = documents::valeur::json_en_cache(&socle::fichiers::dossier_du_code().join("champs-base.json")).unwrap();
         let champ = liste(g(&champs, "entreprise")).iter().find(|c| txt(g(c, "cle")) == droit::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE).cloned().unwrap();
         let choix: Vec<String> = liste(g(&champ, "choix")).iter().map(|c| c.as_str().unwrap().to_string()).filter(|c| !c.is_empty()).collect();
         assert_eq!(choix, motifs.iter().map(|(c, _)| c.clone()).collect::<Vec<_>>());

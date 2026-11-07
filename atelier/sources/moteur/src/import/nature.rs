@@ -1,7 +1,7 @@
 //! LA NATURE DES CONTRATS QUE LES BULLETINS N'ONT PAS DITE. L'import d'un bulletin de paie atteste un contrat
 //! (un engagement importe, `import::bulletins::engagement`) ; aucun gabarit n'imprime sa nature. Un bulletin
-//! qui porte une marque du spectacle (numero d'objet, cotisation Congés Spectacles) laisse le contrat muet, et un
-//! engagement muet est un CDDU (regle 6). Un bulletin qui n'en porte aucune est celui d'un permanent : CDI ou CDD de
+//! qui porte une marque du spectacle (numero d'objet, cotisation Congés Spectacles) atteste un CDDU
+//! (`engagement::importe::Importe::nature`). Un bulletin qui n'en porte aucune est celui d'un permanent : CDI ou CDD de
 //! droit commun, que rien ne dit. Son contrat est marque `nature_a_dire` ; ce module :
 //!
 //! - `a_dire` : les salaries dont un contrat repris attend sa nature, avec les natures qu'on peut lui donner
@@ -22,44 +22,49 @@
 //! s'ecrivent sur l'engagement repris lui-meme (`debut`, `fin`, `numero`, `salaire_mensuel`, `quotite_contrat`) : il
 //! continue ici, sous la meme identite (`engagement::importe`, « un contrat de permanent est un engagement »).
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use serde_json::json;
 
 use droit::contexte::Contexte;
-use engagement::importe::{Importe, IMPORTE};
+use engagement::importe::Importe;
 use socle::date::Jour;
-use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 
 /// La marque d'un contrat repris dont la nature reste a dire.
 pub const A_DIRE: &str = engagement::importe::A_DIRE;
 
-/// La route de ce module.
-pub const ROUTE: &str = "importation-nature";
-
 /// Les natures qu'un permanent peut recevoir.
 fn natures_permanentes() -> R<Vec<std::sync::Arc<droit::natures::Nature>>> {
     let toutes = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?;
-    Ok(toutes.iter().filter(|n| n.paie == "mensuelle").cloned().collect())
+    Ok(toutes.iter().filter(|n| n.mensuelle()).cloned().collect())
+}
+
+/// Ce qu'une nature demande d'un contrat qui court encore : une case de la charge d'`importation-nature`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Demande {
+    Debut,
+    Fin,
+    Numero,
+    Salaire,
+    Quotite,
 }
 
 /// Ce qu'une nature demande avec elle pour un contrat qui court encore : son debut, son numero, son salaire et
 /// sa duree du travail, et sa fin s'il a un terme. Rien pour un contrat fini.
-fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<&'static str> {
+fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<Demande> {
+    use Demande::*;
     match (en_cours, n.duree_indeterminee) {
         (false, _) => vec![],
-        (true, true) => vec!["debut", "numero", "salaire", "quotite"],
-        (true, false) => vec!["debut", "fin", "numero", "salaire", "quotite"],
+        (true, true) => vec![Debut, Numero, Salaire, Quotite],
+        (true, false) => vec![Debut, Fin, Numero, Salaire, Quotite],
     }
 }
 
-fn texte(e: &Value, k: &str) -> String {
-    e.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
-}
 
 /// Les engagements importes (vide s'ils ne se lisent pas).
 fn importes(racine: &Path) -> Vec<Importe> {
@@ -68,7 +73,7 @@ fn importes(racine: &Path) -> Vec<Importe> {
 
 /// Le dernier mois repris : le plus recent que l'historique a verse (`AAAA-MM`).
 fn dernier_mois(importes: &[Importe]) -> String {
-    importes.iter().flat_map(|i| i.paies().into_keys()).max().unwrap_or_default()
+    importes.iter().flat_map(|i| i.paies().keys().cloned()).max().unwrap_or_default()
 }
 
 /// Le premier et le dernier jour que les paies d'un engagement importe paient : ceux du bulletin dans son mois, sinon le
@@ -76,17 +81,18 @@ fn dernier_mois(importes: &[Importe]) -> String {
 fn jours_payes(i: &Importe) -> (String, String) {
     let mut bornes = Vec::new();
     for (m, p) in i.paies() {
-        let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
-        let fin = socle::date::dernier_du_mois(&m).map(|j| j.iso()).unwrap_or_default();
-        bornes.push((lu("debut").unwrap_or_else(|| format!("{}-01", m)), lu("fin").unwrap_or(fin)));
+        let lu = |j: Option<Jour>| j.map(|j| j.iso()).filter(|j| j.starts_with(m.as_str()));
+        let fin = socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()).unwrap_or_default();
+        bornes.push((lu(p.debut).unwrap_or_else(|| format!("{}-01", m)), lu(p.fin).unwrap_or(fin)));
     }
     (bornes.iter().map(|b| b.0.clone()).min().unwrap_or_default(), bornes.iter().map(|b| b.1.clone()).max().unwrap_or_default())
 }
 
-/// Le nom d'un salarié à l'écran ; sa clé à défaut.
+/// Le nom d'un salarié à l'écran, tel que sa fiche le porte aujourd'hui ; sa clé à défaut (pas de fiche, ou un fichier
+/// des salariés qui ne se lit pas : ce que l'import dit n'en dépend pas).
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
-    let fiches = crate::routes::lire_json_ou_vide(&racine.join(droit::contexte::SALARIES)).unwrap_or(Value::Null);
-    socle::texte::salarie_nomme_ou(fiches.get(cle).filter(|f| f.is_object()), cle)
+    let lues = droit::fiche::lire_fichier::<droit::fiche::Salaries>(&racine.join(droit::contexte::SALARIES), droit::contexte::SALARIES).ok();
+    lues.and_then(|s| s.fiches.get(cle).and_then(|f| f.au(&socle::temps::jour_de_paris()).nomme())).unwrap_or_else(|| cle.to_string())
 }
 
 /// Les contrats a dire de chaque salarie : (nombre, premier jour paye, dernier jour paye, paye le dernier mois repris).
@@ -94,7 +100,7 @@ fn a_dire_par_salarie(importes: &[Importe]) -> BTreeMap<String, (usize, String, 
     let dernier = dernier_mois(importes);
     let mut par: BTreeMap<String, (usize, String, String, bool)> = BTreeMap::new();
     for i in importes.iter().filter(|i| i.a_dire()) {
-        let salarie = texte(&i.objet().brut, "salarie");
+        let salarie = i.objet().carte().salarie.as_ref().map(ToString::to_string).unwrap_or_default();
         let (du, au) = jours_payes(i);
         let x = par.entry(salarie).or_insert((0, du.clone(), au.clone(), false));
         x.0 += 1;
@@ -112,37 +118,165 @@ fn a_dire_par_salarie(importes: &[Importe]) -> BTreeMap<String, (usize, String, 
 /// Les salaries dont des contrats repris attendent leur nature : `[{salarie, nom, contrats, du, au, en_cours, suite,
 /// natures: [{cle, libelle, demande}]}]`, dans l'ordre des cles. `en_cours` : il est paye le dernier mois repris, son
 /// contrat court peut-etre encore (`suite` : le mois qui suit). Ne leve jamais : un historique illisible n'a rien a dire.
-pub(crate) fn a_dire(racine: &Path) -> Vec<Value> {
+pub(crate) fn a_dire(racine: &Path) -> Vec<ADire> {
     let importes = importes(racine);
     let par = a_dire_par_salarie(&importes);
     if par.is_empty() {
         return Vec::new();
     }
-    let suite = engagement::stock::mois_apres(&dernier_mois(&importes)).unwrap_or_default();
+    let suite = socle::mois::Mois::lire(&dernier_mois(&importes)).map(|m| m.suivant().to_string()).unwrap_or_default();
     let natures = natures_permanentes().unwrap_or_default();
+    let jour = |iso: &str| socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string());
     par.into_iter()
-        .map(|(s, (n, du, au, en_cours))| {
-            let natures: Vec<Value> =
-                natures.iter().map(|x| json!({"cle": x.cle, "libelle": x.libelle, "demande": demande(x, en_cours)})).collect();
+        .map(|(salarie, (contrats, du, au, en_cours))| {
+            let natures = natures.iter().map(|x| NatureProposee { cle: x.cle.clone(), libelle: x.libelle.clone(), demande: demande(x, en_cours) }).collect();
             // Le mois de la derniere DSN qui l'a declare, tel que l'ecran le lit (« de novembre 2026 »).
             let au_dit = crate::regularisation::de_mois_en_clair(au.get(..7).unwrap_or(&au));
-            json!({"salarie": s, "nom": nom_du_salarie(racine, &s), "contrats": n, "du": du, "au": au, "au_dit": au_dit, "en_cours": en_cours,
-                   "suite": if en_cours { json!(suite) } else { Value::Null }, "natures": natures})
+            let nom = nom_du_salarie(racine, &salarie);
+            let periode = if du.is_empty() { String::new() } else { format!(", du {} au {}", jour(&du), jour(&au)) };
+            let dit = format!(
+                "{} contrat{} repris{} : ses bulletins n'ont pas de Congés Spectacles ni de numéro d'objet, c'est un contrat de permanent.",
+                contrats,
+                if contrats > 1 { "s" } else { "" },
+                periode
+            );
+            let en_cours_dit = en_cours.then(|| {
+                format!(
+                    "Payé jusqu'en {} : son contrat continue en {}, et sa DSN le déclare avec la date de début et le numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur le bulletin.",
+                    socle::mois::Mois::en_clair(au.get(..7).unwrap_or(&au)),
+                    socle::mois::Mois::en_clair(&suite)
+                )
+            });
+            ADire {
+                numero_placeholder: format!("sur la DSN {}", au_dit),
+                choix_dit: format!("Nature du contrat de {}", nom),
+                salarie,
+                nom,
+                contrats,
+                du,
+                au,
+                au_dit,
+                en_cours,
+                suite: en_cours.then(|| suite.clone()),
+                natures,
+                dit,
+                en_cours_dit,
+            }
         })
         .collect()
+}
+
+/// Les contrats d'un salarie dont la nature reste a dire, et ce que la page en dit.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct ADire {
+    pub(crate) salarie: String,
+    pub(crate) nom: String,
+    pub(crate) contrats: usize,
+    pub(crate) du: String,
+    pub(crate) au: String,
+    pub(crate) au_dit: String,
+    /// Paye le dernier mois repris : son contrat court peut-etre encore (`suite` : le mois qui suit).
+    pub(crate) en_cours: bool,
+    pub(crate) suite: Option<String>,
+    pub(crate) natures: Vec<NatureProposee>,
+    pub(crate) numero_placeholder: String,
+    pub(crate) choix_dit: String,
+    pub(crate) dit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) en_cours_dit: Option<String>,
+}
+
+/// Une nature de permanent qui peut se dire, et ce qu'elle demande d'un contrat qui court encore.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct NatureProposee {
+    pub(crate) cle: String,
+    pub(crate) libelle: String,
+    pub(crate) demande: Vec<Demande>,
 }
 
 fn refus(m: impl Into<String>) -> socle::echec::Echec {
     erreur("ErreurOperation", m.into())
 }
 
+/// La charge d'`importation-nature` : le salarie, la nature, et ce que `demande` exige d'un contrat qui court encore.
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeNature {
+    #[serde(default)]
+    pub(crate) salarie: String,
+    #[serde(default)]
+    pub(crate) nature: String,
+    #[serde(default)]
+    pub(crate) debut: Option<String>,
+    #[serde(default)]
+    pub(crate) fin: Option<String>,
+    #[serde(default)]
+    pub(crate) numero: Option<String>,
+    #[serde(default, deserialize_with = "saisie")]
+    pub(crate) salaire: Option<String>,
+    #[serde(default, deserialize_with = "saisie")]
+    pub(crate) quotite: Option<String>,
+}
+
+/// Un montant tel qu'il se saisit : un texte (« 1 850,00 ») ou un nombre.
+fn saisie<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    #[derive(serde::Deserialize)]
+    #[serde(untagged)]
+    enum Saisie {
+        Texte(String),
+        Nombre(serde_json::Number),
+    }
+    Ok(<Option<Saisie> as serde::Deserialize>::deserialize(d)?.map(|s| match s {
+        Saisie::Texte(t) => t,
+        Saisie::Nombre(n) => n.to_string(),
+    }))
+}
+
+impl ChargeNature {
+    /// Une case demandee, telle qu'elle est dite, sans ses blancs ; rien pour une case vide.
+    fn lu(&self, champ: Demande) -> Option<String> {
+        let v = match champ {
+            Demande::Debut => &self.debut,
+            Demande::Fin => &self.fin,
+            Demande::Numero => &self.numero,
+            Demande::Salaire => &self.salaire,
+            Demande::Quotite => &self.quotite,
+        };
+        v.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
+    }
+
+    /// La case demandee, posee.
+    fn poser(&mut self, champ: Demande, v: String) {
+        let c = match champ {
+            Demande::Debut => &mut self.debut,
+            Demande::Fin => &mut self.fin,
+            Demande::Numero => &mut self.numero,
+            Demande::Salaire => &mut self.salaire,
+            Demande::Quotite => &mut self.quotite,
+        };
+        *c = Some(v);
+    }
+}
+
+/// Ce qu'`importation-nature` rend : les contrats ecrits, ce qui reste a dire, et ce que l'ecran en dit.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct NatureDite {
+    pub(crate) phrase: String,
+    pub(crate) ecrits: usize,
+    pub(crate) a_dire: Vec<ADire>,
+    /// La fiche Entreprise vient de dire que la compagnie emploie des permanents.
+    pub(crate) permanents_declares: bool,
+    /// Les contrats de prevoyance et de sante des permanents que les DSN reprises declarent, poses.
+    pub(crate) parametrage: Vec<String>,
+    pub(crate) couleur: &'static str,
+}
+
 /// `importation-nature` : la nature dite pour les contrats a dire d'un salarie, et, s'il court encore, le debut, la fin
-/// et le numero du contrat tels que la DSN de l'ancien logiciel les a declares. Rend `{"ecrits", "a_dire",
-/// "permanents_declares"}`.
-pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let lu = |k: &str| charge.get(k).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
-    let salarie = lu("salarie").ok_or_else(|| refus("Le salarié manque : rien n'a été écrit."))?;
-    let nature = lu("nature").ok_or_else(|| refus("La nature du contrat manque : rien n'a été écrit."))?;
+/// et le numero du contrat tels que la DSN de l'ancien logiciel les a declares.
+pub(crate) fn dire(ctx: &Contexte, charge: &ChargeNature) -> R<NatureDite> {
+    let plein = |s: &str| Some(s.trim().to_string()).filter(|s| !s.is_empty());
+    let salarie = plein(&charge.salarie).ok_or_else(|| refus("Le salarié manque : rien n'a été écrit."))?;
+    let nature = plein(&charge.nature).ok_or_else(|| refus("La nature du contrat manque : rien n'a été écrit."))?;
     let permises = natures_permanentes()?;
     let Some(nat) = permises.iter().find(|n| n.cle == nature) else {
         let noms: Vec<&str> = permises.iter().map(|n| n.libelle.as_str()).collect();
@@ -154,67 +288,69 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Aucun contrat repris de {} n'attend sa nature : rien n'a été écrit.", qui)));
     };
     let dernier = dernier_mois(&importes);
-    // Le contrat qui court encore : son debut, sa fin s'il a un terme, son numero -- lus sur la DSN deja deposee.
-    let mut contrat = Map::new();
+    // Le contrat qui court encore : son debut, sa fin s'il a un terme, son numero -- lus sur la DSN deja deposee ; ce
+    // qui s'en ecrit sur l'engagement repris.
+    let mut contrat = engagement::saisie::Carte::default();
+    let mut debut_dit: Option<String> = None;
     for champ in demande(nat, en_cours) {
-        let v = lu(champ).ok_or_else(|| {
+        let v = charge.lu(champ).ok_or_else(|| {
             refus(match champ {
-                "debut" => format!("La date de début du contrat de {} manque (celle que la DSN déclare) : rien n'a été écrit.", qui),
-                "fin" => format!("La date de fin prévue du contrat de {} manque : rien n'a été écrit.", qui),
-                "salaire" => format!("Le salaire mensuel brut du contrat de {} manque (celui du contrat signé) : rien n'a été écrit.", qui),
-                "quotite" => format!(
+                Demande::Debut => format!("La date de début du contrat de {} manque (celle que la DSN déclare) : rien n'a été écrit.", qui),
+                Demande::Fin => format!("La date de fin prévue du contrat de {} manque : rien n'a été écrit.", qui),
+                Demande::Salaire => format!("Le salaire mensuel brut du contrat de {} manque (celui du contrat signé) : rien n'a été écrit.", qui),
+                Demande::Quotite => format!(
                     "La durée du travail du contrat de {} manque (en heures par mois, celle du contrat signé) : rien n'a été écrit.",
                     qui
                 ),
-                _ => format!("Le numéro du contrat de {} manque (celui que la DSN déclare) : rien n'a été écrit.", qui),
+                Demande::Numero => format!("Le numéro du contrat de {} manque (celui que la DSN déclare) : rien n'a été écrit.", qui),
             })
         })?;
         match champ {
-            "debut" | "fin" => {
+            Demande::Debut | Demande::Fin => {
                 let j = Jour::lire(&v).map_err(|m| refus(format!("{} : rien n'a été écrit.", m)))?.iso();
-                if champ == "debut" && j > du {
+                if champ == Demande::Debut && j > du {
                     return Err(refus(format!(
                         "Le contrat de {} ne peut pas commencer le {} : un bulletin le paie dès le {}. Rien n'a été écrit.",
                         qui, j, du
                     )));
                 }
-                if champ == "fin" && j < au {
+                if champ == Demande::Fin && j < au {
                     return Err(refus(format!("Le contrat de {} ne peut pas finir le {} : un bulletin le paie jusqu'au {}. Rien n'a été écrit.", qui, j, au)));
                 }
-                contrat.insert(champ.into(), json!(j));
+                if champ == Demande::Debut {
+                    debut_dit = Some(j.clone());
+                }
+                *(if champ == Demande::Debut { &mut contrat.debut } else { &mut contrat.fin }) = Some(j);
             }
-            "salaire" | "quotite" => {
+            Demande::Salaire | Demande::Quotite => {
                 let s = v.replace([' ', '\u{a0}'], "").replace(',', ".");
-                let (cle, quoi) = if champ == "salaire" {
-                    ("salaire_mensuel", "un salaire mensuel brut")
+                let (cle, quoi) = if champ == Demande::Salaire {
+                    (&mut contrat.salaire_mensuel, "un salaire mensuel brut")
                 } else {
-                    ("quotite_contrat", "une durée du travail en heures par mois")
+                    (&mut contrat.quotite_contrat, "une durée du travail en heures par mois")
                 };
                 match s.parse::<socle::num::Decimal>() {
-                    Ok(d) if d > socle::num::Decimal::ZERO => contrat.insert(cle.into(), json!(d.to_string().parse::<f64>().unwrap_or_default())),
+                    Ok(d) if d > socle::num::Decimal::ZERO => *cle = socle::forme::NombreLu::de_f64(d.to_string().parse::<f64>().unwrap_or_default()),
                     _ => return Err(refus(format!("« {} » n'est pas {} : rien n'a été écrit.", v, quoi))),
                 };
             }
-            _ => {
-                // S21.G00.40.009 : 20 caracteres au plus (cahier technique, bloc S21.G00.40).
-                if v.chars().count() > 20 || v.chars().any(char::is_whitespace) {
-                    return Err(refus(format!("« {} » n'est pas un numéro de contrat de la DSN (20 caractères au plus, sans espace) : rien n'a été écrit.", v)));
-                }
-                contrat.insert("numero".into(), json!(v));
+            Demande::Numero => {
+                let n = engagement::numeros::NumeroContrat::lire(&v).map_err(|m| refus(format!("{} Rien n'a été écrit.", m)))?;
+                contrat.numero = Some(n.to_string());
             }
         }
     }
     // La nature va sur l'engagement de chaque contrat a dire ; ce qui definit le contrat qui court encore, sur le sien.
-    let ecrits = engagement::importe::completer(&ctx.racine, |e| {
-        let a_dire = e.get(IMPORTE).and_then(|i| i.get("contrat")).and_then(|c| c.get(A_DIRE)).is_some_and(vrai);
-        if e.get("salarie").and_then(Value::as_str) != Some(salarie.as_str()) || !a_dire || e.get("nature").is_some_and(vrai) {
+    let ecrits = engagement::importe::completer(&ctx.racine, |e, pieces| {
+        let a_dire = pieces.contrat.as_ref().is_some_and(|c| c.nature_a_dire);
+        if e.salarie.as_deref() != Some(salarie.as_str()) || !a_dire || e.nature.as_deref().is_some_and(|n| !n.is_empty()) {
             return false;
         }
-        e.insert("nature".into(), json!(nature));
-        if e.get(IMPORTE).and_then(|i| i.get("paies")).and_then(|p| p.get(&dernier)).is_some() {
-            for (k, v) in &contrat {
-                if k != "numero" || !e.get("numero").is_some_and(vrai) {
-                    e.insert(k.clone(), v.clone());
+        e.nature = Some(nature.to_string());
+        if pieces.paies.contains_key(&dernier) {
+            for k in engagement::saisie::Champ::TOUS.iter().copied().filter(|k| contrat.dit(*k)) {
+                if k != engagement::saisie::Champ::Numero || e.numero_dit().is_none() {
+                    e.prendre(&contrat, k);
                 }
             }
         }
@@ -222,7 +358,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
     })
     .map_err(socle::echec::Echec::from)?;
     // Son anciennete dans l'entreprise part du debut de son contrat, s'il a commence avant le premier bulletin repris.
-    if let Some(debut) = contrat.get("debut").and_then(Value::as_str) {
+    if let Some(debut) = debut_dit.as_deref() {
         crate::routes::fiches::reprendre_anciennete(ctx, &salarie, &du, debut)?;
     }
     // LA COMPAGNIE EMPLOIE UN PERMANENT : c'est ce qu'on vient de dire (une nature payee au mois). La case « La
@@ -252,10 +388,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         phrase.push(' ');
         phrase.push_str(p);
     }
-    Ok(json!({
-        "ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares, "parametrage": parametrage,
-        "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat("fait"),
-    }))
+    Ok(NatureDite { phrase, ecrits, a_dire: a_dire(&ctx.racine), permanents_declares, parametrage, couleur: crate::routes::couleur_de_l_etat("fait") })
 }
 
 /// CE QUE LA DSN REPRISE DIT DEJA NE SE DEMANDE PAS. Pour chaque salarie dont des contrats repris attendent leur nature
@@ -266,47 +399,45 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// l'ecran (`dire`). Il en manque, ou la nature declaree n'est pas d'un permanent : rien ne se choisit, l'ecran le
 /// demande. Rend ce que chaque nature dite a fait, en phrases.
 pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
-    let lecture = crate::import::dsn_aem::lire_dsn(&racine.join("historique").join("bulletins"));
+    let lecture = match crate::import::dsn_aem::lire_dsn(&racine.join("historique").join("bulletins")) {
+        Ok(l) => l,
+        Err(e) => return vec![e.phrase()],
+    };
     let Ok(permises) = natures_permanentes() else { return Vec::new() };
     let mut faits = Vec::new();
     for x in a_dire(racine) {
-        let salarie = texte(&x, "salarie");
+        let salarie = x.salarie.clone();
         let Ok(ctx) = Contexte::nouveau(racine, Some(*quand)) else { break };
-        let nir = ctx.salaries.get(&salarie).and_then(|f| f.get("nir")).map(valeur_en_texte).unwrap_or_default();
+        let nir = ctx.salaries.get(salarie.as_str()).map(|f| f.nir.texte().to_string()).unwrap_or_default();
         if nir.is_empty() {
             continue;
         }
         // Sa derniere paie declaree : le contrat tel que la derniere DSN le dit.
         let Some(((_, _, numero), p)) = lecture.paies.iter().filter(|((_, n, _), _)| *n == nir).last() else { continue };
-        let code = texte(&json!(p), "nature_dsn");
-        let Some(nat) = permises.iter().find(|n| n.codes.get("S21.G00.40.007").and_then(|c| c.get("valeur")).and_then(Value::as_str) == Some(code.as_str()))
-        else {
-            continue;
-        };
-        let en_cours = x.get("en_cours").is_some_and(vrai);
-        let lu = |k: &str| p.get(k).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
-        let mut charge = Map::new();
-        charge.insert("salarie".into(), json!(salarie));
-        charge.insert("nature".into(), json!(nat.cle));
+        let c = p.contrat.as_ref();
+        let Some(code) = c.and_then(|c| c.nature_dsn.clone()) else { continue };
+        let Some(nat) = permises.iter().find(|n| n.code("S21.G00.40.007").as_deref() == Some(code.as_str())) else { continue };
+        let en_cours = x.en_cours;
+        let mut charge = ChargeNature { salarie: salarie.clone(), nature: nat.cle.clone(), ..ChargeNature::default() };
         let mut complet = true;
         for champ in demande(nat, en_cours) {
             let v = match champ {
-                "numero" => Some(numero.clone()).filter(|n| !n.is_empty()),
-                "salaire" => lu("salaire_base"),
-                autre => lu(autre),
+                Demande::Numero => Some(numero.clone()).filter(|n| !n.is_empty()),
+                Demande::Salaire => p.paie.mesures.salaire_habituel.map(|m| m.to_string()),
+                Demande::Debut => c.and_then(|c| c.debut).map(|j| j.iso()),
+                Demande::Fin => c.and_then(|c| c.fin).map(|j| j.iso()),
+                Demande::Quotite => c.and_then(|c| c.quotite).map(|q| q.to_string()),
             };
             match v {
-                Some(v) => {
-                    charge.insert(champ.into(), json!(v));
-                }
+                Some(v) => charge.poser(champ, v),
                 None => complet = false,
             }
         }
         if !complet {
             continue;
         }
-        if let Ok(r) = dire(&ctx, &Value::Object(charge)) {
-            faits.push(format!("{} : {}, lu dans sa DSN reprise. {}", nom_du_salarie(racine, &salarie), nat.libelle, texte(&r, "phrase")));
+        if let Ok(r) = dire(&ctx, &charge) {
+            faits.push(format!("{} : {}, lu dans sa DSN reprise. {}", nom_du_salarie(racine, &salarie), nat.libelle, r.phrase));
         }
     }
     faits

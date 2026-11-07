@@ -16,13 +16,12 @@ mod bulletins_fictifs;
 #[path = "../faux_drive/mod.rs"]
 mod faux_drive;
 
-mod archivage;
 mod bridage;
 mod bulletin_lu;
 mod caviardage;
 mod cle_de_signature;
 mod coffre;
-mod conseils_banque;
+mod sources;
 mod donnees_reelles;
 mod drive;
 mod essai;

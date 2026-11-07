@@ -5,7 +5,7 @@
 //! fichier se depose sur net-entreprises.fr (rubrique DPAE) des que l'engagement
 //! est valide, et au plus tard avant le debut du travail.
 //!
-//! Comme pour l'AEM, on part d'un enregistrement reel
+//! On part d'un enregistrement
 //! (`gabarits/due_tel_gabarit.txt`) et on ne remplace que les zones variables.
 //!
 //! La DPAE lit de chaque embauche la fiche du salarie, le debut et la fin de
@@ -15,15 +15,16 @@
 //! Deux usages : ecrire (enregistrements, contenu, fichier et son .zip, recapitulatif) et relire (`relire`,
 //! `lire_certificat`, `meme_declaration`).
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
 use droit::natures;
-use socle::date::{d, en_texte};
-use socle::fichiers::{dossier_du_code, json_en_cache, modele_de, repr, repr_valeur, vrai};
-#[cfg(test)]
-use socle::fichiers::MARQUEUR_COPIE;
+use droit::contexte::EntrepriseDuDocument;
+use droit::fiche::ChampsEntreprise;
+use documents::valeur::{d, en_texte, repr_valeur, vrai};
+use socle::fichiers::{modele_de, repr};
 use crate::ntt;
 use socle::num::Resultat;
 use socle::texte::ascii_nfkd;
@@ -65,7 +66,7 @@ pub const CHAMPS: [(&str, usize, usize); 14] = [
     ("prenom", 315, 347),
     ("nir", 347, 360),
     ("date_naissance", 360, 368),  // JJMMAAAA
-    ("lieu_naissance", 368, 412),
+    ("lieu_naissance", 368, 392),  // L_LIEU_NAISS_SAL, 24 ; puis 20 blancs reserves (RESERVE_APRES_LIEU)
     ("date_embauche", 412, 420),   // JJMMAAAA
     ("heure_embauche", 420, 424),  // HHMM
     ("sexe", 730, 731),            // M / F
@@ -94,6 +95,10 @@ pub const EMPLOYEUR: [(&str, usize, usize); 10] = [
     ("medecine_travail", 937, 947), // C_MT_DCL, cadre a droite comme le gabarit
 ];
 
+/// « Réservé », 393-412, « 20 blancs » (`atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 333-337), apres le
+/// lieu de naissance.
+const RESERVE_APRES_LIEU: (usize, usize) = (392, 412);
+
 fn champ(nom: &str) -> (usize, usize) {
     let (_, a, b) = CHAMPS.iter().find(|(n, _, _)| *n == nom).expect("zone de la DPAE");
     (*a, *b)
@@ -105,19 +110,6 @@ fn zone_employeur(nom: &str) -> (usize, usize) {
 }
 
 // ------------------------------------------------------------- les textes
-
-/// Une valeur en texte, vide si elle manque ou est vide.
-fn chaine(v: Option<&Value>) -> String {
-    match v {
-        Some(v) if vrai(v) => en_texte(v),
-        _ => String::new(),
-    }
-}
-
-/// `s[cle]` : une cle absente s'ecrit `'cle'`.
-fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
-    s.get(k).ok_or_else(|| socle::fichiers::absent(k))
-}
 
 /// Complete a droite avec des espaces, ne tronque pas.
 fn ljust(s: &str, n: usize) -> String {
@@ -138,50 +130,58 @@ fn rjust(s: &str, n: usize) -> String {
     o
 }
 
-/// `s[:n]`, en caracteres.
-fn debut(s: &str, n: usize) -> String {
-    s.chars().take(n).collect()
+/// LES CARACTERES QUE LE FORMAT 120 ADMET DANS UNE ZONE (« Caractères autorisés »,
+/// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : les capitales A-Z et l'espace, les chiffres quand la zone
+/// les admet, et ses signes. L'apostrophe que la norme imprime (‘, U+2018) n'est pas du latin-1, la table du fichier :
+/// c'est l'apostrophe ASCII (INFERENCE).
+pub struct Jeu {
+    chiffres: bool,
+    signes: &'static str,
 }
 
-/// Les caracteres que le Format 120 admet : A-Z, 0-9, espace, - et &.
-/// Le texte passe en NFKD, ne garde que l'ASCII, se met en majuscules ; le
-/// reste devient une espace.
-pub fn normaliser(v: &str) -> String {
+/// L_RAISON_SOC_1 (l. 256) : A-Z, 0-9, espace, moins et &.
+pub const RAISON_SOCIALE: Jeu = Jeu { chiffres: true, signes: "-&" };
+/// L_ADR_EMP_1 (l. 269-270) et L_BUR_DIST_EMP (l. 291-292) : A-Z, 0-9, espace, moins, &, point, virgule et apostrophe.
+/// L_ADR_EMP_2 (l. 271-276) n'en dit pas : le jeu de la premiere ligne (INFERENCE).
+pub const ADRESSE: Jeu = Jeu { chiffres: true, signes: "-&.,'" };
+/// L_NOM_PATRO_SAL (l. 300) et L_PRENOMS_SAL (l. 308) : A-Z, espace, moins, & et point.
+pub const IDENTITE: Jeu = Jeu { chiffres: false, signes: "-&." };
+/// L_LIEU_NAISS_SAL (l. 331-332) : A-Z, 0-9, espace, moins, virgule, apostrophe et point.
+pub const LIEU: Jeu = Jeu { chiffres: true, signes: "-,'." };
+
+/// Le texte dans le jeu d'une zone : il passe en NFKD, ne garde que l'ASCII, se met en majuscules ; ce que la zone
+/// n'admet pas devient une espace.
+pub fn normaliser(v: &str, jeu: &Jeu) -> String {
     ascii_nfkd(v)
         .to_uppercase()
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == ' ' || c == '-' || c == '&' { c } else { ' ' })
+        .map(|c| if c.is_ascii_uppercase() || c == ' ' || (jeu.chiffres && c.is_ascii_digit()) || jeu.signes.contains(c) { c } else { ' ' })
         .collect()
 }
 
-/// `(v or "").upper()[:largeur].ljust(largeur)`.
-fn txt(v: &Value, largeur: usize) -> String {
-    let t = if vrai(v) { en_texte(v).to_uppercase() } else { String::new() };
-    ljust(&debut(&t, largeur), largeur)
+/// `texte` entier s'il tient dans `largeur` ; plus long, ce que son type refuse (`faute`) : rien ne se coupe.
+fn entiere(texte: &str, largeur: usize, faute: fn(&str) -> Option<String>) -> Resultat<String> {
+    let n = texte.chars().count();
+    if n <= largeur {
+        return Ok(texte.to_string());
+    }
+    Err(faute(texte).unwrap_or_else(|| format!("« {} » a {} caractères : la zone de la DPAE en a {} (norme DPAE v5.3).", texte, n, largeur)))
 }
 
-/// `c.isdigit()`.
-fn est_chiffre(c: char) -> bool {
-    let n = c as u32;
-    socle::nfkd_ascii::CHIFFRES.binary_search_by(|(a, b)| {
-        if n < *a {
-            std::cmp::Ordering::Greater
-        } else if n > *b {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }).is_ok()
+/// UNE ZONE DE TEXTE de `largeur` caracteres, « cadrés à gauche, complétés par des blancs » (l. 30) : `texte` dans le
+/// jeu de la zone, entier (`entiere`).
+fn zone_texte(texte: &str, jeu: &Jeu, largeur: usize, faute: fn(&str) -> Option<String>) -> Resultat<String> {
+    Ok(ljust(&entiere(&normaliser(texte, jeu), largeur, faute)?, largeur))
 }
 
 /// Non vide, et rien que des chiffres.
 fn tout_chiffres(t: &str) -> bool {
-    !t.is_empty() && t.chars().all(est_chiffre)
+    !t.is_empty() && t.chars().all(socle::texte::est_chiffre)
 }
 
 /// Les chiffres d'un numéro de téléphone.
 fn chiffres(t: &str) -> String {
-    t.chars().filter(|&c| est_chiffre(c)).collect()
+    t.chars().filter(|&c| socle::texte::est_chiffre(c)).collect()
 }
 
 // ------------------------------------------------------- le gabarit
@@ -200,12 +200,12 @@ const NOM_GABARIT: &str = "due_tel_gabarit.txt";
 
 /// Les 990 premiers caractères du gabarit, lus en latin-1 : un octet, un caractère, et les fins de ligne
 /// CR LF et CR lues comme LF.
-fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
+fn gabarit_lu(gabarits: Option<&Path>, chemins: &Chemins) -> Resultat<Vec<char>> {
     // Le gabarit de la compagnie s'il en a un, celui livre avec le logiciel
     // sinon (`donnees/modeles/`, un enregistrement neutre) : il ne donne plus
     // que l'entete constante, tout le reste est reecrit plus bas.
-    let chemin = match ent {
-        Some(e) => modele_de(NOM_GABARIT, e, &chemins.poste),
+    let chemin = match gabarits {
+        Some(g) => modele_de(NOM_GABARIT, Some(g), &chemins.poste),
         None => chemins.defaut.clone(),
     };
     let octets = std::fs::read(&chemin).map_err(|e| socle::fichiers::panne_fichier(&e, &chemin))?;
@@ -219,9 +219,9 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
 }
 
 /// Le SIRET de la fiche, 14 chiffres, ou le refus de la DPAE.
-fn siret_de(ent: &Value) -> Resultat<String> {
-    let siret = chaine(ent.get("siret"));
-    let siret = strip(&siret).to_string();
+fn siret_de(ent: &ChampsEntreprise) -> Resultat<String> {
+    let siret = ent.siret.texte();
+    let siret = strip(siret).to_string();
     if siret.chars().count() != 14 || !tout_chiffres(&siret) {
         return Err(format!("DPAE : le SIRET de la fiche entreprise ({}) ne fait pas 14 chiffres.", repr(&siret)));
     }
@@ -230,8 +230,8 @@ fn siret_de(ent: &Value) -> Resultat<String> {
 
 /// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors travail temporaire) : `medecine_travail` de la
 /// fiche, que la DPAE exige (`exige_par` de `champs-base.json`) ; il ne se devine pas.
-fn medecine_de(ent: &Value) -> Resultat<String> {
-    let mt = strip(&chaine(ent.get("medecine_travail"))).to_string();
+fn medecine_de(ent: &ChampsEntreprise) -> Resultat<String> {
+    let mt = strip(ent.medecine_travail.texte()).to_string();
     if mt.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas le code du service de santé au travail, que la DPAE exige : le lire sur l'adhésion au service de santé au travail, et le saisir dans Configuration › Entreprise.", "medecine_travail"));
     }
@@ -240,57 +240,68 @@ fn medecine_de(ent: &Value) -> Resultat<String> {
 
 // -------------------------------------------------------- l'employeur
 
+/// La largeur d'une zone employeur.
+fn largeur(nom: &str) -> usize {
+    let (a, b) = zone_employeur(nom);
+    b - a
+}
+
+/// LA RAISON SOCIALE EN DEUX LIGNES (L_RAISON_SOC_1 et L_RAISON_SOC_2, « Nom ou raison sociale (ligne 2) », 32
+/// caracteres chacune : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 249-256 et 374-379), coupees entre
+/// deux mots (`droit::fiche::RaisonSociale::en_deux_lignes`), la seconde a blanc quand tout tient sur la premiere.
+fn raison_sociale(texte: &str) -> Resultat<(String, String)> {
+    let (premiere, seconde) = droit::fiche::RaisonSociale::en_deux_lignes(&normaliser(texte, &RAISON_SOCIALE))?;
+    Ok((ljust(&premiere, largeur("raison_sociale")), ljust(&seconde, largeur("raison_sociale_2"))))
+}
+
+/// Le telephone (N_TEL_EMP, l. 380-385) : les chiffres de celui du declarant DSN, sinon de celui du signataire, sinon
+/// rien ; plus de 11, ce que la fiche refuse (`droit::fiche::Telephone`).
+fn telephone(ent: &ChampsEntreprise) -> Resultat<String> {
+    let tel = ent.declarant_dsn.dite().and_then(|d| d.tel.remplie()).or_else(|| ent.signataire.dite().and_then(|s| s.tel.remplie()));
+    let tel = tel.unwrap_or_default();
+    if let Some(f) = droit::fiche::Telephone::faute(tel) {
+        return Err(f);
+    }
+    Ok(ljust(&chiffres(tel), largeur("tel")))
+}
+
 /// Les zones employeur de la DPAE, lues dans la fiche `ent` (le SIRET : `siret_de` ; la medecine du travail :
-/// `medecine_de`).
-pub fn employeur(ent: &Value) -> Resultat<Vec<(&'static str, String)>> {
+/// `medecine_de`), chacune entiere dans le jeu de caracteres que la norme lui admet (`Jeu`) : la fiche les tient a leur
+/// longueur (`droit::fiche::texte_borne!`) ; une valeur que les caracteres admis allongent se refuse, elle ne se coupe pas.
+pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>> {
+    use droit::fiche::{CodeMedecine, CodeNaf, CodePostal, CommuneEmployeur, LigneAdresse};
     let siret = siret_de(ent)?;
     let mt = medecine_de(ent)?;
-    // Le telephone : celui du declarant DSN, sinon celui de l'entreprise, sinon celui du signataire, sinon rien.
-    let tel_de = |k: &str| -> Option<&Value> { ent.get(k).filter(|v| vrai(v)).and_then(|v| v.get("tel")).filter(|v| vrai(v)) };
-    let tel = tel_de("declarant_dsn")
-        .or_else(|| ent.get("tel").filter(|v| vrai(v)))
-        .or_else(|| tel_de("signataire"));
-    let tel = chiffres(&chaine(tel));
+    let (raison, raison_2) = raison_sociale(ent.raison_sociale.texte())?;
     Ok(vec![
         ("siret", siret),
-        ("raison_sociale", ljust(&debut(&normaliser(&chaine(ent.get("raison_sociale"))), 32), 32)),
-        ("adresse", ljust(&debut(&normaliser(&chaine(ent.get("adresse"))), 32), 32)),
-        ("adresse_2", ljust(&debut(&normaliser(&chaine(ent.get("complement_adresse"))), 32), 32)),
-        ("code_postal", ljust(&debut(&chaine(ent.get("code_postal")), 5), 5)),
-        ("commune", ljust(&debut(&normaliser(&chaine(ent.get("commune"))), 27), 27)),
-        ("raison_sociale_2", " ".repeat(32)),
-        ("tel", ljust(&debut(&tel, 11), 11)),
-        ("naf", ljust(&debut(&chaine(ent.get("naf")), 5), 5)),
-        ("medecine_travail", rjust(&debut(&mt, 10), 10)),
+        ("raison_sociale", raison),
+        ("adresse", zone_texte(ent.adresse.texte(), &ADRESSE, largeur("adresse"), LigneAdresse::faute)?),
+        ("adresse_2", zone_texte(ent.complement_adresse.texte(), &ADRESSE, largeur("adresse_2"), LigneAdresse::faute)?),
+        ("code_postal", ljust(&entiere(ent.code_postal.texte(), largeur("code_postal"), CodePostal::faute)?, largeur("code_postal"))),
+        ("commune", zone_texte(ent.commune.texte(), &ADRESSE, largeur("commune"), CommuneEmployeur::faute)?),
+        ("raison_sociale_2", raison_2),
+        ("tel", telephone(ent)?),
+        ("naf", ljust(&entiere(ent.naf.texte(), largeur("naf"), CodeNaf::faute)?, largeur("naf"))),
+        // C_MT_DCL, cadre a droite comme le gabarit.
+        ("medecine_travail", rjust(&entiere(&mt, largeur("medecine_travail"), CodeMedecine::faute)?, largeur("medecine_travail"))),
     ])
 }
 
 // ------------------------------------------------------- l'Urssaf
 
-/// Ce code est-il celui d'un organisme de recouvrement
-/// connu (`urssaf-dpae-base.json`) ?
-fn urssaf_existe(code: &str) -> Resultat<bool> {
-    let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
-    let c = strip(code);
-    Ok(base
-        .get("organismes")
-        .and_then(Value::as_array)
-        .map_or(false, |o| o.iter().any(|x| x.get("code").map_or(false, |v| en_texte(v) == c))))
-}
-
 /// L'Urssaf qui recoit la DPAE d'un salarie d'un autre etablissement que le siege : celle « dans le ressort territorial
 /// duquel est situe l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
 /// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`), lue au departement de son code postal
 /// (`urssaf-dpae-base.json`, `par_departement`). Le code de la fiche entreprise est celui du siege.
-fn urssaf_d_un_etablissement(vue: &Value) -> Resultat<String> {
-    let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
-    let code = crate::champs::urssaf_du_code_postal(&base, vue.get("code_postal"));
+fn urssaf_d_un_etablissement(vue: &ChampsEntreprise) -> Resultat<String> {
+    let code = crate::urssaf::base()?.du_code_postal(vue.code_postal.texte());
     if code.is_empty() {
         return Err(format!(
             "La DPAE ne sait pas a quelle Urssaf aller : l'etablissement {} a le code postal {}, qu'aucune Urssaf de la table \
 ne couvre (Configuration › Entreprise › Avancé, « Autres établissements »).",
-            en_texte(vue.get("siret").unwrap_or(&Value::Null)),
-            repr_valeur(vue.get("code_postal").unwrap_or(&Value::Null))
+            vue.siret.texte(),
+            repr(vue.code_postal.texte())
         ));
     }
     Ok(code)
@@ -303,25 +314,12 @@ ne couvre (Configuration › Entreprise › Avancé, « Autres établissements �
 /// pour le recapitulatif seulement -- le spectacle.
 #[derive(Debug, Clone)]
 pub struct Embauche {
-    pub salarie: Value,
+    pub salarie: droit::fiche::SalarieDuContrat,
     pub debut: Value,
     pub fin: Value,
-    /// La cle de nature ; `None` : la nature par defaut.
-    pub nature: Option<String>,
-    pub spectacle: Value,
-}
-
-impl Embauche {
-    pub fn lire(v: &Value) -> Resultat<Embauche> {
-        let salarie = v.get("salarie").filter(|s| s.is_object()).cloned().ok_or_else(|| socle::echec::charge("salarie", "un objet"))?;
-        Ok(Embauche {
-            salarie,
-            debut: v.get("debut").cloned().unwrap_or(Value::Null),
-            fin: v.get("fin").cloned().unwrap_or(Value::Null),
-            nature: v.get("nature").filter(|n| !n.is_null()).map(en_texte),
-            spectacle: v.get("spectacle").cloned().unwrap_or(Value::Null),
-        })
-    }
+    /// La cle de sa nature de contrat.
+    pub nature: String,
+    pub spectacle: Option<droit::fiche::Spectacle>,
 }
 
 /// Les parametres communs d'une ecriture.
@@ -331,12 +329,17 @@ pub struct Parametres<'a> {
     pub heure_embauche: String,
     /// Le code Urssaf voulu, tel que l'appelant l'a donne (`""` : celui du gabarit).
     pub code_urssaf: Value,
-    pub ent: Option<&'a Value>,
+    pub ent: Option<&'a EntrepriseDuDocument>,
     pub chemins: &'a Chemins,
 }
 
 fn poser(buf: &mut [char], nom: &str, valeur: &str) -> Resultat<()> {
     let (a, b) = champ(nom);
+    ecrire_zone(buf, nom, a, b, valeur)
+}
+
+/// `valeur` en `[a, b)`, a la largeur exacte de la zone : rien ne se coupe.
+fn ecrire_zone(buf: &mut [char], nom: &str, a: usize, b: usize, valeur: &str) -> Resultat<()> {
     let n = valeur.chars().count();
     if n != b - a {
         return Err(format!("{}: {} fait {} car., attendu {}", nom, repr(valeur), n, b - a));
@@ -347,11 +350,6 @@ fn poser(buf: &mut [char], nom: &str, valeur: &str) -> Resultat<()> {
     Ok(())
 }
 
-fn ecrire_zone(buf: &mut [char], a: usize, b: usize, valeur: &str) {
-    let v: Vec<char> = valeur.chars().collect();
-    buf[a..b].copy_from_slice(&v[..b - a]);
-}
-
 /// Un enregistrement de 990 caracteres.
 pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resultat<String> {
     let mut buf: Vec<char> = gabarit.to_vec();
@@ -359,13 +357,13 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     if let Some(ent) = p.ent {
         // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
         // est rattache (`droit::bareme::entreprise_du_salarie`), avec son adresse.
-        let ent = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
-        for (nom, v) in employeur(ent)? {
+        let etab = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
+        for (nom, v) in employeur(etab)? {
             let (a, b) = zone_employeur(nom);
-            ecrire_zone(&mut buf, a, b, &v);
+            ecrire_zone(&mut buf, nom, a, b, &v)?;
         }
-        if ent.get("_etablissement").is_some_and(vrai) {
-            code_urssaf = json!(urssaf_d_un_etablissement(ent)?);
+        if etab.nic.texte() != ent.nic_principal() {
+            code_urssaf = json!(urssaf_d_un_etablissement(etab)?);
         }
     }
     if vrai(&code_urssaf) {
@@ -385,28 +383,33 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         // tard, sur une embauche qui n'est alors pas declaree. La liste est
         // celle de la Table des Urssaf (`urssaf-codes-types-personnel.csv`), relevee et
         // datee.
-        if !urssaf_existe(v)? {
+        if !crate::urssaf::base()?.existe(v) {
             return Err(socle::echec::a_la_cle(
                 "Le code Urssaf de la fiche entreprise n'est pas celui d'un organisme de recouvrement connu : le point de dépôt le refuserait. Le code se lit sur les bordereaux Urssaf de la compagnie.",
                 "code_urssaf",
                 repr_valeur(&code_urssaf),
             ));
         }
-        ecrire_zone(&mut buf, a, b, v);
+        ecrire_zone(&mut buf, "code_urssaf", a, b, v)?;
     }
 
     let s = &e.salarie;
     // LE SEXE VIENT DU NIR QUAND IL Y EN A UN, de la fiche sinon : c'est la
     // meme lecture que pour le numero technique temporaire de la DSN
     // (`ntt.rs`), et il n'y en a qu'une dans le logiciel.
-    let sexe = match ntt::sexe(s).as_str() {
+    let sexe = match ntt::sexe_de(s.nir.texte(), s.sexe.code()).as_str() {
         "1" => "M",
         "2" => "F",
         _ => "",
     };
     poser(&mut buf, "horodatage", p.horodatage)?;
-    poser(&mut buf, "nom", &txt(cle(s, "nom")?, 32))?;
-    poser(&mut buf, "prenom", &txt(cle(s, "prenom")?, 32))?;
+    // Les zones du salarie, chacune entiere dans le jeu que la norme lui admet (`Jeu`) : la fiche les tient a leur longueur.
+    let zone = |nom: &str| {
+        let (a, b) = champ(nom);
+        b - a
+    };
+    poser(&mut buf, "nom", &zone_texte(s.nom.ecrite("nom")?, &IDENTITE, zone("nom"), droit::fiche::NomDeclare::faute)?)?;
+    poser(&mut buf, "prenom", &zone_texte(s.prenom.ecrite("prenom")?, &IDENTITE, zone("prenom"), droit::fiche::PrenomDeclare::faute)?)?;
     // LE NIR EST FACULTATIF ICI, et c'est tout l'interet : une DPAE sans
     // numero de securite sociale DEMANDE l'immatriculation du salarie
     // (formalite IMMA du Format 120, << demande d'immatriculation d'un
@@ -414,13 +417,15 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // CPAM). C'est par elle que le NIR arrive -- et, en attendant, la DSN
     // declare l'individu sous son numero technique temporaire. La zone reste
     // donc a blanc, sur ses 13 caracteres.
-    poser(&mut buf, "nir", &ljust(&chaine(s.get("nir")), 13))?;
-    poser(&mut buf, "date_naissance", &d(cle(s, "date_naissance")?)?.jjmmaaaa())?;
-    poser(&mut buf, "lieu_naissance", &txt(cle(s, "lieu_naissance")?, 44))?;
+    poser(&mut buf, "nir", &ljust(&entiere(s.nir.texte(), zone("nir"), droit::fiche::Nir::faute)?, zone("nir")))?;
+    poser(&mut buf, "date_naissance", &s.date_naissance.exigee("date_naissance")?.jjmmaaaa())?;
+    poser(&mut buf, "lieu_naissance", &zone_texte(s.lieu_naissance.ecrite("lieu_naissance")?, &LIEU, zone("lieu_naissance"), droit::fiche::LieuNaissance::faute)?)?;
+    let (a, b) = RESERVE_APRES_LIEU;
+    ecrire_zone(&mut buf, "reserve", a, b, &" ".repeat(b - a))?;
     poser(&mut buf, "date_embauche", &d(&e.debut)?.jjmmaaaa())?;
     poser(&mut buf, "heure_embauche", &p.heure_embauche)?;
     poser(&mut buf, "sexe", sexe)?;
-    poser(&mut buf, "dept_naissance", &en_texte(cle(s, "departement_naissance")?))?;
+    poser(&mut buf, "dept_naissance", s.departement_naissance.ecrite("departement_naissance")?)?;
     let nat = nature_de(e)?;
     poser(&mut buf, "type_contrat", &nat.type_contrat_dpae())?;
     // UN CDI N'A PAS DE TERME, et la zone D_FIN_CDD reste a blanc : le
@@ -431,7 +436,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
             return Err(socle::echec::cle(
                 format!(
                     "{} : un contrat {} dit sa date de fin ; la DPAE d'un CDD la porte, et l'Urssaf la refuse sans (code retour 46).",
-                    en_texte(cle(s, "nom")?),
+                    s.nom.ecrite("nom")?,
                     nat.libelle
                 ),
                 "fin",
@@ -458,10 +463,8 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     // CE QUE LA DPAE EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit : la naissance,
     // zones D_NAISSANCE_SAL, L_LIEU_NAISS_SAL et le departement de naissance, « O », et le sexe sans NIR, zone SEXE,
     // `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : tout ce qui manque, d'un coup, avant d'ecrire.
-    let mut fiches: Vec<(&str, String, &Value)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), e)).into_iter().collect();
-    for e in embauches {
-        fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(&e.salarie), "")), &e.salarie));
-    }
+    let mut fiches: Vec<(&str, String, &dyn crate::champs::ParCase)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), &e.fiche as &dyn crate::champs::ParCase)).into_iter().collect();
+    fiches.extend(embauches.iter().map(|e| ("salarie", format!("la fiche de {}", e.salarie.nomme().unwrap_or_default()), &e.salarie.champs as &dyn crate::champs::ParCase)));
     if let Some(m) = crate::champs::refus_des_manques("dpae", &fiches, &[]).map_err(|e| e.message)? {
         return Err(m);
     }
@@ -469,7 +472,7 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     let mut gabarit: Option<Vec<char>> = None;
     for e in embauches {
         if gabarit.is_none() {
-            gabarit = Some(gabarit_lu(p.ent, p.chemins)?);
+            gabarit = Some(gabarit_lu(p.ent.map(|e| e.gabarits.as_path()), p.chemins)?);
         }
         out.push(enregistrement(e, p, gabarit.as_deref().unwrap_or(&[]))?);
     }
@@ -618,7 +621,7 @@ fn nom_du_type(v: &Value) -> &'static str {
 /// La nature de contrat de cette embauche. Une nature inconnue est un
 /// `KeyError`, dont le message se rend entre guillemets.
 fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
-    natures::nature(e.nature.as_deref()).map_err(|m| repr(&m))
+    natures::nature(&e.nature).map_err(|m| repr(&m))
 }
 
 /// Texte a recopier si l'on prefere la saisie en ligne sur net-entreprises.
@@ -648,26 +651,26 @@ pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat
         } else {
             ", sans terme".to_string()
         };
-        let ou = if vrai(&e.spectacle) {
-            format!(" - {}", en_texte(cle(&e.spectacle, "titre")?))
+        let ou = if let Some(sp) = &e.spectacle {
+            format!(" - {}", sp.titre.ecrite("titre")?)
         } else {
             String::new()
         };
         lignes.push(format!(
             "{} {} - ne(e) le {} a {} ({})",
-            en_texte(cle(s, "nom")?),
-            en_texte(cle(s, "prenom")?),
-            d(cle(s, "date_naissance")?)?.jj_mm_aaaa(),
-            en_texte(cle(s, "lieu_naissance")?),
-            en_texte(cle(s, "departement_naissance")?)
+            s.nom.ecrite("nom")?,
+            s.prenom.ecrite("prenom")?,
+            s.date_naissance.exigee("date_naissance")?.jj_mm_aaaa(),
+            s.lieu_naissance.ecrite("lieu_naissance")?,
+            s.departement_naissance.ecrite("departement_naissance")?
         ));
-        lignes.push(if s.get("nir").map_or(false, vrai) {
-            format!("  NIR {}{}", en_texte(cle(s, "nir")?), en_texte(cle(s, "nir_cle")?))
+        lignes.push(if !s.nir.texte().is_empty() {
+            format!("  NIR {}{}", s.nir.texte(), s.nir_cle.ecrite("nir_cle")?)
         } else {
             "  NIR : aucun -- cette DPAE vaut demande d'immatriculation (formalite IMMA)".to_string()
         });
         lignes.push(format!("  Embauche le {} a {}{}", d(&e.debut)?.jj_mm_aaaa(), heure, terme));
-        lignes.push(format!("  Emploi : {} - {}{}", en_texte(cle(s, "emploi")?), nat.libelle, ou));
+        lignes.push(format!("  Emploi : {} - {}{}", s.emploi.ecrite("emploi")?, nat.libelle, ou));
         lignes.push(String::new());
     }
     Ok(lignes.join("\n"))
@@ -861,18 +864,12 @@ pub fn lire_certificat(contenu: &str) -> Vec<Value> {
 mod tests {
     use super::*;
     use serde_json::json;
+    use socle::fichiers::dossier_du_code;
 
     /// Le gabarit neutre livre avec le logiciel.
     fn neutre() -> Vec<char> {
         let octets = std::fs::read(dossier_du_code().join("modeles").join(NOM_GABARIT)).unwrap();
         octets.iter().map(|&o| o as char).collect::<String>().chars().take(LONGUEUR).collect()
-    }
-
-    fn dossier(nom: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("puppetpaie-dpae-{}-{}", std::process::id(), nom));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
     }
 
     /// Un salarie inventé (le NIR porte `999`, la marque des numeros inventes).
@@ -884,18 +881,19 @@ mod tests {
 
     fn embauche(s: Value, nature: &str, fin: Value) -> Embauche {
         Embauche {
-            salarie: s,
+            salarie: droit::fiche::SalarieDuContrat::de(droit::fiche::FicheSalarie { id: droit::contexte::IdSalarie::lire("DUPONT").unwrap(), champs: droit::fiche::lire_champs(&s, "fiche").unwrap() }),
             debut: json!("2026-10-01"),
             fin,
-            nature: Some(nature.to_string()),
-            spectacle: Value::Null,
+            nature: nature.to_string(),
+            spectacle: None,
         }
     }
 
-    fn entreprise() -> Value {
-        json!({"siret": "12345691500016", "raison_sociale": "Cie Fictive", "adresse": "1 rue Fictive",
-               "code_postal": "45000", "commune": "Orléans", "naf": "9001Z", "medecine_travail": "MT42",
-               "tel": "01 02 03 04 05"})
+    fn entreprise() -> EntrepriseDuDocument {
+        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "raison_sociale": "Compagnie Fictive des Marionnettes d'Orléans", "adresse": "1, rue Fictive",
+               "code_postal": "45000", "commune": "Orléans", "naf": "9001Z", "medecine_travail": "MT542",
+               "declarant_dsn": {"tel": "01 02 03 04 05"}}), "entreprise").unwrap();
+        EntrepriseDuDocument { fiche, gabarits: std::env::temp_dir().join("puppetpaie-dpae-sans-gabarits") }
     }
 
     fn chemins() -> Chemins {
@@ -905,11 +903,11 @@ mod tests {
         }
     }
 
-    fn parametres<'a>(ent: Option<&'a Value>, code: Value, chemins: &'a Chemins) -> Parametres<'a> {
+    fn parametres<'a>(ent: Option<&'a EntrepriseDuDocument>, code: Value, chemins: &'a Chemins) -> Parametres<'a> {
         Parametres { horodatage: "031020261407", heure_embauche: "0800".into(), code_urssaf: code, ent, chemins }
     }
 
-    fn enr(e: &Embauche, ent: Option<&Value>, code: Value) -> Resultat<String> {
+    fn enr(e: &Embauche, ent: Option<&EntrepriseDuDocument>, code: Value) -> Resultat<String> {
         let c = chemins();
         enregistrements(std::slice::from_ref(e), &parametres(ent, code, &c)).map(|mut v| v.remove(0))
     }
@@ -1001,14 +999,13 @@ mod tests {
     #[test]
     fn la_dpae_d_un_autre_etablissement_va_a_l_urssaf_de_son_territoire() {
         let mut ent = entreprise();
-        ent["siren"] = json!("123456915");
-        ent["nic"] = json!("00016");
-        ent["etablissements"] = json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]);
-        let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).unwrap();
-        let nantes = base["par_departement"]["44"].as_str().unwrap().to_string();
-        let mut s = salarie();
-        s["etablissement"] = json!("00024");
-        let t = enr(&embauche(s, "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
+        ent.fiche.siren = Some("123456915".into());
+        ent.fiche.nic = Some("00016".into());
+        ent.fiche.etablissements = Some(droit::fiche::lire_champs(&json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]), "etablissements").unwrap());
+        let nantes = crate::urssaf::base().unwrap().du_departement("44");
+        let mut e = embauche(salarie(), "cdi", Value::Null);
+        e.salarie.etablissement = Some("00024".into());
+        let t = enr(&e, Some(&ent), json!("117")).unwrap();
         assert_eq!(zone(&t, "code_urssaf"), nantes);
         let t = enr(&embauche(salarie(), "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
         assert_eq!(zone(&t, "code_urssaf"), "117");
@@ -1024,28 +1021,36 @@ mod tests {
             t.chars().skip(a).take(b - a).collect::<String>()
         };
         assert_eq!(ch("siret"), "12345691500016");
-        assert_eq!(ch("raison_sociale").trim_end(), "CIE FICTIVE");
-        assert_eq!(ch("adresse").trim_end(), "1 RUE FICTIVE");
+        // La raison sociale en deux lignes coupees entre deux mots (L_RAISON_SOC_1 et _2), sans l'apostrophe que la zone
+        // n'admet pas ; l'adresse garde sa virgule (L_ADR_EMP_1, l. 269-270).
+        assert_eq!(ch("raison_sociale").trim_end(), "COMPAGNIE FICTIVE DES");
+        assert_eq!(ch("raison_sociale_2").trim_end(), "MARIONNETTES D ORLEANS");
+        assert_eq!(ch("adresse").trim_end(), "1, RUE FICTIVE");
         assert_eq!(ch("code_postal"), "45000");
         assert_eq!(ch("commune").trim_end(), "ORLEANS");
         assert_eq!(ch("tel"), "0102030405 ");
         assert_eq!(ch("naf"), "9001Z");
-        assert_eq!(ch("medecine_travail"), "      MT42");
+        assert_eq!(ch("medecine_travail"), "     MT542");
         // Un SIRET qui ne fait pas 14 chiffres : refus.
         let mut mauvais = entreprise();
-        mauvais["siret"] = json!("1234");
+        mauvais.fiche.siret = Some("1234".into());
         let m = enr(&e, Some(&mauvais), json!("117")).unwrap_err();
         assert!(m.contains("SIRET") && m.contains("'1234'"), "{}", m);
     }
 
+    /// Chaque zone a son jeu (« Caractères autorisés », `norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 256, 269-270, 300,
+    /// 331-332).
     #[test]
-    fn normaliser_ne_garde_que_ce_que_le_format_120_admet() {
-        assert_eq!(normaliser("Théâtre de l'Œuvre & Cie - Ça"), "THEATRE DE L UVRE & CIE - CA");
-        assert_eq!(normaliser("Strauß Łukasz"), "STRAU UKASZ");
-        assert_eq!(normaliser("Nguyễn Thị Hồng"), "NGUYEN THI HONG");
-        assert_eq!(normaliser("ﬁn ½ ™ Ａｂ² \u{a0}x"), "FIN 12 TM AB2  X");
-        assert_eq!(normaliser("a.b,c/d"), "A B C D");
-        assert_eq!(normaliser(""), "");
+    fn normaliser_ne_garde_que_ce_que_le_format_120_admet_dans_la_zone() {
+        assert_eq!(normaliser("Théâtre de l'Œuvre & Cie - Ça", &RAISON_SOCIALE), "THEATRE DE L UVRE & CIE - CA");
+        assert_eq!(normaliser("Strauß Łukasz", &RAISON_SOCIALE), "STRAU UKASZ");
+        assert_eq!(normaliser("Nguyễn Thị Hồng", &RAISON_SOCIALE), "NGUYEN THI HONG");
+        assert_eq!(normaliser("ﬁn ½ ™ Ａｂ² \u{a0}x", &RAISON_SOCIALE), "FIN 12 TM AB2  X");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &RAISON_SOCIALE), "12  R  DE L UVRE 2 & 3");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &ADRESSE), "12, R. DE L'UVRE 2 & 3");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &IDENTITE), "    R. DE L UVRE   &  ");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &LIEU), "12, R. DE L'UVRE 2   3");
+        assert_eq!(normaliser("", &ADRESSE), "");
     }
 
     #[test]
@@ -1058,36 +1063,6 @@ mod tests {
         assert_eq!(zone(&enr(&e, None, json!("")).unwrap(), "jours_essai"), "   ");
     }
 
-    #[test]
-    fn le_gabarit_de_la_compagnie_passe_devant_celui_du_logiciel() {
-        let d = dossier("gabarits");
-        let gab = d.join("compagnie").join("gabarits");
-        std::fs::create_dir_all(&gab).unwrap();
-        let mut t: Vec<char> = neutre();
-        t.splice(0..4, "ZZZZ".chars());
-        let octets: Vec<u8> = t.iter().map(|&c| c as u8).collect();
-        std::fs::write(gab.join(NOM_GABARIT), octets).unwrap();
-        let ent = json!({"_gabarits": gab.to_string_lossy()});
-        let poste = d.join("poste");
-        assert_eq!(modele_de(NOM_GABARIT, &ent, &poste), gab.join(NOM_GABARIT));
-        // Une copie de developpement n'emprunte rien au poste, et prend le modele livre.
-        std::fs::create_dir_all(poste.join("gabarits")).unwrap();
-        std::fs::write(poste.join("gabarits").join(NOM_GABARIT), b"x").unwrap();
-        let vide = d.join("copie").join("gabarits");
-        std::fs::create_dir_all(&vide).unwrap();
-        let ent = json!({"_gabarits": vide.to_string_lossy()});
-        assert_eq!(modele_de(NOM_GABARIT, &ent, &poste.join("gabarits")), poste.join("gabarits").join(NOM_GABARIT));
-        std::fs::write(d.join("copie").join(MARQUEUR_COPIE), "{}").unwrap();
-        assert_eq!(modele_de(NOM_GABARIT, &ent, &poste.join("gabarits")), dossier_du_code().join("modeles").join(NOM_GABARIT));
-        // Un gabarit trop court est refuse.
-        std::fs::write(gab.join(NOM_GABARIT), b"court\n").unwrap();
-        let ent = json!({"_gabarits": gab.to_string_lossy()});
-        let c = Chemins { defaut: PathBuf::new(), poste };
-        let m = gabarit_lu(Some(&ent), &c).unwrap_err();
-        assert!(m.contains("gabarit DUE"), "{}", m);
-        let _ = std::fs::remove_dir_all(&d);
-    }
-
     // ---- le latin-1 et le .zip
 
     #[test]
@@ -1096,74 +1071,6 @@ mod tests {
         assert_eq!(en_latin1("caf\u{e9}").unwrap(), b"caf\xe9");
         for t in ["ab\u{178}c", "a\u{178}\u{178}\u{1f600}", "\u{1f600}"] {
             assert!(en_latin1(t).is_err(), "{:?}", t);
-        }
-    }
-
-    /// Relit un .zip d'un fichier : (nom, octets decompresses), CRC verifie.
-    fn depaqueter(z: &[u8]) -> (String, Vec<u8>) {
-        use flate2::read::DeflateDecoder;
-        use std::io::Read;
-        let u16_ = |i: usize| u16::from_le_bytes([z[i], z[i + 1]]) as usize;
-        let u32_ = |i: usize| u32::from_le_bytes([z[i], z[i + 1], z[i + 2], z[i + 3]]);
-        assert_eq!(u32_(0), 0x0403_4b50);
-        let (compresse, taille, nom, extra) = (u32_(18) as usize, u32_(22) as usize, u16_(26), u16_(28));
-        let debut = 30 + nom + extra;
-        let mut sortie = Vec::new();
-        DeflateDecoder::new(&z[debut..debut + compresse]).read_to_end(&mut sortie).unwrap();
-        assert_eq!(sortie.len(), taille);
-        let mut crc = flate2::Crc::new();
-        crc.update(&sortie);
-        assert_eq!(crc.sum(), u32_(14));
-        // le repertoire central pointe sur lui, et finit l'archive
-        let rep = debut + compresse;
-        assert_eq!(u32_(rep), 0x0201_4b50);
-        let fin = z.len() - 22;
-        assert_eq!(u32_(fin), 0x0605_4b50);
-        assert_eq!(u32_(fin + 16) as usize, rep);
-        (String::from_utf8(z[30..30 + nom].to_vec()).unwrap(), sortie)
-    }
-
-    #[test]
-    fn ecrire_pose_le_fichier_et_son_zip_et_cree_le_dossier() {
-        let d = dossier("ecrire");
-        let chemin = d.join("sorties").join("2026-10").join("DPAE_Octobre2026.txt");
-        let c = chemins();
-        let ent = entreprise();
-        let e = embauche(salarie(), "cdi", Value::Null);
-        let p = parametres(Some(&ent), json!("117"), &c);
-        ecrire(&[e.clone(), e.clone()], &chemin, &p, true).unwrap();
-        let octets = std::fs::read(&chemin).unwrap();
-        assert_eq!(octets.len(), 2 * LONGUEUR);
-        let (nom, dans_le_zip) = depaqueter(&std::fs::read(d.join("sorties/2026-10/DPAE_Octobre2026.txt.zip")).unwrap());
-        assert_eq!(nom, "DPAE_Octobre2026.txt");
-        assert_eq!(dans_le_zip, octets);
-        assert_eq!(octets, contenu(&[e.clone(), e.clone()], &p).unwrap());
-        // sans zip
-        let seul = d.join("sans-zip.txt");
-        ecrire(&[e.clone()], &seul, &p, false).unwrap();
-        assert!(seul.exists() && !d.join("sans-zip.txt.zip").exists());
-        // un refus laisse le dossier cree, et rien d'ecrit
-        let mut mauvais = salarie();
-        mauvais["nir"] = json!("");
-        mauvais["sexe"] = json!("");
-        let refuse = d.join("autre").join("x.txt");
-        assert!(ecrire(&[embauche(mauvais, "cdi", Value::Null)], &refuse, &p, true).is_err());
-        assert!(d.join("autre").is_dir() && !refuse.exists());
-        let _ = std::fs::remove_dir_all(&d);
-    }
-
-    // ---- le recapitulatif
-
-    #[test]
-    fn le_recapitulatif_d_un_permanent_ne_nomme_aucun_spectacle() {
-        let e = embauche(salarie(), "cdi", Value::Null);
-        let t = recapitulatif(&[e], &json!("0800")).unwrap();
-        assert!(t.contains("sans terme"), "{}", t);
-        assert!(t.contains("CDI"), "{}", t);
-        assert!(!t.contains("CDD d'usage"), "{}", t);
-        // Ce qu'il faut pour declarer : qui, sa naissance, son NIR, le jour et l'heure de l'embauche, l'emploi.
-        for fait in ["Dupont Alice", "07/03/1985", "Tours (37)", "285037599900142", "01/10/2026", "08h00", "Comedienne"] {
-            assert!(t.contains(fait), "{} : {}", fait, t);
         }
     }
 

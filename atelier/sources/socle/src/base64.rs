@@ -7,7 +7,9 @@ const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx
 pub fn ecrire(o: &[u8]) -> String {
     let mut s = String::with_capacity(o.len().div_ceil(3) * 4);
     for bloc in o.chunks(3) {
-        let n = (bloc[0] as u32) << 16 | (*bloc.get(1).unwrap_or(&0) as u32) << 8 | *bloc.get(2).unwrap_or(&0) as u32;
+        let mut plein = [0u8; 3];
+        plein[..bloc.len()].copy_from_slice(bloc);
+        let n = (plein[0] as u32) << 16 | (plein[1] as u32) << 8 | plein[2] as u32;
         for i in 0..4 {
             if i <= bloc.len() {
                 s.push(ALPHABET[(n >> (18 - 6 * i) & 63) as usize] as char);

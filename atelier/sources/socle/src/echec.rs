@@ -94,7 +94,10 @@ pub fn noter_echec_a(ou: &str, classe: Option<&str>, message: &str) {
         t: maintenant_ms(),
         fil: fil_courant(),
         ou: ou.to_string(),
-        classe: classe.unwrap_or("-").to_string(),
+        classe: match classe {
+            Some(c) => c.to_string(),
+            None => "-".to_string(),
+        },
         message: message.chars().take(300).collect(),
     };
     let mut l = echecs_notes();
@@ -106,7 +109,7 @@ pub fn noter_echec_a(ou: &str, classe: Option<&str>, message: &str) {
 
 /// Les echecs notes, du plus ancien au plus recent.
 pub fn echecs_notes() -> MutexGuard<'static, VecDeque<Echoue>> {
-    les_echecs().lock().unwrap_or_else(|p| p.into_inner())
+    crate::memoire::tenu(les_echecs())
 }
 
 /// Un refus et, quand il porte un nom, sa classe
@@ -147,51 +150,57 @@ impl From<Refus> for Echec {
 /// Entre la phrase d'un refus et ce qu'il porte a part : un chemin, une cle, un fichier, une donnee pour la page.
 pub const A_PART: char = '\u{1e}';
 
-/// UN REFUS QUI PORTE QUELQUE CHOSE A PART. Sa phrase se lit a l'ecran, en mots ; ce qui n'est pas fait pour l'ecran
-/// (le chemin d'un fichier, la cle d'une donnee, le nom d'un fichier livre) ou ce que la page lit d'autre (l'etat d'un
-/// mois, les anomalies d'une fiche) va dans `plus`, un objet, que la reponse de la route rend a cote de la phrase
-/// (`separer`) : la fenetre l'ouvre, le LLM le lit. Une phrase qu'on prefixe garde ce qu'elle porte.
-pub fn avec(phrase: impl Into<String>, plus: serde_json::Value) -> String {
-    format!("{}{}{}", phrase.into(), A_PART, plus)
+/// CE QUE LE SOCLE MET A PART D'UN REFUS : le chemin d'un fichier, le nom d'un fichier livre, la cle d'une donnee, ce
+/// qui a ete lu ou ce que le systeme a dit. Ce qui n'est pas dit ne s'ecrit pas. Une couche du dessus porte a part ce
+/// qu'elle a d'autre (l'etat d'un mois, les anomalies d'une fiche) dans sa propre forme (`avec`).
+#[derive(Debug, Default, Clone, serde::Serialize)]
+pub struct APart {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chemin: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fichier: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cle: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
-/// La phrase d'un refus, et ce qu'il porte a part (`avec`), reunis d'un bout a l'autre du message.
-pub fn separer(message: &str) -> (String, serde_json::Map<String, serde_json::Value>) {
-    let mut morceaux = message.split(A_PART);
-    let mut phrase = morceaux.next().unwrap_or_default().to_string();
-    let mut plus = serde_json::Map::new();
-    for m in morceaux {
-        let mut lu = serde_json::Deserializer::from_str(m).into_iter::<serde_json::Value>();
-        match lu.next() {
-            Some(Ok(serde_json::Value::Object(o))) => {
-                for (k, v) in o {
-                    plus.entry(k).or_insert(v);
-                }
-                phrase.push_str(&m[lu.byte_offset()..]);
-            }
-            _ => phrase.push_str(m),
-        }
+/// UN REFUS QUI PORTE QUELQUE CHOSE A PART. Sa phrase se lit a l'ecran, en mots ; ce qui n'est pas fait pour l'ecran
+/// (le chemin d'un fichier, la cle d'une donnee, le nom d'un fichier livre) ou ce que la page lit d'autre (l'etat d'un
+/// mois, les anomalies d'une fiche) va dans `plus`, une forme (`APart`, ou celle de la couche qui refuse) qui s'ecrit en
+/// objet, que la reponse de la route rend a cote de la phrase (`separer`) : la fenetre l'ouvre, le LLM le lit. Une
+/// phrase qu'on prefixe garde ce qu'elle porte.
+pub fn avec(phrase: impl Into<String>, plus: impl serde::Serialize) -> String {
+    format!("{}{}{}", phrase.into(), A_PART, crate::ecriture::json_en_ligne(&plus))
+}
+
+/// La phrase d'un refus, sans ce qu'il porte a part (`avec`) : les morceaux du message, chacun sans l'objet qui
+/// l'ouvre.
+pub fn phrase_de(message: &str) -> String {
+    let mut phrase = String::new();
+    for (rang, m) in message.split(A_PART).enumerate() {
+        let debut = match (rang, crate::forme::objet_en_tete(m)) {
+            (0, _) | (_, None) => 0,
+            (_, Some(n)) => n,
+        };
+        phrase.push_str(&m[debut..]);
     }
-    (phrase, plus)
+    phrase
 }
 
 impl Echec {
-    /// La phrase du refus, sans ce qu'il porte a part (`separer`).
+    /// La phrase du refus, sans ce qu'il porte a part (`phrase_de`).
     pub fn phrase(&self) -> String {
-        separer(&self.message).0
+        phrase_de(&self.message)
     }
 }
 
 /// UN FICHIER QUE LE DISQUE REFUSE (absent, interdit, illisible, mal forme) : la phrase dit ce qui arrive, en mots ; le
-/// chemin et la raison du systeme vont a part (`avec` : `chemin`, `detail`). Un refus du moteur sur ce que le fichier
-/// porte (une phrase, `String`) garde sa phrase, et le chemin va a part.
+/// chemin et la raison du systeme vont a part (`chemin`, `detail`). Un refus du moteur sur ce que le fichier porte (une
+/// phrase, `String`) garde sa phrase, et le chemin va a part.
 pub fn du_disque<E: std::fmt::Display + 'static>(chemin: &std::path::Path, e: &E) -> String {
     let a_part = |phrase: &str, detail: Option<String>| {
-        let mut plus = serde_json::json!({"chemin": chemin.to_string_lossy()});
-        if let Some(d) = detail {
-            plus["detail"] = serde_json::Value::String(d);
-        }
-        avec(phrase, plus)
+        avec(phrase, APart { chemin: Some(chemin.to_string_lossy().into_owned()), detail, ..APart::default() })
     };
     let e_ = e as &dyn std::any::Any;
     if let Some(phrase) = e_.downcast_ref::<String>() {
@@ -211,28 +220,27 @@ pub fn du_disque<E: std::fmt::Display + 'static>(chemin: &std::path::Path, e: &E
 /// et ce qui a ete lu vont a part (`cle`, `detail`).
 pub fn a_la_cle(quoi: &str, cle: &str, detail: impl std::fmt::Display) -> String {
     let detail = detail.to_string();
-    let mut plus = serde_json::json!({"cle": cle});
-    if !detail.is_empty() {
-        plus["detail"] = serde_json::Value::String(detail);
-    }
-    avec(quoi, plus)
+    avec(quoi, APart { cle: Some(cle.to_string()), detail: Some(detail).filter(|d| !d.is_empty()), ..APart::default() })
 }
 
 /// UNE DONNEE LIVREE AVEC LE LOGICIEL QUI MANQUE OU NE SE LIT PAS (un referentiel de `donnees/`) : rien que la compagnie
 /// puisse corriger ; le fichier et la cle vont a part.
 pub fn livree(fichier: &str, cle: &str) -> String {
-    avec("Une donnée livrée avec le logiciel manque ou ne se lit pas : le signaler au développeur.", serde_json::json!({"fichier": fichier, "cle": cle}))
+    avec(
+        "Une donnée livrée avec le logiciel manque ou ne se lit pas : le signaler au développeur.",
+        APart { fichier: Some(fichier.to_string()), cle: Some(cle.to_string()), ..APart::default() },
+    )
 }
 
 /// UNE DEMANDE MAL FORMEE : la charge d'une route n'a pas, a `cle`, ce qu'il faut (`attendu` : « un texte », « une
 /// liste »). La cle va a part.
 pub fn charge(cle: &str, attendu: &str) -> String {
-    avec(format!("La demande est mal formée : {} est attendu.", attendu), serde_json::json!({"cle": cle}))
+    self::cle(format!("La demande est mal formée : {} est attendu.", attendu), cle)
 }
 
 /// Un refus en mots, et la cle de la donnee qu'il vise, a part.
 pub fn cle(phrase: impl Into<String>, cle: &str) -> String {
-    avec(phrase, serde_json::json!({"cle": cle}))
+    avec(phrase, APart { cle: Some(cle.to_string()), ..APart::default() })
 }
 
 /// Une paie ecrite (ce que la validation d'un engagement a garde) qui ne se relit pas : la cle va a part (`a_la_cle`).
@@ -241,5 +249,8 @@ pub const PAIE_ILLISIBLE: &str = "Une paie écrite ne se relit pas : revalider l
 /// UN FICHIER DE LA COMPAGNIE QUI NE PORTE PAS CE QU'IL DEVRAIT (une forme inattendue) : la phrase en mots, le chemin et ce
 /// qui ne va pas a part.
 pub fn abime(chemin: &std::path::Path, detail: impl std::fmt::Display) -> String {
-    avec("Un fichier de la compagnie ne se lit pas : il est abîmé.", serde_json::json!({"chemin": chemin.to_string_lossy(), "detail": detail.to_string()}))
+    avec(
+        "Un fichier de la compagnie ne se lit pas : il est abîmé.",
+        APart { chemin: Some(chemin.to_string_lossy().into_owned()), detail: Some(detail.to_string()), ..APart::default() },
+    )
 }

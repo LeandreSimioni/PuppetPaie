@@ -1,0 +1,326 @@
+        Rechercher un article...
+
+
+
+
+Toutes les collections    Imports / Exports   Imports courants   Importer des écritures
+
+
+
+Importer des écritures
+COMPTABILITÉ - Importez des écritures au format Excel ou CSV depuis le module Imports.
+
+Mis à jour il y a plus d’une semaine
+
+
+  Table des matières
+
+
+
+Étapes d'import
+N’utilisez pas ce type d’import pour importer un relevé bancaire.
+L’import Écritures crée des opérations diverses (OD) ou des factures si vous avez coché
+l'option de conversion. Même lorsqu’elles sont correctement comptabilisées, ces écritures
+n’apparaissent pas dans le module Transactions et n’alimentent pas l’étape Transactions de
+la préparation d’une déclaration de TVA.
+Pour importer des opérations bancaires, utilisez le type d’import Transactions bancaires ou
+connectez le compte bancaire à Pennylane.
+
+
+Lancement de l'import
+Accéder au module Imports depuis le menu Saisie. Cliquer sur Importer un fichier et
+sélectionnez Ecritures.
+Télécharger la trame Pennylane
+Sur la page d’import des écritures, cliquez sur Télécharger.
+
+
+
+
+Cette trame contient toutes les colonnes et tous les formats acceptés par Pennylane. Son
+utilisation est fortement recommandée pour gagner du temps et éviter les erreurs d’import.
+Elle permet notamment de :
+
+    Préremplir les colonnes attendues ;
+    Vérifier les champs et les formats acceptés grâce à l’onglet Aide inclus dans la trame.
+Import du fichier
+Une fois le fichier préparé au format Pennylane, celui-ci peut être importé de 2 façons sur
+Pennylane :
+
+    en cliquant sur Importer le presse-papier, pour Copier-coller les valeurs du fichier
+    d'origine
+    En cliquant sur Ajouter un fichier, pour importer le fichier au format XLS / CSV
+
+Vous pouvez sélectionner des paramètres d'importation spécifiques :
+
+
+
+
+    Convertir les écritures de ventes et d'achats en factures : cette option permet de créer
+    des pièces sans image, disponibles dans la vue gestion pour le client. A la fin de l'import,
+    il sera possible de joindre les pièces en PDF (nom de la pièce=numéro de pièce).
+    Appliquer strictement les comptes de tiers contenus dans le fichier de migration : le
+    numéro de compte du FEC est conservé à l'identique et le libellé du compte est mis à
+    jour si le compte est déjà existant.
+
+
+
+Modèles sauvegardés
+Une fois le fichier téléversé, vous pouvez sélectionner un modèle d'import pour pré-remplir
+les colonnes. À l'avenir, vous pourrez sauvegarder vous-mêmes vos modèles pour gagner du
+temps sur vos imports récurrents !
+
+
+Après avoir sélectionné votre modèle, continuez en cliquant sur Commencer l'import.
+La trame Pennylane est disponible par défaut dans les modèles d'import. Autrement, le
+système essaiera de deviner l'ordre des colonnes grâce à leur en-tête !
+
+
+   ⚠️ Un modèle d'import d'écritures ne peut pas être supprimé une fois créé.
+   Pour ne plus l'utiliser, créez un nouveau modèle avec les paramètres souhaités et
+   sélectionnez-le lors de vos prochains imports.
+
+
+
+
+Renseignements des champs (mapping)
+Certains champs précédés par le symbole   ⚠️ sont obligatoires pour pouvoir importer les
+écritures : date, Numéro de compte, Débit et/ou crédit.
+
+    Date : une fois la date sélectionnée, n'oubliez pas de compléter le format correspondant
+    à votre fichier (Ex : JJ MM AAAA) s'il est mal reconnu par Pennylane
+    Numéro de compte : seul les comptes 401, 411, 410, 421, 455 et 467 supportent un
+    format alphanumérique. Les comptes n'existant pas sur Pennylane seront créés
+    automatiquement.
+    Débit et/ou crédit : renseignez la colonne débit ou montant si votre fichier ne contient
+    qu'une seule colonne avec des montants signés.
+
+
+    Le mapping ne propose pas de champ Sens (Débit/Crédit). Si votre fichier contient une
+    colonne de montants et une colonne de sens, préparez-le avant l'import. Indiquez les
+    montants au crédit en négatif, puis mappez cette colonne unique sur le champ Débit
+    et/ou crédit. Vous pouvez aussi répartir les montants dans deux colonnes, puis les
+    mapper sur les champs Débit et/ou crédit et Crédit.
+
+
+    Code journal : le code journal doit contenir au plus 5 caractères, et uniquement des
+    lettres.
+ Taux de TVA du compte : seuls les comptes de classes 2, 6, 7 et 44564, 44574, 4191,
+ 4091 acceptent un taux de TVA. Consultez cet article pour connaitre les formats
+ acceptés.
+ Code Pays du compte : seuls les comptes de classe 6 et 7 acceptent un taux de TVA.
+ Consultez cet article pour connaitre les formats acceptés.
+ Famille de catégories : format alphanumérique. Une famille comporte une ou plusieurs
+ catégories (📖 Analyser vos comptes avec les catégories analytiques). La famille doit
+ toujours être renseignée pour chaque catégorie.
+ Catégorie : format alphanumérique. Les catégories associées aux lignes d'écritures. Les
+ familles et catégories seront crées si elles n'existent pas dans Pennylane.
+ Poids de la catégorie : format numérique. Ce champ indique la part proportionnelle
+ attribuée à une catégorie sur une ligne d'écriture. Par exemple, si une écriture est
+ répartie entre plusieurs catégories, le poids spécifie la répartition en pourcentage pour
+ chaque catégorie. Le poids doit être strictement supérieur à 0 et inférieur ou égal à 1.
+ Vous pouvez le renseigner sous forme décimale (par exemple 0,5 pour 50 %) ou sous
+ forme de pourcentage avec le symbole % (par exemple 50 %). Si vous renseignez le poids
+ de toutes les catégories d’un même axe analytique, leur somme doit être égale à 100 %,
+ avec une tolérance de 1 % pour les éventuels écarts d’arrondi.Voir le détail ici.
+ Code analytique : format alphanumérique. Ce champ correspond au code unique
+ associé à chaque catégorie. Vous rencontrerez une erreur en cas d’incohérence entre le
+ code et le libellé :
+      Si une catégorie avec un libellé spécifié existe déjà mais avec un code analytique
+      différent.
+     Si un même code analytique est utilisé pour plusieurs libellés différents.
+ Identifiant de ligne : vous permet de catégoriser une écriture selon plusieurs
+ catégories. Consultez l'article Importer des écritures comptables avec plusieurs
+ catégories analytiques.
+
+
+
+
+⚠️ La ligne surlignée en rose ne sera pas prise en compte dans l'import du fichier.
+   Par défaut, la première ligne n'est pas prise en compte. Ces paramètres peuvent être
+   modifiées en bas de page.
+
+
+
+
+Finalisation de l'import
+Une fois tous les champs renseignées, cliquez sur Etape suivante. La fenêtre suivante
+indique si une erreur a été trouvé sur le fichier. Si tout est bon, alors cliquez sur Finaliser
+l'import.
+
+Si l'import n'a pas été fait à partir d'un modèle existant, il vous est proposé de Sauvegarder
+le modèle. Si c'est un import récurrent, donner lui un nom afin de pouvoir le sélectionner
+lors du prochain import. Dans le cas contraire, vous pouvez Continuer sans sauvegarder.
+Import d'écritures avec des devises
+Préparez votre fichier en ajoutant les colonnes suivantes :
+
+    Devise (exemple : USD),
+    Débit_devise_origine,
+    Crédit_devise_origine.
+
+Convertissez ensuite les montants en euros dans les colonnes Débit et Crédit, avant
+d'importer votre fichier. Pennylane ne convertit pas automatiquement les devises lors de
+l'import d'écritures.
+
+
+Une fois les écritures importées dans Pennylane, le montant en devise s'affichera dans le
+détail de votre écriture.
+
+
+Import des pièces jointes avec les écritures courantes
+Si votre fichier d'écritures courantes est associé à des pièces justificatives, vous pouvez les
+charger à l'aide de la fonction Joindre une archive (trombone).
+L'affectation des pièces aux écritures liées est automatique, à condition que le nom de la
+pièce soit strictement identique au numéro de pièce dans la colonne PieceRef de l'écriture
+qui correspond.
+
+
+   ⚠️ Ne mettez pas le nom des extensions (.pdf, .png) dans la colonne PieceRef de votre
+   fichier d'écritures.
+Lorsque vous vous êtes assuré que c'est bien le cas, réunissez toutes les pièces dans un
+même fichier zip, puis téléversez-le dans Pennylane. La taille maximum acceptée pour un
+fichier d'archive est de 20 Go, si vous excédez ce volume, il faut diviser votre fichier et
+procéder à plusieurs imports.
+
+
+   ✍️ Les justificatifs importés sont visibles dans l’interface Comptabilité et l'interface
+   Gestion.
+
+
+
+
+Revue des données (et résolution éventuelle)
+Pennylane vérifie le paramétrage réalisé et indique les erreurs éventuelles.
+
+
+
+
+   ✍️ Pour les écritures de ventes, si les écritures ne sont pas équilibrées, Pennylane
+   tolère un écart inférieur ou égal à 1 €. L'écart est enregistré dans un compte 658 ou
+   758.
+
+
+
+
+À ce stade, vous pouvez soit Éditer le modèle pour modifier le paramétrage, soit Finaliser
+l'import pour importer les données dans Pennylane.
+
+
+
+   ⚠️ Pennylane regroupe en une seule écriture toutes les lignes qui partagent le même
+   numéro de pièce au sein d'un même journal. Cette écriture ne peut porter qu'une
+   seule date : si vos lignes ont des dates différentes, les dates affichées après l'import ne
+   correspondent plus à votre fichier. Au sein d'une même pièce, le libellé de ligne peut
+   être différent d'une ligne à l'autre (par exemple pour détailler salaire et cotisations
+   sur une OD de paie).
+   Si la colonne numéro de pièce est laissée vide, Pennylane applique une numérotation
+   automatique. Ne réutilisez pas les mêmes numéros de pièce sur toute l'année ou sur
+   plusieurs journaux : Pennylane considérera alors une pièce unique de plusieurs
+   centaines de lignes avec des dates et journaux différents, ce qui génère des erreurs à
+   l'import (écriture non équilibrée, dates regroupées, fichier de résolution
+   inexploitable). Rendez les numéros de pièce uniques par écriture et par journal.
+Consulter les données importées
+Une fois l'import finalisé, plusieurs chemins permettent de consulter les écritures :
+Depuis l'interface Comptabilité
+
+  1. Aller dans menu Saisie > module Imports/Exports > onglet Imports.
+  2. Cliquer sur les trois points à droite du fichier importé.
+  3. Sélectionner Afficher les écritures importées dans le grand livre.
+
+Le grand livre s'ouvre filtré sur les écritures de ce fichier uniquement.
+
+
+
+Filtrer plusieurs fichiers d'écritures dans le grand livre
+
+Depuis le Grand livre, activer le filtre Fichier d'imports, puis sélectionner le fichier voulu.
+
+
+   💡Utile pour comparer les écritures issues de plusieurs imports successifs sur le
+   même exercice
+
+
+
+
+Depuis l'interface Gestion (sans accès au module Comptabilité)
+
+Aller dans menu Paramètres > module Historique > onglet Imports.
+
+
+
+
+   ⚠️ La consultation des écritures importées depuis Paramètres > Historique nécessite
+   un plan Premium ou supérieur, qui donne accès aux éditions comptables.
+   Les données sont importées. Si besoin, vous pouvez retrouver le fichier importé
+   depuis le module Imports.
+Remarques :
+
+    Il est possible d’auxiliariser les comptes 401 et 411. Il n'y a pas de champ dédié aux
+    comptes auxiliaires. Cependant, vous pouvez associer les comptes auxiliaires de votre
+    fichier avec le champ "Numéro de compte" sur Pennylane.
+    Pour les comptes de TVA : n'ajoutez pas de taux de TVA dans la colonne TVA mais
+    renseignez directement les comptes avec les taux de TVA correspondants.
+    Attention aux formats de date et aux formats de TVA et code pays (cf. légende)
+    Il est possible de régler les écritures importés par export de fichier XML ou via le
+    Compte Pro.
+
+
+
+
+Les différents statuts dans le module Imports
+
+
+
+
+Que faire en cas d'échec de l'import ?
+Si votre import échoue et passe en erreur, le système vous propose désormais un fichier de
+résolution qui vous permet de cibler ce qui cause l'erreur.
+
+
+Vous pouvez rouvrir l'import pour voir l'erreur ici :
+
+
+
+
+Puis télécharger et ouvrir le fichier de résolution :
+
+
+
+
+Un commentaire s'affiche sur chaque ligne concernée par l'erreur et vous donne des détails
+sur le moyen de résoudre l'erreur. Une fois le fichier corrigé, il vous suffit de l'importer
+directement dans la même page.
+  📖 Pour approfondir le sujet des imports d'écritures, consultez notre article sur
+  Transformer automatiquement vos imports d’écritures de ventes et d’achats en
+  facture Pennylane.
+
+
+
+
+Articles connexes
+
+   Importer un relevé bancaire (Comptabilité)
+
+
+   Importer des écritures comptables avec plusieurs catégories analytiques
+
+
+   Migrer un dossier sur Pennylane avec l'analytique
+
+   Importer un fichier de CEGID QUADRA au format MDB
+
+
+   Transformer automatiquement vos imports d’écritures de ventes et d’achats en
+   facture Pennylane
+
+
+
+
+                                    😞😐😃
+                       Avez-vous trouvé la réponse à votre question ?
+
+
+
+
+Centre d'aide Pennylane
+Communauté   Academy
+

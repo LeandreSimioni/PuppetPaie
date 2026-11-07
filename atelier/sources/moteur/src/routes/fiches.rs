@@ -5,15 +5,18 @@
 //!
 //! Les refus portent leur classe (`KeyError`, `TypeError`, `ErreurOperation`...), que la page releve.
 
-use std::collections::{HashMap, HashSet};
+use droit::fiche::Lue as _;
+use std::collections::HashMap;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
-use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
-use crate::routes::mois::{lire_saisie, sauver_avant};
+use crate::routes::catalogue::Route;
+use crate::routes::documents::client_courriel;
+use crate::routes::{en_json, lire_charge, INTERFACE};
+use crate::routes::mois::sauver_avant;
 use declarations::champs;
 use documents::fiche_questionnaire as fq;
 use droit::contexte::Contexte;
@@ -21,19 +24,20 @@ use envois::courriel::Courriel;
 use envois::courriel_lecture as lecture;
 use envois::envoi::{self, Message};
 use envois::journal;
-use envois::ligne_d_envoi::{echec_d_envoi, noter};
+use envois::ligne_d_envoi::{echec_d_envoi, noter, par_courriel};
 use envois::simulation_courriels::BoiteQuiRepond;
 use socle::date::Jour;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::repr;
 use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
+use documents::valeur::{euros_de, nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales, vrai};
 
 const NOM_FICHE: Champ = Champ { nom: "nom", libelle: Affiche::new("Fiche"), forme: Forme::Texte, sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", libelle: Affiche::new("Clé"), forme: Forme::Texte, sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se dit", avance: false };
+const CHANGEMENTS: Champ = Champ { nom: "changements", libelle: Affiche::new("Cases qui changent"), forme: Forme::Objet, sens: "[{case, valeur}, …], au moins un, dans l'ordre, tout ou rien : chacun une case de la fiche (description de la route configuration : nom, forme, valeurs ; une case inconnue se refuse), null pour la vider (\"\" se refuse) ; une structure se donne entière ; une case non nommée garde sa valeur", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -45,7 +49,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Fiches);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "permanents",
+        route: Route::Permanents,
         geste: "Dire les cases que montre la fiche en cours de saisie.",
         charge: &[
             Champ { nom: "entreprise", libelle: Affiche::new("Fiche Entreprise"), forme: Forme::Objet, sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false },
@@ -61,7 +65,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "taxe-sur-les-salaires-regime",
+        route: Route::TaxeSurLesSalairesRegime,
         geste: "Dire le régime de la taxe sur les salaires d'après les réponses de la fiche.",
         charge: &[
             Champ { nom: "taxe_sur_les_salaires", libelle: Affiche::new("Réponses"), forme: Forme::Objet, sens: "les réponses en cours de saisie ; sans elles, celles de la compagnie", avance: false },
@@ -76,7 +80,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "verifier-fiche",
+        route: Route::VerifierFiche,
         geste: "Vérifier une fiche avant de l'écrire : anomalies, valeurs déclarées.",
         charge: &[NOM_FICHE, CLE_FICHE, DONNEES],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics"}}"#,
@@ -88,18 +92,18 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "enregistrer-fiche",
+        route: Route::EnregistrerFiche,
         geste: "Écrire une fiche (entreprise, salarié, spectacle) ; ce qui change se date.",
         charge: &[
             NOM_FICHE,
             CLE_FICHE,
-            DONNEES,
+            CHANGEMENTS,
             Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu (ce qui change) a été lu ; la fiche s'écrit", avance: false },
             Champ { nom: "depuis", libelle: Affiche::new("Depuis le"), forme: Forme::Date, sens: "la date d'effet de ce qui change, AAAA-MM-JJ ; la date proposée sinon", avance: false },
             Champ { nom: "note", libelle: Affiche::new("Pourquoi"), forme: Forme::Texte, sens: "pourquoi cela change (correction, déménagement…)", avance: true },
             Champ { nom: "forcer", libelle: Affiche::new("Écrire malgré une erreur de forme"), forme: Forme::OuiNon, sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
-        exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
+        exemple: r#"{"nom":"spectacle","changements":[{"case":"titre","valeur":"Les Bancs publics"},{"case":"numero_objet","valeur":"266Z00952012"}]}"#,
         rend: "une valeur existante change, ou un choix se confirme : avertissement (changements, depuis proposé, pourquoi ; usage, la phrase à confirmer) et ses phrases, rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
@@ -108,7 +112,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "activer-fiche",
+        route: Route::ActiverFiche,
         geste: "Archiver une fiche de salarié ou de spectacle, ou la réactiver.",
         charge: &[NOM_FICHE, CLE_FICHE, Champ { nom: "actif", libelle: Affiche::new("Active"), forme: Forme::OuiNon, sens: "vrai : réactiver ; faux : archiver", avance: false }],
         exemple: r#"{"nom":"spectacle","cle":"le-banc-des-menteurs","actif":true}"#,
@@ -120,7 +124,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "fiche-demander",
+        route: Route::FicheDemander,
         geste: "Demander à une personne, par courriel, de remplir sa fiche.",
         charge: &[
             Champ { nom: "adresse", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "son courriel", avance: false },
@@ -136,7 +140,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "fiches-relever",
+        route: Route::FichesRelever,
         geste: "Relever dans la boîte les fiches que les personnes ont remplies.",
         charge: &[],
         exemple: r#"{}"#,
@@ -148,7 +152,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "fiche-oublier-demande",
+        route: Route::FicheOublierDemande,
         geste: "Renoncer aux demandes de fiche restées sans réponse d'une personne.",
         charge: &[Champ { nom: "adresse", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "le courriel à qui la fiche a été demandée", avance: false }],
         exemple: r#"{"adresse":"isadora@exemple.invalid"}"#,
@@ -160,7 +164,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "taux-atmp",
+        route: Route::TauxAtmp,
         geste: "Dire le code risque et le taux AT/MP d'une année ; les poser s'il y a lieu.",
         charge: &[
             Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false },
@@ -176,7 +180,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "effectif",
+        route: Route::Effectif,
         geste: "Dire l'effectif d'une année ; le poser quand l'Urssaf ne l'a pas renvoyé.",
         charge: &[
             Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année civile mesurée, AAAA ; absente : celles qui manquent pour payer cette année", avance: false },
@@ -191,7 +195,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Fiches, Affiche::new("Dire ou poser l'effectif")),
     },
     Fiche {
-        nom: "couts",
+        route: Route::Couts,
         geste: "Dire le coût de l'année, spectacle par spectacle.",
         charge: &[Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false }],
         exemple: r#"{"annee":"2026"}"#,
@@ -203,7 +207,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
-        nom: "sauvegarde-maintenant",
+        route: Route::SauvegardeMaintenant,
         geste: "Sauvegarder maintenant le dossier de la compagnie dans le Drive.",
         charge: &[],
         exemple: r#"{}"#,
@@ -215,7 +219,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
-        nom: crate::routes::COMPAGNIE_SUPPRIMER,
+        route: Route::CompagnieSupprimer,
         geste: "Supprimer la compagnie de ce poste : avertir, puis effacer tout son dossier.",
         charge: &[
             Champ { nom: "confirme", libelle: Affiche::new("Effacer"), forme: Forme::OuiNon, sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
@@ -231,14 +235,13 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
         // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
         // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
-        crate::routes::COMPAGNIE_SUPPRIMER => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
+        Route::CompagnieSupprimer => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
         // La sauvegarde seule, comme la seconde moitie d'un passage de la veille (`compagnie::ouverture`).
-        "sauvegarde-maintenant" => {
+        Route::SauvegardeMaintenant => {
             use crate::compagnie::ouverture::{ouverture, Clients, Options};
             let opt = Options::de_la_charge(&json!({"sauvegarde_seule": true, "incidents_editeur": false}));
             let r = ouverture(ctx, &opt, Clients::default(), None);
@@ -251,60 +254,51 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             };
             Ok(json!({"phrase": phrase, "sauvegarde": s, "erreur": erreur.join(" ")}))
         }
-        "couts" => couts(o, ctx, charge).map(|mut v| {
+        Route::Couts => couts(o, ctx, charge).map(|mut v| {
             // Chaque spectacle et son cout, comme l'ecran les liste ; le total de l'annee en tete.
             let cout = |x: &Value| x["cout"].as_str().and_then(|c| c.parse::<f64>().ok()).unwrap_or(0.0);
             let spectacles: Vec<(String, Value)> = v["spectacles"].as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default();
             let total: f64 = spectacles.iter().map(|(_, x)| cout(x)).sum();
-            let jusqu_a = engagement::libelle_mois(&valeur_en_texte(&v["jusqu_a"]));
-            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, socle::texte::euros_de(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
+            let jusqu_a = socle::mois::Mois::en_clair(&valeur_en_texte(&v["jusqu_a"]));
+            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, euros_de(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
             // La ligne de chaque spectacle et de chaque salarie, telle que sa fiche la montre.
             for cote in ["spectacles", "salaries"] {
                 for x in v[cote].as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
                     let prevu = x["prevu"].as_str().and_then(|c| c.parse::<f64>().ok()).filter(|p| *p != 0.0);
                     x["phrase"] = json!(format!(
                         "coût employeur {} — brut {}, charges {}, {}{}{}",
-                        socle::texte::euros_de(&x["cout"]), socle::texte::euros_de(&x["brut"]), socle::texte::euros_de(&x["charges"]),
+                        euros_de(&x["cout"]), euros_de(&x["brut"]), euros_de(&x["charges"]),
                         super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"),
                         if vrai(&x["incomplet"]) { ", coût incomplet avant PuppetPaie" } else { "" },
-                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", socle::texte::euros_de(&json!(p))))
+                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", euros_de(&json!(p))))
                     ));
                 }
             }
-            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, socle::texte::euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), socle::texte::euros_de(&x["brut"]))).collect::<Vec<_>>());
+            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), euros_de(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
-        "permanents" => permanents(ctx, charge).map(|v| {
-            let p = if v["permanents"] == json!(true) { "La compagnie emploie des permanents." } else { "La compagnie n'emploie pas de permanents." };
-            super::phrase_en_tete(v, p)
-        }),
-        "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge).map(|v| {
-            let p = valeur_en_texte(&v["consequence"]);
-            super::phrase_en_tete(v, p)
-        }),
-        "verifier-fiche" => verifier_fiche(ctx, charge).map(|mut v| {
+        Route::Permanents => en_json(permanents(ctx, lire_charge(charge)?)?),
+        Route::TaxeSurLesSalairesRegime => en_json(taxe_sur_les_salaires_regime(ctx, lire_charge(charge)?)?),
+        Route::VerifierFiche => verifier_fiche(charge).map(|mut v| {
             let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(format!("{} : {}", valeur_en_texte(&a["champ"]), valeur_en_texte(&a["message"])))).collect();
             let p = if lignes.is_empty() { "La fiche est juste.".to_string() } else { format!("Anomalies de la fiche : {}.", lignes.len()) };
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "taux-atmp" => crate::routes::atmp::route(ctx, charge).map(|mut v| {
+        Route::TauxAtmp => crate::routes::atmp::route(ctx, charge).map(|mut v| {
             // Ce que dit la saisie avancee d'un taux notifie.
             v["aide"] = json!("Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi. Avec 999ZZ, pas de taux.");
             v
         }),
-        "effectif" => effectif(ctx, charge),
-        "activer-fiche" => activer_fiche_route(o, ctx, charge),
-        "enregistrer-fiche" => enregistrer_fiche(ctx, charge),
-        "fiche-oublier-demande" => oublier_demande(o, ctx, charge).map(|v| {
+        Route::Effectif => effectif(ctx, charge),
+        Route::ActiverFiche => activer_fiche_route(o, ctx, charge),
+        Route::EnregistrerFiche => enregistrer_fiche(ctx, charge),
+        Route::FicheOublierDemande => oublier_demande(o, ctx, charge).map(|v| {
             let p = format!("Demande à {} abandonnée.", valeur_en_texte(&v["adresse"]));
             super::phrase_en_tete(v, p)
         }),
-        "fiche-demander" => {
-            let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
-            Ok(json!({"phrase": format!("Demande de fiche envoyée à {} (code {}) : sa fiche se crée à l'arrivée de sa réponse.", d.adresse, d.code), "code": d.code, "adresse": d.adresse}))
-        }
-        "fiches-relever" => {
+        Route::FicheDemander => en_json(fiche_demander(ctx, lire_charge(charge)?)?),
+        Route::FichesRelever => {
             let r = relever_fiches(ctx, None, "interface")?;
             let phrase = match (r.recues.is_empty(), r.incidents.first()) {
                 (false, _) => format!("{}.", r.resume()),
@@ -336,7 +330,7 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
     let a_dire = |ctx: &Contexte| -> R<Vec<i32>> {
         let e = ctx.effectif().map_err(Echec::from)?;
         let mut v = e.a_dire(an_paie);
-        let demande = declarations::demarrage::manques(ctx).iter().any(|m| m["cle"] == "effectif");
+        let demande = declarations::demarrage::manques(ctx).map_err(Echec::from)?.iter().any(|m| m["cle"] == "effectif");
         if demande && e.valeur(an_paie).is_none() && !v.contains(&(an_paie - 1)) {
             v.push(an_paie - 1);
             v.sort();
@@ -394,72 +388,150 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------ permanents
 
-/// `permanents` : `{"entreprise": {...}}`, la fiche Entreprise en cours de saisie -- sans elle, celle de la compagnie.
-/// Rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que pour les
-/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
-fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let objet = |k: &str| match charge.get(k) {
-        Some(e @ Value::Object(_)) => Ok(Some(e)),
-        Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-        None => Ok(None),
+/// La charge de `permanents` : la fiche Entreprise en cours de saisie (sans elle, celle de la compagnie) ; ou une autre
+/// fiche (`nom` : salarie, spectacle) et ses donnees en cours de saisie.
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargePermanents {
+    #[serde(default)]
+    entreprise: Option<serde_json::Map<String, Value>>,
+    #[serde(default)]
+    nom: Option<String>,
+    #[serde(default)]
+    donnees: Option<serde_json::Map<String, Value>>,
+}
+
+/// Ce que rend `permanents` : la phrase, le curseur des permanents, et les cases que la fiche montre.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct Permanents {
+    phrase: &'static str,
+    permanents: bool,
+    montres: Vec<String>,
+}
+
+/// `permanents` : rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que
+/// pour les permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
+fn permanents(ctx: &Contexte, charge: ChargePermanents) -> R<Permanents> {
+    let saisie = charge.entreprise.map(Value::Object);
+    let entreprise: &dyn declarations::champs::ParCase = match &saisie {
+        Some(e) => e,
+        None => &ctx.entreprise,
     };
-    let entreprise = objet("entreprise")?.unwrap_or(&ctx.entreprise);
-    let nom = charge.get("nom").and_then(Value::as_str).unwrap_or("entreprise");
-    let donnees = if nom == "entreprise" { entreprise } else { objet("donnees")?.unwrap_or(&Value::Null) };
-    Ok(json!({ "permanents": droit::contexte::emploie_des_permanents(entreprise), "montres": montres(ctx, nom, donnees, entreprise)? }))
+    let nom = charge.nom.as_deref().unwrap_or("entreprise");
+    let autre = Value::Object(charge.donnees.unwrap_or_default());
+    let donnees: &dyn declarations::champs::ParCase = if nom == "entreprise" { entreprise } else { &autre };
+    let p = permanents_de(entreprise);
+    Ok(Permanents {
+        phrase: if p { "La compagnie emploie des permanents." } else { "La compagnie n'emploie pas de permanents." },
+        permanents: p,
+        montres: montres(ctx, nom, donnees, entreprise)?,
+    })
+}
+
+/// Le curseur des permanents (`contexte::emploie_des_permanents`) de la fiche entreprise telle que l'ecran la saisit.
+fn permanents_de(entreprise: &dyn declarations::champs::ParCase) -> bool {
+    entreprise.case("emploie_des_permanents") == Some(Value::Bool(true))
 }
 
 /// CE QUE LA FICHE `nom` MONTRE pour `donnees` : chaque case que `champs::Champ::montre` dit a l'ecran, d'apres la
 /// fiche, l'entreprise `entreprise` (ses permanents, ses conditions) et les etablissements de la compagnie. La page ne
 /// montre que ces cases-la.
-pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &Value, entreprise: &Value) -> R<Vec<String>> {
-    let permanents = droit::contexte::emploie_des_permanents(entreprise);
-    let etablissements = !super::ouverture::choix_d_etablissement(ctx).is_null();
+pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &dyn declarations::champs::ParCase, entreprise: &dyn declarations::champs::ParCase) -> R<Vec<String>> {
+    let permanents = permanents_de(entreprise);
+    let etablissements = super::ouverture::choix_d_etablissement(ctx).is_some();
     let autre = (nom != "entreprise").then_some(entreprise);
     Ok(champs::fiche(nom)?.iter().filter(|c| c.montre(donnees, autre, permanents, etablissements)).map(|c| c.cle.clone()).collect())
 }
 
 // ------------------------------------------------------- taxe-sur-les-salaires-regime
 
-/// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
-/// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
-/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien.
-fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// La charge de `taxe-sur-les-salaires-regime` : les reponses en cours de saisie (absentes ou nulles : celles de la
+/// compagnie ; `{}` : aucune), et l'annee des salaires (absente : l'annee en cours).
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeTaxeSurLesSalaires {
+    taxe_sur_les_salaires: Option<serde_json::Map<String, Value>>,
+    annee: Option<i64>,
+}
+
+/// Les plafonds de la franchise en base de TVA, au bareme de l'annee.
+#[derive(Debug, Clone, serde::Serialize)]
+struct PlafondsDeLaFranchise {
+    prestations_de_services: String,
+    total: String,
+}
+
+/// Les deux reponses a la question de la franchise : sous les plafonds (`true`), au-dessus (`false`).
+#[derive(Debug, Clone, serde::Serialize)]
+struct ChoixDeLaFranchise {
+    #[serde(rename = "true")]
+    sous: String,
+    #[serde(rename = "false")]
+    dessus: String,
+}
+
+/// La question de la franchise : son aide, ses reponses, ses plafonds et l'annee.
+#[derive(Debug, Clone, serde::Serialize)]
+struct Franchise {
+    aide: String,
+    choix: ChoixDeLaFranchise,
+    plafonds: Option<PlafondsDeLaFranchise>,
+    annee: i32,
+}
+
+/// Ce que rend `taxe-sur-les-salaires-regime` : la phrase (la consequence), la question de la franchise, les cases a
+/// montrer, la consequence, si la reponse est complete, si la taxe est due et sur quelle part.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct RegimeDeLaTaxe {
+    phrase: String,
+    franchise: Franchise,
+    champs: Vec<&'static str>,
+    consequence: String,
+    complet: bool,
+    due: bool,
+    part_taxee: Option<String>,
+}
+
+/// `taxe-sur-les-salaires-regime` : ce que la fiche en cours de saisie dit -- sans lui, celle de la compagnie. Rend la
+/// conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art. 231, 1) : les cases a montrer,
+/// la consequence en clair, et si la reponse est complete. La page n'en decide rien.
+fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: ChargeTaxeSurLesSalaires) -> R<RegimeDeLaTaxe> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
-    let ent = match charge.get(cle) {
-        Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
+    let ent = match charge.taxe_sur_les_salaires {
+        Some(v) => droit::fiche::ChampsEntreprise {
+            taxe_sur_les_salaires: Some(droit::fiche::lire_champs(&Value::Object(v), cle).map_err(plain)?),
+            ..Default::default()
+        },
         None => ctx.entreprise.clone(),
     };
     // LES PLAFONDS DE LA FRANCHISE, CHIFFRES : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
-    let annee = match charge.get("annee") {
-        None | Some(Value::Null) => ctx.aujourdhui.an,
-        Some(v) => match v.as_i64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
-            Some(a) if (1900..=2999).contains(&a) => a as i32,
-            _ => return Err(erreur("ValueError", socle::date::annee_impossible(valeur_ecrite(v)))),
-        },
+    let annee = match charge.annee {
+        None => ctx.aujourdhui.an,
+        Some(a) if (1900..=2999).contains(&a) => a as i32,
+        Some(a) => return Err(erreur("ValueError", socle::date::annee_impossible(a))),
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
     let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_deref(), annee);
     // La conclusion nomme les deux plafonds.
     let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
-    Ok(json!({
-        "franchise": {
-            "aide": q.aide,
-            "choix": { "true": q.sous, "false": q.dessus },
-            "plafonds": q.plafonds.map(|(s, t)| json!({
-                "prestations_de_services": s.normalize().to_string(),
-                "total": t.normalize().to_string(),
-            })),
-            "annee": annee,
+    Ok(RegimeDeLaTaxe {
+        phrase: r.consequence.clone(),
+        franchise: Franchise {
+            aide: q.aide,
+            choix: ChoixDeLaFranchise { sous: q.sous, dessus: q.dessus },
+            plafonds: q.plafonds.map(|(s, t)| PlafondsDeLaFranchise { prestations_de_services: s.normalize().to_string(), total: t.normalize().to_string() }),
+            annee,
         },
-        "champs": r.champs,
-        "consequence": r.consequence,
-        "complet": r.decision.is_ok(),
-        "due": matches!(r.decision, Ok(Some(_))),
-        "part_taxee": match r.decision { Ok(Some(p)) => json!(p.normalize().to_string()), _ => Value::Null },
-    }))
+        champs: r.champs,
+        consequence: r.consequence,
+        complet: r.decision.is_ok(),
+        due: matches!(r.decision, Ok(Some(_))),
+        part_taxee: match r.decision {
+            Ok(Some(p)) => Some(p.normalize().to_string()),
+            _ => None,
+        },
+    })
 }
 
 // ------------------------------------------------------------------ outils
@@ -830,26 +902,6 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     Ok(faits)
 }
 
-/// L'organisme du territoire, ou "".
-fn urssaf_du_departement(dep: &str) -> R<String> {
-    let table = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(|m| Echec::from(m))?;
-    let d = socle::texte::strip(dep).to_uppercase();
-    let par = table.get("par_departement");
-    let lire = |k: &str| par.and_then(|p| p.get(k)).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
-    Ok(lire(&d).or_else(|| if d == "2A" || d == "2B" { lire("20") } else { None }).unwrap_or_default())
-}
-
-/// `urssaf.pour_code_postal`.
-pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
-    let v: Vec<char> = texte_ou_vide(cp).chars().filter(|c| champs::est_chiffre(*c)).collect();
-    if v.len() < 2 {
-        return Ok(String::new());
-    }
-    let debut: String = v.iter().collect::<String>();
-    let n = if debut.starts_with("97") || debut.starts_with("98") { 3 } else { 2 };
-    urssaf_du_departement(&v.iter().take(n).collect::<String>())
-}
-
 /// Ce que le moteur PROPOSERAIT pour une case encore vide.
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
@@ -866,7 +918,7 @@ fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
             }
         }
     } else if nom == "entreprise" && socle::texte::strip(&texte_ou_vide(donnees.get("code_urssaf"))).is_empty() {
-        let code = urssaf_du_code_postal(donnees.get("code_postal"))?;
+        let code = declarations::urssaf::base().map_err(Echec::from)?.du_code_postal(&texte_ou_vide(donnees.get("code_postal")));
         if !code.is_empty() {
             propose.insert(
                 "code_urssaf".into(),
@@ -920,22 +972,15 @@ pub(crate) fn avec_libelles(nom: &str, anomalies: &mut [Value]) -> R<()> {
 
 /// `verifier-fiche` : les anomalies de la fiche telle qu'elle SERAIT derivee, ce qui
 /// serait declare, et ce que le moteur proposerait pour les cases vides.
-fn verifier_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn verifier_fiche(charge: &Value) -> R<Value> {
     let nom_brut = exiger(charge, "nom")?;
     let donnees = exiger(charge, "donnees")?;
     let mut copie = copie_en_objet(donnees)?;
     let nom = nom_de_fiche(nom_brut)?;
     deriver(nom, &mut copie, false)?;
     let mut anomalies = champs::verifier_fiche(nom, &copie)?;
-    // Une case que la fiche ne decrit pas se dit comme a l'ecriture (`ecrire_fiche`), face a la fiche qu'elle completerait.
-    let (vide, montree) = (Value::Object(Map::new()), crate::routes::etablissements::entreprise_montree(ctx));
-    let cle = charge.get("cle").and_then(Value::as_str).filter(|k| !k.is_empty());
-    let ancienne: &Value = match nom {
-        "entreprise" => &montree,
-        "salarie" => cle.and_then(|k| ctx.salaries.get(k)).unwrap_or(&vide),
-        _ => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
-    };
-    anomalies.extend(champs::cases_inconnues(nom, &copie, ancienne, true)?);
+    // Une case que la fiche ne decrit pas se dit comme a l'ecriture (`ecrire_fiche`).
+    anomalies.extend(champs::cases_inconnues(nom, &copie, true)?);
     let objet = donnees.as_object();
     let declare = match objet {
         Some(o) => champs::apercu_derive(nom, o)?,
@@ -959,115 +1004,38 @@ pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
     ctx.racine.join("historique").join("bulletins")
 }
 
-/// Les fichiers (et dossiers) dont le nom finit par
-/// `.dsn`, sans suivre les liens vers des dossiers.
-pub(crate) fn fichiers_dsn(dossier: &Path, sortie: &mut Vec<std::path::PathBuf>) {
-    let Ok(entrees) = std::fs::read_dir(dossier) else { return };
-    for e in entrees.flatten() {
-        let chemin = e.path();
-        if e.file_name().to_string_lossy().ends_with(".dsn") {
-            sortie.push(chemin.clone());
-        }
-        if e.file_type().map_or(false, |t| t.is_dir()) {
-            fichiers_dsn(&chemin, sortie);
-        }
-    }
+/// `usages_declares` : combien de DSN deja deposees declarent cette valeur dans la rubrique de la case (`rubrique`, de la
+/// table des champs), telle qu'une DSN l'ecrit, et sur quels mois (`AAAA-MM`). Une case sans rubrique n'est dans aucune
+/// DSN.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct DejaDeclare {
+    pub(crate) declarations: usize,
+    pub(crate) du: Option<String>,
+    pub(crate) au: Option<String>,
 }
 
-/// `usages_declares` : combien de DSN deja deposees portent cette valeur (telle
-/// qu'une DSN l'ecrit, `,'VALEUR'`), et sur quelle periode.
-fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
-    let jeton = format!(",'{}'", valeur_en_texte(valeur));
-    let prefixe = "S20.G00.05.005,";
-    let (mut fichiers, mut mois) = (0, Vec::<String>::new());
-    for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
-        if !dossier.exists() {
-            continue;
-        }
-        let mut trouves = Vec::new();
-        fichiers_dsn(&dossier, &mut trouves);
-        for f in trouves {
-            let Ok(octets) = std::fs::read(&f) else { continue };
-            // latin-1, puis les fins de ligne universelles de `read_text`.
-            let brut: String = octets.iter().map(|b| *b as char).collect();
-            let texte = brut.replace("\r\n", "\n").replace('\r', "\n");
-            if !texte.contains(&jeton) {
-                continue;
-            }
-            fichiers += 1;
-            for l in socle::texte::lignes_du_texte(&texte) {
-                if let Some(reste) = l.strip_prefix(prefixe) {
-                    let mp: Vec<char> = reste.trim_matches('\'').chars().collect();
-                    if mp.len() == 8 {
-                        mois.push(format!("{}-{}", mp[4..8].iter().collect::<String>(), mp[2..4].iter().collect::<String>()));
-                    }
-                    break;
+fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<DejaDeclare> {
+    let valeur = valeur_en_texte(valeur);
+    let (mut n, mut mois) = (0usize, Vec::<String>::new());
+    if let Some(rubrique) = rubrique {
+        for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
+            for f in declarations::dsn_lue::fichiers(&dossier) {
+                let Some(d) = declarations::dsn_lue::lire_une_dsn(&f)? else { continue };
+                if d.declare(rubrique, &valeur) {
+                    // Un signalement declare la valeur sans mois principal (S20.G00.05.005).
+                    n += 1;
+                    mois.extend(d.mois.map(|m| m.to_string()));
                 }
             }
         }
     }
-    json!({"declarations": fichiers, "du": mois.iter().min(), "au": mois.iter().max()})
+    Ok(DejaDeclare { declarations: n, du: mois.iter().min().cloned(), au: mois.iter().max().cloned() })
 }
 
-/// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes (`_...`) qu'elle ne dit pas,
-/// et, dans chaque structure qu'elle nomme (le signataire, la banque...), les cases qu'elle ne dit pas. Une case se
-/// remplit par sa valeur et s'efface par `null` ; son absence la laisse telle qu'elle est (`{"signataire": {"fonction":
-/// "Présidente"}}` garde le prenom et le nom). Une structure entiere a `null` s'efface.
-pub(crate) fn charge_completee(ancienne: &Value, neuve: &Value) -> Value {
-    let (Value::Object(a), Value::Object(n)) = (ancienne, neuve) else { return neuve.clone() };
-    let mut sortie: Map<String, Value> = n.iter().map(|(k, x)| (k.clone(), structure_completee(a.get(k).unwrap_or(&Value::Null), x))).collect();
-    for (k, v) in a.iter().filter(|(k, _)| k.starts_with('_')) {
-        sortie.entry(k.clone()).or_insert_with(|| v.clone());
-    }
-    Value::Object(sortie)
-}
-
-/// Une structure de la charge, completee de celle de la fiche (`charge_completee`).
-fn structure_completee(ancienne: &Value, neuve: &Value) -> Value {
-    match (ancienne, neuve) {
-        (Value::Object(a), Value::Object(n)) => {
-            let mut sortie = a.clone();
-            for (k, x) in n {
-                match (x, sortie.get(k)) {
-                    (Value::Null, _) => {
-                        sortie.shift_remove(k);
-                    }
-                    (_, Some(avant)) => {
-                        let x = structure_completee(avant, x);
-                        sortie.insert(k.clone(), x);
-                    }
-                    (_, None) => {
-                        sortie.insert(k.clone(), structure_completee(&Value::Null, x));
-                    }
-                }
-            }
-            Value::Object(sortie)
-        }
-        (_, Value::Object(n)) => Value::Object(n.iter().filter(|(_, x)| !x.is_null()).map(|(k, x)| (k.clone(), structure_completee(&Value::Null, x))).collect()),
-        _ => garder_notes_internes(ancienne, neuve),
-    }
-}
-
-/// `garder_notes_internes` : `neuve`, augmentee des cles internes (`_...`) de
-/// `ancienne`. Les listes se recollent par rang, a longueur egale seulement.
-fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
-    match (ancienne, neuve) {
-        (Value::Object(a), Value::Object(n)) => {
-            let mut sortie = n.clone();
-            for (k, v) in a {
-                if k.starts_with('_') && !sortie.contains_key(k) {
-                    sortie.insert(k.clone(), v.clone());
-                } else if let Some(dedans) = sortie.get(k).cloned() {
-                    sortie.insert(k.clone(), garder_notes_internes(v, &dedans));
-                }
-            }
-            Value::Object(sortie)
-        }
-        (Value::Array(a), Value::Array(n)) if a.len() == n.len() => {
-            Value::Array(a.iter().zip(n).map(|(x, y)| garder_notes_internes(x, y)).collect())
-        }
-        _ => neuve.clone(),
-    }
+/// Une cle que l'ecran ne montre pas et qu'une ecriture garde : une note de la fiche (`droit::fiche::est_une_note`), ou
+/// une marque que le moteur a posee dans une structure (`_...`).
+pub(crate) fn interne(k: &str) -> bool {
+    k.starts_with('_') || droit::fiche::est_une_note(k)
 }
 
 /// L'AVERTISSEMENT D'UN ENREGISTREMENT DE FICHE : ce qu'il ferait changer (chaque valeur existante qui change demande sa
@@ -1077,10 +1045,13 @@ fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
 fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: &Value) -> R<Option<Value>> {
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
+    // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
+    let lue = cle.and_then(|k| ctx.salaries.get(k)).map(|f| socle::ecriture::en_valeur(&f.champs));
+    let spectacle_lu = cle.and_then(|k| ctx.spectacles.get(k)).map(socle::ecriture::en_valeur);
     let ancienne: &Value = match nom {
         "entreprise" => &montree,
-        "salarie" => cle.and_then(|k| ctx.salaries.get(k)).unwrap_or(&vide),
-        "spectacle" => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
+        "salarie" => lue.as_ref().unwrap_or(&vide),
+        "spectacle" => spectacle_lu.as_ref().unwrap_or(&vide),
         autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
     };
     let usage = if nom == "entreprise" { jour_des_intermittents_a_confirmer(ancienne, donnees) } else { None };
@@ -1131,7 +1102,7 @@ fn avertissement_en_phrases(a: &Value) -> Vec<Value> {
 /// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
 /// declarer.
 pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>) -> R<Vec<Value>> {
-    let Value::Object(mut donnees) = charge_completee(ancienne, &Value::Object(copie)) else { unreachable!() };
+    let mut donnees = copie;
     deriver(nom, &mut donnees, true)?;
     let Value::Object(anc) = ancienne else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(ancienne))));
@@ -1159,7 +1130,8 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
         });
         let o = entree.as_object_mut().unwrap();
         if c.is_some_and(|c| c.declare) {
-            o.insert("deja_declare".into(), usages_declares(ctx, &avant));
+            let deja = usages_declares(ctx, c.and_then(|c| c.rubrique.as_deref()), &avant)?;
+            o.insert("deja_declare".into(), serde_json::to_value(deja).map_err(|e| erreur("ValueError", e.to_string()))?);
         }
         if let Some(c) = c.filter(|c| c.calcule()) {
             let source = c.derive_de.as_deref().unwrap_or("");
@@ -1209,17 +1181,6 @@ pub(crate) fn creer_dossier(d: &Path) -> R<()> {
     std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))
 }
 
-/// Un fichier de configuration : son objet, vide s'il n'existe pas.
-pub(crate) fn objet_du_fichier(chemin: &Path) -> R<Map<String, Value>> {
-    if !chemin.exists() {
-        return Ok(Map::new());
-    }
-    match lire_saisie(chemin)? {
-        Value::Object(m) => Ok(m),
-        _ => Err(erreur("AttributeError", socle::echec::abime(chemin, "un objet est attendu"))),
-    }
-}
-
 pub(crate) fn ecrire(chemin: &Path, v: Value) -> R<()> {
     ecrire_json(chemin, &v, 2).map_err(en_os)
 }
@@ -1228,7 +1189,7 @@ pub(crate) fn ecrire(chemin: &Path, v: Value) -> R<()> {
 /// Ce que la page lit de la compagnie (la route `etat`), relu apres une ecriture : la page n'a rien d'autre a relire.
 pub(crate) fn etat_relu(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(plain)?;
-    crate::routes::ouverture::route(o, &neuf, "etat", &json!({}))
+    crate::routes::ouverture::route(o, &neuf, Route::Etat, &json!({}))
 }
 
 /// L'heure de Paris, a la seconde.
@@ -1253,6 +1214,138 @@ fn fichier_de(nom: &str) -> Option<&'static str> {
     }
 }
 
+/// UNE VALEUR QU'UNE FICHE DATEE A PORTEE : son `depuis`, la valeur en JSON, sa note.
+pub(crate) struct Portee {
+    pub depuis: Option<Jour>,
+    pub valeur: Value,
+    pub note: Option<String>,
+}
+
+/// TOUTES LES VALEURS QU'UNE FICHE DATEE A PORTEES, champ par champ dans l'ordre de sa forme, chacune dans l'ordre ecrit
+/// (`droit::fiche::VoirListe`) : l'historique que l'ecran montre, les gardes qui cherchent tout ce qui nomme une
+/// personne, a quelque date que ce soit. Un champ que la fiche ne dit pas n'y est pas.
+pub(crate) fn portees<F: droit::fiche::FicheDatee>(f: &F) -> Vec<(&'static str, Vec<Portee>)> {
+    struct Toutes(Vec<(&'static str, Vec<Portee>)>);
+    impl droit::fiche::VoirListe for Toutes {
+        fn liste<T: serde::Serialize>(&mut self, cle: &'static str, liste: &[droit::fiche::Datee<T>]) {
+            if !liste.is_empty() {
+                self.0.push((cle, liste.iter().map(|e| Portee { depuis: e.depuis, valeur: socle::ecriture::en_valeur(&e.valeur), note: e.note.clone() }).collect()));
+            }
+        }
+    }
+    let mut t = Toutes(Vec::new());
+    f.voir_listes(&mut t);
+    t.0
+}
+
+/// Les valeurs que le champ `cle` a portees (`portees`).
+pub(crate) fn valeurs_portees<'a>(p: &'a [(&'static str, Vec<Portee>)], cle: &'a str) -> impl Iterator<Item = &'a Value> + 'a {
+    p.iter().filter(move |(c, _)| *c == cle).flat_map(|(_, l)| l.iter().map(|x| &x.valeur))
+}
+
+/// UNE FICHE DATEE QUE LE MOTEUR ECRIT, ses cases nommees comme `champs-base.json` les nomme et dites en JSON comme l'ecran
+/// les envoie : ce qui s'ecrit passe par la forme de la fiche (`droit::fiche::lire_saisie`), qui refuse ce qu'elle ne lit
+/// pas, et se date par elle (`droit::fiche::FicheDatee::dater`).
+pub(crate) trait FicheAEcrire {
+    /// La fiche a `jour`, en JSON.
+    fn vue_au(&self, jour: &Jour) -> Value;
+    /// Les jours ou le champ `cle` prend une valeur (`droit::fiche::FicheDatee::depuis`).
+    fn jours_de(&self, cle: &str) -> Vec<Option<Jour>>;
+    /// La valeur `valeur` du champ `cle` (une note `_…` comprise), datee a partir de `depuis` ; `fichier` nomme le fichier
+    /// dans le refus.
+    fn ecrire_case(&mut self, cle: &str, valeur: &Value, depuis: Option<&Jour>, note: Option<&str>, fichier: &str) -> R<()>;
+}
+
+impl<F: droit::fiche::FicheDatee> FicheAEcrire for F {
+    fn vue_au(&self, jour: &Jour) -> Value {
+        socle::ecriture::en_valeur(&droit::fiche::FicheDatee::au(self, jour))
+    }
+
+    fn jours_de(&self, cle: &str) -> Vec<Option<Jour>> {
+        droit::fiche::FicheDatee::depuis(self, cle)
+    }
+
+    fn ecrire_case(&mut self, cle: &str, valeur: &Value, depuis: Option<&Jour>, note: Option<&str>, fichier: &str) -> R<()> {
+        if interne(cle) {
+            let plate: F::Plate = droit::fiche::lire_saisie(&un_champ(cle, valeur.clone()), fichier).map_err(plain)?;
+            droit::fiche::FicheDatee::noter(self, &plate);
+            return Ok(());
+        }
+        // La case, comme un changement de la route (`droit::fiche::Changements`) : une case inconnue se refuse en se nommant.
+        let ch: F::Changement = droit::fiche::lire_saisie(&json!({"case": cle, "valeur": valeur}), fichier).map_err(plain)?;
+        droit::fiche::FicheDatee::changer(self, ch, depuis, note);
+        Ok(())
+    }
+}
+
+/// LE FICHIER D'UNE FICHE (`config/entreprise.json`, `config/salaries.json`, `config/spectacles.json`), lu par sa forme
+/// (`droit::fiche::lire_fichier`) ; absent, il est vide. Il s'ecrit par elle.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum FichierDeFiche {
+    Entreprise(droit::fiche::FicheEntrepriseDatee),
+    Salaries(droit::fiche::Salaries),
+    Spectacles(droit::fiche::Spectacles),
+}
+
+impl FichierDeFiche {
+    /// Le fichier de la fiche `nom` (`entreprise`, `salarie`, `spectacle`) de la compagnie `racine`.
+    pub(crate) fn lire(racine: &Path, nom: &str) -> R<FichierDeFiche> {
+        let Some(fichier) = fichier_de(nom) else {
+            return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
+        };
+        let chemin = racine.join(socle::fichiers::CONFIG).join(fichier);
+        let quoi = format!("config/{}", fichier);
+        fn lu<T: serde::de::DeserializeOwned + Default>(chemin: &Path, quoi: &str) -> R<T> {
+            if !chemin.exists() {
+                return Ok(T::default());
+            }
+            droit::fiche::lire_fichier(chemin, quoi).map_err(plain)
+        }
+        Ok(match nom {
+            "entreprise" => FichierDeFiche::Entreprise(lu(&chemin, &quoi)?),
+            "salarie" => FichierDeFiche::Salaries(lu(&chemin, &quoi)?),
+            _ => FichierDeFiche::Spectacles(lu(&chemin, &quoi)?),
+        })
+    }
+
+    /// La fiche `cle` (`None` : l'entreprise, le fichier entier), si elle existe.
+    pub(crate) fn fiche(&mut self, cle: Option<&str>) -> Option<&mut dyn FicheAEcrire> {
+        match (self, cle) {
+            (FichierDeFiche::Entreprise(e), _) => Some(e),
+            (FichierDeFiche::Salaries(s), Some(k)) => s.fiches.get_mut(k).map(|f| f as &mut dyn FicheAEcrire),
+            (FichierDeFiche::Spectacles(s), Some(k)) => s.fiches.get_mut(k).map(|f| f as &mut dyn FicheAEcrire),
+            _ => None,
+        }
+    }
+
+    /// La fiche `cle`, neuve si le fichier ne la porte pas encore.
+    pub(crate) fn fiche_ou_neuve(&mut self, cle: &str) -> R<&mut dyn FicheAEcrire> {
+        Ok(match self {
+            FichierDeFiche::Entreprise(e) => e,
+            FichierDeFiche::Salaries(s) => s.fiches.entry(droit::contexte::IdSalarie::lire(cle).map_err(plain)?).or_default(),
+            FichierDeFiche::Spectacles(s) => s.fiches.entry(droit::contexte::IdSpectacle::lire(cle).map_err(plain)?).or_default(),
+        })
+    }
+
+    /// Le fichier porte-t-il la fiche `cle` ?
+    pub(crate) fn contient(&self, cle: &str) -> bool {
+        match self {
+            FichierDeFiche::Entreprise(_) => false,
+            FichierDeFiche::Salaries(s) => s.fiches.contains_key(cle),
+            FichierDeFiche::Spectacles(s) => s.fiches.contains_key(cle),
+        }
+    }
+
+    /// Le fichier en JSON, tel qu'il s'ecrit.
+    pub(crate) fn en_valeur(&self) -> Value {
+        match self {
+            FichierDeFiche::Entreprise(e) => socle::ecriture::en_valeur(e),
+            FichierDeFiche::Salaries(s) => socle::ecriture::en_valeur(s),
+            FichierDeFiche::Spectacles(s) => socle::ecriture::en_valeur(s),
+        }
+    }
+}
+
 /// Seul `actif` change, a partir d'aujourd'hui (archiver, c'est ne plus proposer a partir de ce jour ; ce qui precede
 /// reste ce qu'il etait), par l'ecrivain de la fiche (`poser_champs`).
 pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -> R<()> {
@@ -1270,7 +1363,8 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
     let qui = if nom == "salarie" {
         super::salarie(ctx, &json!(cle)).map(|s| super::nom_a_l_ecran(&s)).ok()
     } else {
-        ctx.spectacle(cle).ok().and_then(|s| s.get("titre").and_then(Value::as_str).filter(|t| !t.trim().is_empty()).map(String::from))
+        let fiche = ctx.spectacles.get(cle).ok_or_else(|| refus(format!("Spectacle inconnu : {}.", socle::fichiers::repr(cle))))?;
+        fiche.titre.portee().filter(|t| !t.trim().is_empty()).map(String::from)
     }
     .unwrap_or_else(|| cle.to_string());
     let p = match (nom, actif) {
@@ -1294,8 +1388,19 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
     }
     // CE QUI REVIENT SE RANGE SUR LA LIGNE DE LA DEMANDE : ici, qu'on y renonce.
     for code in &codes {
-        let retour = json!({"code": code, "abandon": true, "quand": maintenant(), "qui": "interface", "reponse": "demande abandonnee, sans reponse"});
-        journal::rattacher(&ctx.racine, |l| demande_de(l, code), retour).map_err(plain)?;
+        let retour = journal::RetourFiche {
+            code: code.clone(),
+            abandon: true,
+            salarie: None,
+            illisible: None,
+            erreurs: None,
+            quand: maintenant(),
+            qui: "interface".into(),
+            de: None,
+            message: None,
+            reponse: "demande abandonnee, sans reponse".into(),
+        };
+        journal::rattacher(&ctx.racine, |l| demande_de(l, code), journal::Revenu::Fiche(retour)).map_err(plain)?;
     }
     // Ni NIR ni IBAN dans la reponse : la page relit `configuration` (comme apres `fiche-demander`).
     Ok(json!({"adresse": adresse}))
@@ -1306,22 +1411,13 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
 /// Le prochain matricule (S21.G00.30.019, que l'employeur choisit : `norme-dsn/texte-2027/bloc-S21.G00.30.txt`) : le
 /// plus grand code salarie que le fichier ait jamais porte, plus un. Le fichier est date : chaque fiche porte la suite
 /// de ses valeurs (`[{"valeur"}, {"depuis", "valeur"}]`), et chacune compte.
-fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
-    let lire = |v: &Value| entier(&Value::String(valeur_en_texte(v).trim().to_string())).ok();
-    let codes: Vec<i64> = salaries
-        .iter()
-        .filter(|(k, _)| !k.starts_with('_'))
-        .filter_map(|(_, s)| s.as_object()?.get("code_salarie"))
-        .flat_map(|c| match c {
-            Value::Array(versions) => versions.iter().filter_map(|x| x.get("valeur").and_then(lire)).collect::<Vec<_>>(),
-            autre => lire(autre).into_iter().collect(),
-        })
-        .collect();
+fn matricule_suivant(salaries: &droit::fiche::Salaries) -> i64 {
+    let codes = salaries.fiches.values().flat_map(|s| &s.code_salarie).filter_map(|e| entier(&Value::String(e.valeur.texte().trim().to_string())).ok());
     codes.into_iter().max().map_or(1, |m| m + 1)
 }
 
 /// La cle d'une fiche neuve, lisible et unique dans son fichier.
-fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Value>) -> R<String> {
+fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &FichierDeFiche) -> R<String> {
     let propre = |texte: &str, bas: bool| -> String {
         let t = champs::sans_accents(texte).replace(['\'', '\u{2019}'], "");
         let t: String = t.chars().map(|c| if envois::etats::lettre_ou_chiffre(c) { c } else { '-' }).collect();
@@ -1363,12 +1459,12 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
             if nom == "salarie" { "nom" } else { "titre" }
         )));
     }
-    if let Some(c) = candidats.iter().find(|c| !existants.contains_key(*c)) {
+    if let Some(c) = candidats.iter().find(|c| !existants.contient(c)) {
         return Ok(c.clone());
     }
     let dernier = candidats.last().unwrap();
     let mut n = 2;
-    while existants.contains_key(&format!("{}-{}", dernier, n)) {
+    while existants.contient(&format!("{}-{}", dernier, n)) {
         n += 1;
     }
     Ok(format!("{}-{}", dernier, n))
@@ -1422,7 +1518,7 @@ fn meme(a: &Value, b: &Value) -> bool {
 /// La structure `apres` garde chaque case de `avant` qui a une valeur (elle n'en remplit que des vides).
 fn seulement_completee(avant: &Value, apres: &Value) -> bool {
     match (avant.as_object(), apres.as_object()) {
-        (Some(a), Some(b)) => a.iter().filter(|(k, x)| !k.starts_with('_') && !sans_valeur(Some(x))).all(|(k, x)| b.get(k).is_some_and(|y| meme(x, y))),
+        (Some(a), Some(b)) => a.iter().filter(|(k, x)| !interne(k) && !sans_valeur(Some(x))).all(|(k, x)| b.get(k).is_some_and(|y| meme(x, y))),
         _ => false,
     }
 }
@@ -1444,7 +1540,7 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
         || v.is_some_and(|v| {
             v == &Value::Bool(false)
                 || v.as_array().is_some_and(Vec::is_empty)
-                || v.as_object().is_some_and(|o| o.iter().all(|(k, x)| k.starts_with('_') || sans_valeur(Some(x))))
+                || v.as_object().is_some_and(|o| o.iter().all(|(k, x)| interne(k) || sans_valeur(Some(x))))
         })
 }
 
@@ -1464,7 +1560,7 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
 const FAITS_SANS_DATE: [(&str, &str); 2] = [("entreprise", "premiere_embauche"), ("salarie", "date_anciennete")];
 
 pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<String, Value>, premiere_datee: bool) -> R<Vec<String>> {
-    let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
+    let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !interne(k)));
     if !existait {
         return Ok(Vec::new());
     }
@@ -1478,7 +1574,7 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
         .iter()
         .filter(|(k, v)| {
             let avant = ancienne.get(k.as_str()).filter(|a| !vide(Some(a))).or_else(|| defauts.get(k.as_str()));
-            !k.starts_with('_')
+            !interne(k)
                 && !FAITS_SANS_DATE.contains(&(nom, k.as_str()))
                 // Les autres etablissements : ligne par ligne (`etablissements::a_dater`).
                 && !(nom == "entreprise" && k.as_str() == "etablissements")
@@ -1518,9 +1614,8 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
         .filter_map(|d| d.mois.clone());
     let mut importes = Vec::new();
     for i in engagement::importe::tous(&ctx.racine).map_err(plain)? {
-        let c = engagement::cle_de_l_engagement(ctx, &i.objet().brut);
-        if c.as_deref().is_some_and(sien) {
-            importes.extend(i.paies().into_keys());
+        if i.objet().brut.saisie.carte.salarie.as_deref().is_some_and(sien) {
+            importes.extend(i.paies().keys().cloned());
         }
     }
     Ok(partis.chain(importes).max())
@@ -1530,26 +1625,21 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
 /// (`dernier_mois_parti`) : ce qui est parti garde ce qu'il a dit, le reste prend la valeur nouvelle. Aucun mois parti :
 /// le premier jour du mois en cours. Une autre date se choisit, dans le passe aussi : ce qui est parti se corrige alors.
 pub(crate) fn date_proposee(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<(Jour, String)> {
-    let en_clair = |m: &str| -> R<String> {
-        let j = socle::date::premier_du_mois(m).map_err(plain)?;
-        Ok(format!("{} {}", socle::date::nom_du_mois(j.mois as i64, socle::date::Graphie::Accentuee).map_err(plain)?, j.an))
-    };
     let qui = if nom == "entreprise" { "" } else { " pour ce salarié" };
     Ok(match dernier_mois_parti(ctx, nom, cle)? {
         Some(m) => {
-            let j = socle::date::premier_du_mois(&m).map_err(plain)?;
-            let suivant = socle::date::premier_du_mois(&j.mois_suivant()).map_err(plain)?;
+            let m = socle::mois::Mois::lire(&m).map_err(plain)?;
             let phrase = format!(
                 "Proposé : le premier mois dont rien n'est parti{}. Jusqu'à {} compris, ce qui est parti garde l'ancienne valeur.",
                 qui,
-                en_clair(&m)?
+                m.libelle(socle::mois::Graphie::Accentuee)
             );
-            (suivant, phrase)
+            (m.suivant().premier_jour(), phrase)
         }
         None => {
-            let mois = format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois);
-            let phrase = format!("Proposé : le premier jour de {}, rien n'étant encore parti{}.", en_clair(&mois)?, qui);
-            (socle::date::premier_du_mois(&mois).map_err(plain)?, phrase)
+            let mois = ctx.aujourdhui.mois_civil();
+            let phrase = format!("Proposé : le premier jour de {}, rien n'étant encore parti{}.", mois.libelle(socle::mois::Graphie::Accentuee), qui);
+            (mois.premier_jour(), phrase)
         }
     })
 }
@@ -1557,7 +1647,7 @@ pub(crate) fn date_proposee(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<(
 /// La date d'effet que la charge d'une route d'ecriture donne (`depuis`, AAAA-MM-JJ), ou `None`.
 pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
     if vrai(depuis) {
-        socle::date::d(depuis).map(Some).map_err(|m| erreur("ValueError", m))
+        documents::valeur::d(depuis).map(Some).map_err(|m| erreur("ValueError", m))
     } else {
         Ok(None)
     }
@@ -1568,36 +1658,30 @@ pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
 /// fiche de l'ecran (`ecrire_datee`), face a la fiche telle qu'elle est sur le disque a `lue_au`, l'ancien fichier
 /// sauvegarde. `cle` : celle d'un salarie ou d'un spectacle, `None` pour l'entreprise.
 fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<String, Value>, depuis: Option<Jour>, note: Option<&str>) -> R<()> {
-    let Some(fichier) = fichier_de(nom) else {
-        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
+    let mut contenu = FichierDeFiche::lire(&ctx.racine, nom)?;
+    let quoi = format!("config/{}", fichier_de(nom).unwrap_or_default());
+    let Some(brute) = contenu.fiche(cle) else {
+        return Err(refus(format!("La fiche {} {} n'existe pas : rien n'est écrit.", nom, cle.unwrap_or_default())));
     };
-    let chemin = ctx.racine.join(socle::fichiers::CONFIG).join(fichier);
-    let mut contenu = objet_du_fichier(&chemin)?;
-    let brute = match cle {
-        None => &mut contenu,
-        Some(k) => match contenu.get_mut(k) {
-            Some(Value::Object(m)) => m,
-            _ => return Err(refus(format!("La fiche {} {} n'existe pas : rien n'est écrit.", nom, k))),
-        },
-    };
-    let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &ctx.lue_au, &format!("config/{}", fichier)).map_err(plain)?;
-    ecrire_datee(brute, nom, &ancienne, &donnees, false, depuis, note, &ctx.lue_au)?;
+    let ancienne = brute.vue_au(&ctx.lue_au);
+    ecrire_datee(brute, nom, &quoi, &ancienne, &donnees, false, depuis, note, &ctx.lue_au)?;
+    let chemin = ctx.racine.join(&quoi);
     sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))
+    ecrire(&chemin, contenu.en_valeur())
 }
 
 /// UN TAUX DE PAS RECU S'ECRIT DANS LA FICHE DE SON SALARIE (`droit::pas::CHAMP`), date du jour ou il commence de valoir
 /// `depuis` : avant ce jour, la fiche ne le disait pas (la case vide). `note` dit d'ou il vient.
 pub(crate) fn poser_taux_recu(ctx: &Contexte, salarie: &str, valeur: Value, depuis: Jour, note: &str) -> R<()> {
-    let chemin = ctx.racine.join(droit::contexte::SALARIES);
-    let mut contenu = objet_du_fichier(&chemin)?;
-    let Some(Value::Object(brute)) = contenu.get_mut(salarie) else {
+    let mut contenu = FichierDeFiche::lire(&ctx.racine, "salarie")?;
+    let Some(brute) = contenu.fiche(Some(salarie)) else {
         return Err(refus(format!("La fiche salarie {} n'existe pas : rien n'est écrit.", salarie)));
     };
-    let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &depuis, droit::contexte::SALARIES).map_err(plain)?;
-    ecrire_datee(brute, "salarie", &ancienne, &un_champ(droit::pas::CHAMP, valeur), true, Some(depuis), Some(note), &depuis)?;
+    let ancienne = brute.vue_au(&depuis);
+    ecrire_datee(brute, "salarie", droit::contexte::SALARIES, &ancienne, &un_champ(droit::pas::CHAMP, valeur), true, Some(depuis), Some(note), &depuis)?;
+    let chemin = ctx.racine.join(droit::contexte::SALARIES);
     sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))
+    ecrire(&chemin, contenu.en_valeur())
 }
 
 /// Un seul champ, pour `poser_champs`.
@@ -1618,7 +1702,7 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
 /// ensuite dans « Avancé » de la fiche. Une fiche qui la dit la garde. INFERENCE : l'anciennete commence a l'entree dans
 /// l'entreprise.
 pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<()> {
-    if ctx.salaries.get(salarie).is_none_or(|f| f.get("date_anciennete").is_some_and(vrai)) {
+    if ctx.salaries.get(salarie).is_none_or(|f| f.date_anciennete.est_dite()) {
         return Ok(());
     }
     poser_champs(ctx, "salarie", Some(salarie), un_champ("date_anciennete", json!(debut)), None, None)
@@ -1631,27 +1715,27 @@ pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut
 /// Seule la valeur que l'import a posee, `pose_le`, se remplace : l'anciennete est un fait du passe (`FAITS_SANS_DATE`),
 /// elle se corrige. Une date saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
 pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str, debut: &str) -> R<bool> {
-    let contenu = objet_du_fichier(&ctx.racine.join(droit::contexte::SALARIES))?;
-    let Some(Value::Array(versions)) = contenu.get(salarie).and_then(|f| f.get("date_anciennete")) else { return Ok(false) };
-    let [seule] = versions.as_slice() else { return Ok(false) };
-    if seule.get("valeur").map(valeur_en_texte).as_deref() != Some(pose_le) || debut >= pose_le {
+    let FichierDeFiche::Salaries(contenu) = FichierDeFiche::lire(&ctx.racine, "salarie")? else { return Ok(false) };
+    let Some([seule]) = contenu.fiches.get(salarie).map(|f| f.date_anciennete.as_slice()) else { return Ok(false) };
+    if seule.valeur.dite().map(Jour::iso).as_deref() != Some(pose_le) || debut >= pose_le {
         return Ok(false);
     }
     // La note de l'import (d'ou vient la valeur) reste : la valeur vient toujours des pieces importees.
-    let note = seule.get("note").map(valeur_en_texte);
+    let note = seule.note.clone();
     poser_champs(ctx, "salarie", Some(salarie), un_champ("date_anciennete", json!(debut)), None, note.as_deref())?;
     Ok(true)
 }
 
 /// ECRIRE UNE FICHE DATEE : chaque valeur de `donnees` qui differe de `ancienne` (la fiche lue a `lue_au`, celle que
-/// l'ecran a montree) s'ecrit dans la fiche datee `brute` (`contexte::dater`). Ce qui change une valeur existante vaut a
+/// l'ecran a montree) s'ecrit dans la fiche datee `brute` (`FicheAEcrire::ecrire_case`, par sa forme : `droit::fiche::dater`). Ce qui change une valeur existante vaut a
 /// partir de `depuis`, et sans lui se refuse : ce qui precede garde l'ancienne valeur (`changements_a_dater` dit ce qui
 /// change). Une case vide qu'on remplit prend sa valeur de tout temps, `depuis` ou non. Une valeur `premiere_datee`
 /// (le taux de PAS recu) vaut a partir de `depuis` meme dans une case vide : avant lui, la fiche ne disait rien. Ce qui
 /// ne change rien s'ecrit tel quel. Les notes `_...` s'ecrivent telles quelles.
 pub(crate) fn ecrire_datee(
-    brute: &mut Map<String, Value>,
+    brute: &mut dyn FicheAEcrire,
     nom: &str,
+    fichier: &str,
     ancienne: &Value,
     donnees: &Map<String, Value>,
     premiere_datee: bool,
@@ -1660,7 +1744,6 @@ pub(crate) fn ecrire_datee(
     lue_au: &Jour,
 ) -> R<()> {
     let a_dater = changements_a_dater(nom, ancienne, donnees, premiere_datee)?;
-    let booleens: HashSet<String> = champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| c.cle).collect();
     if depuis.is_none() && !a_dater.is_empty() {
         // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
         let fiche = champs::fiche(nom)?;
@@ -1680,8 +1763,8 @@ pub(crate) fn ecrire_datee(
         )));
     }
     for (k, v) in donnees {
-        if k.starts_with('_') {
-            brute.insert(k.clone(), v.clone());
+        if interne(k) {
+            brute.ecrire_case(k, v, None, None, fichier)?;
             continue;
         }
         let avant = ancienne.get(k.as_str());
@@ -1692,24 +1775,18 @@ pub(crate) fn ecrire_datee(
         if (vide(avant) && rien) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }
-        let remplit_un_absent = depuis.is_some() && a_dater.contains(k) && !brute.contains_key(k.as_str());
+        let jours = brute.jours_de(k);
+        let remplit_un_absent = depuis.is_some() && a_dater.contains(k) && jours.is_empty();
         let jour = if depuis.is_some() && a_dater.contains(k) {
             depuis
         } else {
-            droit::contexte::valeurs_datees(&Value::Object(brute.clone()), k)
-                .map_err(plain)?
-                .into_iter()
-                .filter(|(j, _)| j.map_or(true, |j| j <= *lue_au))
-                .last()
-                .and_then(|(j, _)| j)
+            jours.into_iter().filter(|j| j.map_or(true, |j| j <= *lue_au)).last().flatten()
         };
         if remplit_un_absent {
-            // Avant `depuis`, la fiche ne disait rien : une case a cocher, son defaut (`null`, lu comme absent) ; un texte,
-            // une case vide.
-            let rien = if booleens.contains(k.as_str()) { Value::Null } else { Value::String(String::new()) };
-            droit::contexte::dater(brute, k, rien, None, None);
+            // Avant `depuis`, la fiche ne disait rien : la case, vide.
+            brute.ecrire_case(k, &Value::Null, None, None, fichier)?;
         }
-        droit::contexte::dater(brute, k, v.clone(), jour.as_ref(), note);
+        brute.ecrire_case(k, v, jour.as_ref(), note, fichier)?;
     }
     Ok(())
 }
@@ -1783,7 +1860,7 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(Value::String(s)) => Some(s.clone()),
         Some(_) => return Err(erreur("TypeError", socle::echec::charge("cle", "un texte"))),
     };
-    let donnees = exiger(charge, "donnees")?;
+    let donnees = &cases_changees(nom, charge)?;
     let forcer = charge.get("forcer").is_some_and(vrai);
     let mut depuis = charge.get("depuis").cloned().unwrap_or(Value::Null);
     let note = charge.get("note").unwrap_or(&Value::Null);
@@ -1813,6 +1890,32 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 
+/// CE QUE LA CHARGE CHANGE, case par case : ses `changements` (`droit::fiche::ChangementEntreprise`,
+/// `ChangementSalarie`, `ChangementSpectacle`, lus a la porte : une case inconnue ou une valeur d'une autre forme se
+/// refuse, rien n'est ecrit), chacun posant sa case, `null` la vidant ; une case qu'ils ne nomment pas ne change pas.
+/// Une structure (le signataire, la banque…) se donne entiere : elle remplace celle de la fiche.
+fn cases_changees(nom: &str, charge: &Value) -> R<Value> {
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Lus<C> {
+        #[allow(dead_code)] // lus pour refuser a la porte ce qui ne s'ecrirait pas
+        changements: droit::fiche::Changements<C>,
+    }
+    let liste = exiger(charge, "changements")?;
+    let lus = json!({"changements": liste});
+    match nom {
+        "entreprise" => lire_charge::<Lus<droit::fiche::ChangementEntreprise>>(&lus).map(drop)?,
+        "salarie" => lire_charge::<Lus<droit::fiche::ChangementSalarie>>(&lus).map(drop)?,
+        "spectacle" => lire_charge::<Lus<droit::fiche::ChangementSpectacle>>(&lus).map(drop)?,
+        autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
+    }
+    let mut cases = Map::new();
+    for ch in liste.as_array().into_iter().flatten() {
+        cases.insert(valeur_en_texte(&ch["case"]), ch["valeur"].clone());
+    }
+    Ok(Value::Object(cases))
+}
+
 /// Verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
 pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
@@ -1825,14 +1928,17 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     }
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
+    // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
+    let lue = match nom {
+        "salarie" => cle.as_deref().and_then(|k| ctx.salaries.get(k)).map(|f| socle::ecriture::en_valeur(&f.champs)),
+        _ => cle.as_deref().and_then(|k| ctx.spectacles.get(k)).map(socle::ecriture::en_valeur),
+    };
     let ancienne: &Value = if nom == "entreprise" {
         &montree
     } else {
-        let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
-        cle.as_deref().and_then(|k| magasin.get(k)).unwrap_or(&vide)
+        lue.as_ref().unwrap_or(&vide)
     };
-    // Ce que la charge ne dit pas (les notes internes, les cases d'une structure) reste ce qu'il est, avant tout le reste.
-    let Value::Object(mut donnees) = charge_completee(ancienne, donnees) else { unreachable!() };
+    let Value::Object(mut donnees) = donnees.clone() else { unreachable!() };
     coercer_booleens(nom, &mut donnees)?;
 
     // LE MATRICULE D'UN SALARIE SANS NIR NE SE CHANGE PAS : il finit son numero technique temporaire.
@@ -1859,7 +1965,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
             let autres: Vec<&str> = ctx
                 .salaries
                 .iter()
-                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == nir)
+                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.nir.texte().trim() == nir)
                 .map(|(k, _)| k.as_str())
                 .collect();
             if !autres.is_empty() {
@@ -1881,11 +1987,11 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         if !matricule.is_empty() {
             let porteur = ctx.salaries.iter().find(|(k, s)| {
                 Some(k.as_str()) != cle.as_deref()
-                    && s.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == matricule
+                    && s.code_salarie.texte().trim() == matricule
             });
             if let Some((k, s)) = porteur {
-                let prenom = s.get("prenom_affichage").filter(|p| vrai(p)).or(s.get("prenom")).map(valeur_en_texte).unwrap_or_default();
-                let qui = format!("{} {}", s.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom).trim().to_string();
+                let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
+                let qui = format!("{} {}", s.nom.texte(), prenom).trim().to_string();
                 return Err(refus(format!(
                     "Le matricule {} est déjà celui de {} (fiche {}). Un matricule désigne un salarié et un seul : la DSN \
 rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser la case vide pour prendre le suivant.",
@@ -1905,11 +2011,11 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         if !numero.is_empty() {
             let porteur = ctx.spectacles.iter().find(|(k, s)| {
                 Some(k.as_str()) != cle.as_deref()
-                    && s.get("numero_objet").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().eq_ignore_ascii_case(numero)
+                    && s.numero_objet.texte().trim().eq_ignore_ascii_case(numero)
             });
             if let Some((k, s)) = porteur {
-                let qui = match s.get("titre").filter(|t| !crate::import::completer::vide(Some(t))) {
-                    Some(t) => format!("du spectacle « {} » (fiche {})", valeur_en_texte(t), k),
+                let qui = match s.titre.remplie().filter(|t| !t.trim().is_empty() && !t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)) {
+                    Some(t) => format!("du spectacle « {} » (fiche {})", t, k),
                     None => format!("de la fiche {}", k),
                 };
                 return Err(refus(format!(
@@ -1925,7 +2031,7 @@ cette fiche-là, ou corrigez le numéro.",
         // Le matricule d'une fiche neuve : le suivant. Un matricule saisi est garde tel quel.
         if !donnees.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
         } else {
-            let existants = objet_du_fichier(&chemin)?;
+            let FichierDeFiche::Salaries(existants) = FichierDeFiche::lire(&ctx.racine, nom)? else { unreachable!() };
             donnees.insert("code_salarie".into(), Value::String(matricule_suivant(&existants).to_string()));
         }
         // L'ANCIENNETE PART DE L'EMBAUCHE, pas du jour de la fiche : la validation du premier engagement la pose
@@ -1942,35 +2048,32 @@ cette fiche-là, ou corrigez le numéro.",
         }
     }
     let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
-    anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne, !matches!(forcer, Forcer::Tout))?);
+    anomalies.extend(champs::cases_inconnues(nom, &donnees, !matches!(forcer, Forcer::Tout))?);
     if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(nom, &anomalies));
     }
 
     let (depuis, note) = (depuis_de(depuis)?, Some(valeur_en_texte(note)).filter(|n| vrai(note) && !n.trim().is_empty()));
-    let mut contenu = objet_du_fichier(&chemin)?;
-    if nom == "entreprise" {
+    let quoi = format!("config/{}", fichier);
+    let mut contenu = FichierDeFiche::lire(&ctx.racine, nom)?;
+    let avant = contenu.en_valeur();
+    if let FichierDeFiche::Entreprise(e) = &mut contenu {
         // La fiche entreprise est le fichier entier. Les autres etablissements se datent chacun a son ouverture.
         let mut sans_etablissements = donnees.clone();
         let etablissements = sans_etablissements.shift_remove("etablissements");
-        ecrire_datee(&mut contenu, nom, ancienne, &sans_etablissements, false, depuis, note.as_deref(), &ctx.lue_au)?;
+        ecrire_datee(e, nom, &quoi, ancienne, &sans_etablissements, false, depuis, note.as_deref(), &ctx.lue_au)?;
         if let Some(l) = etablissements {
-            crate::routes::etablissements::ecrire(ctx, &mut contenu, &donnees, &l, depuis, note.as_deref())?;
+            crate::routes::etablissements::ecrire(ctx, e, &donnees, &l, depuis, note.as_deref())?;
         }
-        return finir_fiche(None, &chemin, contenu, anomalies);
+        return finir_fiche(None, &chemin, avant, contenu, anomalies);
     }
     if cle.as_deref().map_or(true, str::is_empty) {
         // UNE FICHE NEUVE : la cle se fabrique ici et nulle part ailleurs.
         cle = Some(cle_neuve(nom, &donnees, &contenu)?);
     }
     let k = cle.clone().unwrap();
-    let mut brute = match contenu.get(&k) {
-        Some(Value::Object(m)) => m.clone(),
-        _ => Map::new(),
-    };
-    ecrire_datee(&mut brute, nom, ancienne, &donnees, false, depuis, note.as_deref(), &ctx.lue_au)?;
-    contenu.insert(k, Value::Object(brute));
-    finir_fiche(cle, &chemin, contenu, anomalies)
+    ecrire_datee(contenu.fiche_ou_neuve(&k)?, nom, &quoi, ancienne, &donnees, false, depuis, note.as_deref(), &ctx.lue_au)?;
+    finir_fiche(cle, &chemin, avant, contenu, anomalies)
 }
 
 /// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (`import::completer`) : chaque champ de `champs` va dans la fiche
@@ -1978,15 +2081,11 @@ cette fiche-là, ou corrigez le numéro.",
 /// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (un champ
 /// absent : de tout temps), par l'ecrivain de la fiche (`poser_champs`). Rend les champs ecrits.
 pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, champs: &Map<String, Value>) -> R<Map<String, Value>> {
-    let Some(fichier) = fichier_de(nom) else {
-        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
+    let mut contenu = FichierDeFiche::lire(&ctx.racine, nom)?;
+    let Some(brute) = contenu.fiche(cle) else {
+        return Err(refus(format!("La fiche {} {} n'existe plus : rien n'est complete.", nom, cle.unwrap_or_default())));
     };
-    let contenu = Value::Object(objet_du_fichier(&ctx.racine.join(socle::fichiers::CONFIG).join(fichier))?);
-    let brute = match cle {
-        None => &contenu,
-        Some(k) => contenu.get(k).filter(|f| f.is_object()).ok_or_else(|| refus(format!("La fiche {} {} n'existe plus : rien n'est complete.", nom, k)))?,
-    };
-    let au = droit::contexte::fiche_au(brute, &ctx.lue_au, &format!("config/{}", fichier)).map_err(plain)?;
+    let au = brute.vue_au(&ctx.lue_au);
     let ecrits: Map<String, Value> = champs.iter().filter(|(k, _)| vide(au.get(k.as_str()))).map(|(k, v)| (k.clone(), v.clone())).collect();
     if !ecrits.is_empty() {
         poser_champs(ctx, nom, cle, ecrits.clone(), None, None)?;
@@ -2000,34 +2099,33 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
 /// reste ce qu'elle est.
 pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, String)], note: &Value) -> R<()> {
     let Some(((_, premiere), suivantes)) = licences.split_first().filter(|(_, s)| !s.is_empty()) else { return Ok(()) };
-    let fiche = Value::Object(objet_du_fichier(&ctx.racine.join(droit::contexte::ENTREPRISE))?);
-    let portees = droit::contexte::valeurs_datees(&fiche, "licence_spectacle").map_err(plain)?;
-    if !matches!(portees.as_slice(), [(None, v)] if valeur_en_texte(v) == *premiere) {
+    let FichierDeFiche::Entreprise(fiche) = FichierDeFiche::lire(&ctx.racine, "entreprise")? else { return Ok(()) };
+    if !matches!(fiche.licence_spectacle.as_slice(), [seule] if seule.depuis.is_none() && seule.valeur.dite() == Some(premiere)) {
         return Ok(());
     }
     let note = Some(valeur_en_texte(note)).filter(|n| !n.trim().is_empty());
     for (mois, numero) in suivantes {
-        let jour = socle::date::premier_du_mois(mois).map_err(plain)?;
+        let jour = socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(plain)?;
         poser_champs(ctx, "entreprise", None, un_champ("licence_spectacle", json!(numero)), Some(jour), note.as_deref())?;
     }
     Ok(())
 }
 
-fn finir_fiche(cle: Option<String>, chemin: &Path, contenu: Map<String, Value>, anomalies: Vec<Value>) -> R<FicheEcrite> {
-    let avant = Value::Object(objet_du_fichier(chemin)?);
-    let apres = Value::Object(contenu.clone());
+fn finir_fiche(cle: Option<String>, chemin: &Path, avant: Value, contenu: FichierDeFiche, anomalies: Vec<Value>) -> R<FicheEcrite> {
+    let apres = contenu.en_valeur();
     let ecrit = avant != apres;
     let (a, n) = match cle.as_deref() {
-        Some(k) => (avant.get(k).cloned().unwrap_or(Value::Null), apres.get(k).cloned().unwrap_or(Value::Null)),
-        None => (avant, apres),
+        Some(k) => (avant.get(k).unwrap_or(&Value::Null), apres.get(k).unwrap_or(&Value::Null)),
+        None => (&avant, &apres),
     };
-    let champs: Vec<String> = n.as_object().into_iter().flatten().filter(|(k, v)| !k.starts_with('_') && a.get(k.as_str()) != Some(*v)).map(|(k, _)| k.clone()).collect();
+    let champs: Vec<String> = n.as_object().into_iter().flatten().filter(|(k, v)| !interne(k) && a.get(k.as_str()) != Some(*v)).map(|(k, _)| k.clone()).collect();
     if ecrit {
         sauver_avant(chemin)?;
-        ecrire(chemin, Value::Object(contenu))?;
+        ecrire(chemin, apres)?;
     }
     Ok(FicheEcrite { cle, anomalies, ecrit, champs })
 }
+
 
 // ------------------------------------------------------------------ la fiche demandee par courriel
 
@@ -2049,11 +2147,36 @@ fn adresse_valide(adresse: &str) -> bool {
 pub struct FicheDemandee {
     pub code: String,
     pub adresse: String,
-    pub ligne: Value,
+    pub ligne: envois::journal::Ligne,
 }
 
 /// Envoie a `adresse` le courriel « Remplir ma fiche ». Le journal garde
 /// le code : c'est par lui que la releve reconnaitra la reponse. `client` : la boite, ouverte ici (boite simulee dans une
+
+/// La charge de `fiche-demander` : l'adresse, le prenom (pour lui ecrire), et le mot de passe du logiciel tape pour l'envoi.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeFicheDemander {
+    adresse: String,
+    prenom: String,
+    #[serde(default)]
+    motdepasse: Option<String>,
+}
+
+/// Ce que rend `fiche-demander`.
+#[derive(Debug, serde::Serialize)]
+struct DemandeDeFiche {
+    phrase: String,
+    code: String,
+    adresse: String,
+}
+
+/// `fiche-demander` : le courriel « Remplir ma fiche » part (`demander_fiche`), sous la preuve que la charge porte.
+fn fiche_demander(ctx: &Contexte, c: ChargeFicheDemander) -> R<DemandeDeFiche> {
+    let preuve = Preuve::du_mot_de_passe(c.motdepasse);
+    let d = demander_fiche(ctx, &c.adresse, &c.prenom, &preuve, INTERFACE, None)?;
+    Ok(DemandeDeFiche { phrase: format!("Demande de fiche envoyée à {} (code {}) : sa fiche se crée à l'arrivée de sa réponse.", d.adresse, d.code), code: d.code, adresse: d.adresse })
+}
 /// compagnie fictive, sinon refus « boite absente ») quand l'appelant n'en donne pas.
 pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preuve, qui: &str, client: Option<&mut dyn Courriel>) -> R<FicheDemandee> {
     let adresse = strip(adresse).to_lowercase();
@@ -2067,15 +2190,11 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
     };
     verifier_preuve(ctx, Some(preuve), &socle::paris::maintenant()[..7], "demande de fiche (« Remplir ma fiche »)", &adresse)?;
 
-    let ent = &ctx.entreprise;
-    let compagnie = match vrai_ou(ent, "nom_affichage") {
-        Some(c) => c,
-        None => ent.get("raison_sociale").map(valeur_en_texte).unwrap_or_default(),
-    };
-    let sg = ent.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
-    let signataire = match vrai_ou(&sg, "prenom_affichage") {
-        Some(p) => p,
-        None => capitaliser(&sg.get("prenom").map(valeur_en_texte).unwrap_or_default()),
+    let compagnie = ctx.entreprise.nommee();
+    let sg = ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
+    let signataire = match sg.prenom_affichage.remplie() {
+        Some(p) => p.to_string(),
+        None => capitaliser(sg.prenom.texte()),
     };
     let expediteur = client.compte().to_lowercase();
     let code = fq::code_fiche();
@@ -2103,19 +2222,13 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
         pieces: Vec::new(),
     };
     let mut identifiants: Vec<String> = Vec::new();
+    let demande = |message: Option<String>, expediteur: Option<String>| journal::DetailFiche { code: code.clone(), adresse: adresse.clone(), prenom: prenom.clone(), message, expediteur };
     if let Err(e) = envoi::envoyer(&[message], &expediteur, client, Some(&mut identifiants), None) {
-        let detail = json!({"code": code, "adresse": adresse, "prenom": prenom});
-        noter(ctx, "fiche-demande", None, qui, false, &adresse, &e, Some(&detail))?;
+        noter(ctx, journal::Ligne::FicheDemande(par_courriel(None, qui, false, &adresse, &e, demande(None, None), None)))?;
         return Err(echec_d_envoi(e));
     }
-    let detail = json!({
-        "code": code,
-        "adresse": adresse,
-        "prenom": prenom,
-        "message": identifiants.first().cloned().unwrap_or_default(),
-        "expediteur": expediteur,
-    });
-    let ligne = noter(ctx, "fiche-demande", None, qui, true, &adresse, &format!("fiche demandee a {}", adresse), Some(&detail))?;
+    let detail = demande(Some(identifiants.first().cloned().unwrap_or_default()), Some(expediteur.clone()));
+    let ligne = noter(ctx, journal::Ligne::FicheDemande(par_courriel(None, qui, true, &adresse, &format!("fiche demandee a {}", adresse), detail, None)))?;
     Ok(FicheDemandee { code, adresse, ligne })
 }
 
@@ -2134,29 +2247,25 @@ pub struct Attendue {
 }
 
 /// La ligne `l` est-elle la demande de fiche partie sous le code `code` ? Ce qui en revient se range sur elle.
-fn demande_de(l: &Value, code: &str) -> bool {
-    l["quoi"] == json!("fiche-demande") && l.get("accepte").is_some_and(vrai) && l["detail"]["code"] == json!(code)
+fn demande_de(l: &journal::Ligne, code: &str) -> bool {
+    l.fiche().is_some_and(|e| e.accepte && e.detail.code == code)
 }
 
 /// `fiches_attendues` : les demandes parties et pas encore revenues, les plus anciennes d'abord. Une demande a
 /// laquelle on renonce se retire (`fiche-oublier-demande`, `fiches`).
 pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let detail = |l: &Value| -> Value { l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({})) };
     let mut sortie = Vec::new();
-    for l in envois::etats::filtrer(&lignes, Some("fiche-demande"), None, false)? {
-        let d = detail(l);
-        let code = d.get("code").cloned().unwrap_or(Value::Null);
-        if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || l.get("retours").is_some_and(vrai) {
+    for e in lignes.iter().filter_map(journal::Ligne::fiche) {
+        if !e.accepte || e.detail.code.is_empty() || !e.retours.is_empty() {
             continue;
         }
-        let texte = |cle: &str| d.get(cle).map(valeur_en_texte).unwrap_or_default();
         sortie.push(Attendue {
-            code: valeur_en_texte(&code),
-            adresse: texte("adresse"),
-            prenom: texte("prenom"),
-            quand: l.get("quand").and_then(Value::as_str).unwrap_or("").to_string(),
-            envoyes: d.get("message").and_then(Value::as_str).filter(|m| !m.is_empty()).map(|m| vec![m.to_string()]).unwrap_or_default(),
+            code: e.detail.code.clone(),
+            adresse: e.detail.adresse.clone(),
+            prenom: e.detail.prenom.clone(),
+            quand: e.quand.clone(),
+            envoyes: e.detail.message.clone().filter(|m| !m.is_empty()).into_iter().collect(),
         });
     }
     Ok(sortie)
@@ -2286,13 +2395,13 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         let existante: Option<String> = ctx
             .salaries
             .iter()
-            .find(|(k, s)| s.is_object() && !k.starts_with('_') && strip(&s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_lowercase() == de)
-            .map(|(k, _)| k.clone());
+            .find(|(_, s)| strip(s.email.texte()).to_lowercase() == de)
+            .map(|(k, _)| k.to_string());
         let donnees: Map<String, Value> = match &existante {
             Some(k) => {
                 // Une fiche qui existe deja : on ne complete que ses cases VIDES. Ce qu'elle porte a peut-etre deja
                 // ete declare.
-                let ancienne = ctx.salaries.get(k).and_then(Value::as_object).cloned().unwrap_or_default();
+                let ancienne = ctx.salaries.get(k.as_str()).and_then(|f| socle::ecriture::en_valeur(&f.champs).as_object().cloned()).unwrap_or_default();
                 let mut fusion = ancienne.clone();
                 for (cle, valeur) in &donnees {
                     if strip(&ancienne.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).is_empty() {
@@ -2319,11 +2428,19 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         let texte_de = |cle: &str| donnees.get(cle).map(valeur_en_texte).unwrap_or_default();
         let nom = format!("{} {}", texte_de("prenom_affichage"), texte_de("nom_affichage"));
         let erreurs = f.anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).count();
-        let retour = json!({
-            "code": code, "salarie": f.cle, "illisible": illisible, "erreurs": erreurs, "quand": quand, "qui": qui,
-            "de": de, "message": ident, "reponse": format!("fiche {} par courriel", if existante.is_some() { "completee" } else { "creee" }),
-        });
-        journal::rattacher(&ctx.racine, |l| demande_de(l, &code), retour).map_err(os)?;
+        let retour = journal::RetourFiche {
+            code: code.clone(),
+            abandon: false,
+            salarie: f.cle.as_deref().map(droit::contexte::IdSalarie::lire).transpose().map_err(os)?,
+            illisible: Some(illisible.clone()),
+            erreurs: Some(erreurs),
+            quand: quand.clone(),
+            qui: qui.to_string(),
+            de: Some(de.clone()),
+            message: Some(ident.clone()),
+            reponse: format!("fiche {} par courriel", if existante.is_some() { "completee" } else { "creee" }),
+        };
+        journal::rattacher(&ctx.racine, |l| demande_de(l, &code), journal::Revenu::Fiche(retour)).map_err(os)?;
         r.recues.push(json!({"code": code, "cle": f.cle, "nom": strip(&nom), "illisible": illisible, "erreurs": erreurs}));
     }
     client.fermer();
@@ -2394,18 +2511,16 @@ fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
-/// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
+/// `poser-courriel` : le courriel `email` du salarie `cle`, saisi la ou il manque (la boite des contrats a
 /// faire signer). La fiche entiere s'ecrit comme depuis l'ecran (`ecrire_fiche`), seul le courriel y change : il se
 /// verifie avec elle, et une fiche qui refuse le dit.
-pub(crate) fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = texte_requis(charge, "salarie")?;
-    let email = texte_requis(charge, "email")?;
-    let Some(Value::Object(fiche)) = ctx.salaries.get(cle) else {
+pub(crate) fn poser_courriel(ctx: &Contexte, cle: &str, email: &str) -> R<()> {
+    let Some(Value::Object(fiche)) = ctx.salaries.get(cle).map(|f| socle::ecriture::en_valeur(&f.champs)) else {
         return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
     };
-    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
+    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !interne(k)).map(|(k, v)| (k.clone(), v.clone())).collect();
     donnees.insert("email".into(), Value::String(email.trim().to_string()));
     let (depuis, _) = date_proposee(ctx, "salarie", Some(cle))?;
     ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &json!(depuis.iso()), &Value::Null)?;
-    Ok(json!({"salarie": cle, "email": email.trim()}))
+    Ok(())
 }

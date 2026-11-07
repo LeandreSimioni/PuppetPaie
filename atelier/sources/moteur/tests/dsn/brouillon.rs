@@ -27,10 +27,10 @@ fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
     let s = saisie(&c, "2026-11");
     let spectacle = s["engagements"][0]["spectacle"].clone();
     let nouveau = json!({
-        "salarie": "FULLER", "spectacle": spectacle, "metier": "ACC010",
-        "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}],
+        "salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": spectacle, "metier": "ACC010",
+        "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "lieu": null, "dates": ["2026-11-27"], "planning": []}],
     });
-    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": nouveau}), jour));
+    reussi(&crate::outils::saisir(&c, "2026-11", None, &nouveau, jour));
     let avec = dsn();
 
     let emploi = |texte: &str| valeur(&individu(texte, "FULLER"), "S21.G00.40.036");

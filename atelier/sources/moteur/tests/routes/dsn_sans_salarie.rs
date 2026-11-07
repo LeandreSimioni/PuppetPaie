@@ -18,16 +18,17 @@ fn l_horloge_depose_la_dsn_d_un_mois_sans_engagement() {
     let gestes: Vec<String> = gestes
         .lines()
         .take_while(|l| !l.contains("\"enregistrer-saisie\""))
-        .map(|l| l.replacen("\"declarant_dsn\":{", "\"declarant_dsn\":{\"civilite\":\"01\",", 1))
-        .map(|l| if l.contains("\"cle\":\"CRAIG\"") { l.replacen("\"date_anciennete\":\"2026-02-02\"", "\"date_anciennete\":\"2026-01-29\"", 1) } else { l })
+        .map(|l| l.replacen("\"case\":\"declarant_dsn\",\"valeur\":{", "\"case\":\"declarant_dsn\",\"valeur\":{\"civilite\":\"01\",", 1))
+        .map(|l| if l.contains("\"cle\":\"CRAIG\"") { l.replacen("{\"case\":\"date_anciennete\",\"valeur\":\"2026-02-02\"}", "{\"case\":\"date_anciennete\",\"valeur\":\"2026-01-29\"}", 1) } else { l })
         .collect();
     std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
-    reussi(&route(
+    reussi(&crate::outils::valider(
         &c,
-        "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete",
-            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}]}}),
+        "2026-01",
+        None,
+        &json!({"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
+            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "lieu": null, "dates": ["2026-01-29", "2026-01-30"], "planning": []}]}),
         "2026-01-05",
     ));
     let r = route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-03-20"}), "2026-03-20");

@@ -395,7 +395,7 @@ function dessinerFormulaire(fiche) {
           // Le titre, pas la cle : `aaah-zerbinette` est un identifiant interne.
           ? ` <span class="discret">— ${echapper(fiche.donnees.numero_objet || fiche.cle)}</span>` : ""}</h2>
         ${fiche.cle && fiche.donnees.titre ? `<div class="cout-annee" data-cote="spectacles"
-          data-cle="${echapper(fiche.donnees.titre)}"></div>` : ""}`}
+          data-cout-de="${echapper(fiche.donnees.titre)}"></div>` : ""}`}
       ${!fiche.cle && FICHE_ACTIVE === "spectacle" ? `<p class="note">${aideDe("fiche_cle")}</p>` : ""}
       ${err && fiche.erreurs_titre ? `<div class="encart erreur"><b>${echapper(fiche.erreurs_titre)}</b>
         — ${echapper(fiche.erreurs_note)}</div>` : ""}
@@ -925,7 +925,7 @@ async function remplirDepuisMetier(code) {
   // Le NIR et le sexe de la fiche : le moteur en tire la forme du métier
   // (« Administratrice de production » pour une salariée).
   const lu = (cle) => (document.querySelector(`#config-formulaire [data-cle="${cle}"]`) || {}).value || "";
-  try { r = await api("emploi", { metier: code, salarie: { nir: lu("nir"), sexe: lu("sexe") } }); }
+  try { r = await api("emploi", { metier: code, cadre: null, feminin: false, salarie: { nir: lu("nir"), sexe: lu("sexe") } }); }
   catch (e) { dire(e.message, "erreur"); return; }
   const poser = (cle, v) => {
     const c = document.querySelector(`#config-formulaire [data-cle="${cle}"]`);
@@ -1302,7 +1302,7 @@ function structureLisible(champ, v) {
  * le courriel en minuscules. On ne montre que ce qui a CHANGE, avec le
  * libelle de la case -- « Courriel : CONTACT@EXEMPLE.FR ». Une cle que
  * l'ancienne valeur ne portait pas n'est pas un changement : elle est nee
- * depuis. Les cles `_…` sont des notes, pas des valeurs. Chaque case se nomme par son libellé de
+ * depuis. Les cles `note` et `_…` sont des notes, pas des valeurs. Chaque case se nomme par son libellé de
  * `champs-base.json`, celles que la fiche ne montre pas comprises ; une case faite de cases (« taux.t1_cadre »)
  * se dit case par case. */
 function valeurHistorique(champ, avant, apres) {
@@ -1315,7 +1315,7 @@ function valeurHistorique(champ, avant, apres) {
     ? Object.entries(v).map(([s, x]) => dire(`${k}.${s}`, x)).join(" · ")
     : `${libelles[k] || k} : ${valeurLisible(v)}`;
   const courant = apres && typeof apres === "object" ? apres : {};
-  const cles = Object.keys(avant).filter((k) => !k.startsWith("_"));
+  const cles = Object.keys(avant).filter((k) => !k.startsWith("_") && k !== "note");
   const changees = cles.filter((k) =>
     JSON.stringify(avant[k]) !== JSON.stringify(courant[k]));
   return (changees.length ? changees : cles).map((k) => dire(k, avant[k])).join(" · ");
@@ -1397,10 +1397,23 @@ function demanderDateDEffet({ changements = [], depuis: propose, pourquoi, usage
  * lui propose. Un seul chemin d'écriture, forcé ou non : le
  * chemin forcé se contentait de redessiner, et la fiche restait « modifiée »
  * -- quitter l'onglet demandait d'enregistrer ce qui l'était déjà. */
+/* LES CASES QUE LA PAGE ENVOIE à `enregistrer-fiche` : une liste de changements `[{case, valeur}]` (comme la
+ * carte), chaque structure entière ; une case vidée part `null`, dans une structure comme seule (le moteur refuse
+ * `""`). */
+function sansTexteVide(v) {
+  if (v === "") return null;
+  if (Array.isArray(v)) return v.map(sansTexteVide);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, sansTexteVide(x)]));
+  return v;
+}
+function casesDeLaCharge(donnees) {
+  return { changements: Object.entries(donnees).map(([c, valeur]) => ({ case: c, valeur: sansTexteVide(valeur) })) };
+}
+
 async function ecrireFiche(fiche, donnees, daté, forcer = false) {
   try {
     const r = await api("enregistrer-fiche",
-      { nom: FICHE_ACTIVE, cle: fiche.cle, donnees, ...daté, ...(forcer ? { forcer: true } : {}) });
+      { nom: FICHE_ACTIVE, cle: fiche.cle, ...casesDeLaCharge(donnees), ...daté, ...(forcer ? { forcer: true } : {}) });
     // Ce qui change demande sa date d'effet : le moteur l'a dit, rien n'est écrit ; la même demande, datée et confirmée.
     if (r.avertissement) {
       const réponse = await demanderDateDEffet(r.avertissement);

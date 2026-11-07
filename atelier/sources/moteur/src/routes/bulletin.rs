@@ -1,17 +1,19 @@
 //! Configuration › Modèle de bulletin : simplifie ou complet, chacun montre sur une paie fictive ; la compagnie choisit.
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::fiches::refus;
 use droit::contexte::Contexte;
 use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use socle::fichiers::dossier_du_code;
 use socle::echec::{Echec, R};
-use socle::fichiers::lire_json;
+use documents::valeur::lire_json;
 
 const MODELE: Champ = Champ { nom: "modele", libelle: Affiche::new("Modèle"), forme: Forme::Texte, sens: "« simplifié » ou « complet »", avance: false };
 
@@ -21,7 +23,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Bulletin);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "bulletin-modeles",
+        route: Route::BulletinModeles,
         geste: "Dire le modèle du bulletin choisi, et les salariés qui en ont un autre.",
         charge: &[],
         exemple: r#"{}"#,
@@ -33,7 +35,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "bulletin-modele-apercu",
+        route: Route::BulletinModeleApercu,
         geste: "Montrer un bulletin d'exemple dans un modèle.",
         charge: &[MODELE],
         exemple: r#"{"modele":"complet"}"#,
@@ -45,7 +47,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Lecture,
     },
     Fiche {
-        nom: "bulletin-modele-choisir",
+        route: Route::BulletinModeleChoisir,
         geste: "Choisir le modèle du bulletin des documents faits dès aujourd'hui.",
         charge: &[MODELE],
         exemple: r#"{"modele":"simplifié"}"#,
@@ -59,40 +61,50 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "bulletin-modeles" => modeles(ctx).map(|mut v| {
-            // Ce que l'ecran des modeles dit : a quoi sert le choix, les salaries qui en gardent un autre, ce que le choix change.
-            let autrement: Vec<String> = v["salaries_autrement"].as_array().into_iter().flatten().map(|s| format!("{} ({})", super::mot(&s["nom"]), super::mot(&s["modele"]))).collect();
-            v["ecran"] = json!({
-                "intro": "Le bulletin que la compagnie remet à ses salariés. Chaque modèle est montré sur la même paie fictive (une compagnie et un salarié inventés) : mêmes lignes du modèle réglementaire, mêmes totaux, même net. Un salarié qui demande l'autre modèle l'obtient par la case « Modèle de bulletin demandé par le salarié » de sa fiche, dans Avancé.",
-                "autrement": if autrement.is_empty() { Value::Null } else { json!(format!("Ces salariés ont demandé l'autre modèle (case de leur fiche, Avancé) et le gardent : {}.", autrement.join(", "))) },
-                "ensuite": "Le choix vaut pour les bulletins produits ensuite ; ceux déjà remis ne changent pas.",
-            });
-            let p = format!("Modèle de bulletin : {}{}.", socle::valeur::valeur_en_texte(&v["choisi"]), if v["par_defaut"] == json!(true) { " (celui du logiciel)" } else { "" });
-            super::phrase_en_tete(v, p)
-        }),
-        "bulletin-modele-apercu" => {
-            let modele = modele_demande(charge)?;
-            let pdf = apercu_pdf(modele).map_err(refus)?;
-            Ok(json!({"phrase": format!("Bulletin d'exemple dans le modèle {}, en PDF.", modele.cle()), "modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
+        Route::BulletinModeles => {
+            let super::SansCharge {} = super::lire_charge(charge)?;
+            super::en_json(modeles(ctx)?)
         }
-        "bulletin-modele-choisir" => choisir(ctx, charge).map(|v| {
-            let p = format!("Modèle choisi : {}, pour les documents faits à partir d'aujourd'hui.", socle::valeur::valeur_en_texte(&v["choisi"]));
-            super::phrase_en_tete(v, p)
-        }),
+        Route::BulletinModeleApercu => {
+            let modele = modele_demande(&super::lire_charge(charge)?)?;
+            let pdf = apercu_pdf(modele).map_err(refus)?;
+            super::en_json(ApercuModele {
+                phrase: format!("Bulletin d'exemple dans le modèle {}, en PDF.", modele.cle()),
+                modele: modele.cle().to_string(),
+                pdf: socle::base64::ecrire(&pdf),
+            })
+        }
+        Route::BulletinModeleChoisir => super::en_json(choisir(ctx, &super::lire_charge(charge)?)?),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
 
 // ------------------------------------------------------------------ le modele du bulletin
 
-/// Le modele que la charge nomme (`modele`) : un modele connu, rien d'autre.
-fn modele_demande(charge: &Value) -> R<Modele> {
-    let v = charge.get("modele").cloned().unwrap_or(Value::Null);
-    let cle = v.as_str().map(str::trim).unwrap_or_default();
+/// La charge de `bulletin-modele-apercu` et de `bulletin-modele-choisir` : le modele, par sa cle.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeModele {
+    pub(crate) modele: String,
+}
+
+/// Ce que rend `bulletin-modele-apercu` : le PDF d'exemple, en base64, et la phrase. La fenetre le lit aussi
+/// (`interface::Fenetre::apercu_bulletin`).
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ApercuModele {
+    phrase: String,
+    modele: String,
+    pub(crate) pdf: String,
+}
+
+/// Le modele que la charge nomme : un modele connu, rien d'autre.
+fn modele_demande(c: &ChargeModele) -> R<Modele> {
+    let cle = c.modele.trim();
     Modele::TOUS.iter().copied().find(|m| m.cle() == cle).ok_or_else(|| {
-        refus(format!("Modèle de bulletin inconnu : {}. Connus : « simplifié », « complet ».", v))
+        refus(format!("Modèle de bulletin inconnu : « {} ». Connus : « simplifié », « complet ».", c.modele))
     })
 }
 
@@ -112,33 +124,83 @@ pub fn modele_de_l_adresse(v: &str) -> Option<Modele> {
 
 // ------------------------------------------------------------------ bulletin-modeles
 
-fn modeles(ctx: &Contexte) -> R<Value> {
-    let choisi = Modele::de_la_fiche(&ctx.entreprise, "entreprise").map_err(refus)?;
+/// Un modele du bulletin, tel que l'onglet le montre : sa cle, son nom, sa description, son apercu, et sa pastille s'il
+/// est celui de la compagnie.
+#[derive(Debug, Clone, serde::Serialize)]
+struct ModeleDit {
+    cle: &'static str,
+    nom: &'static str,
+    description: &'static str,
+    apercu_dit: String,
+    apercu: String,
+    pastille: Option<socle::ecran::Pastille>,
+}
+
+/// Un salarie qui a demande l'autre modele (la case de sa fiche).
+#[derive(Debug, Clone, serde::Serialize)]
+struct SalarieAutrement {
+    cle: String,
+    nom: String,
+    modele: &'static str,
+}
+
+/// Ce que l'onglet dit autour des modeles.
+#[derive(Debug, Clone, serde::Serialize)]
+struct EcranDesModeles {
+    intro: &'static str,
+    autrement: Option<String>,
+    ensuite: &'static str,
+}
+
+/// LES MODELES DU BULLETIN (`bulletin-modeles`, et `bulletin-modele-choisir` apres le choix) : la phrase, le modele
+/// choisi et s'il est celui du logiciel, les modeles connus, les salaries qui en ont un autre, et ce que l'onglet en dit.
+#[derive(Debug, Clone, serde::Serialize)]
+struct ModelesDuBulletin {
+    phrase: String,
+    choisi: &'static str,
+    par_defaut: bool,
+    modeles: Vec<ModeleDit>,
+    salaries_autrement: Vec<SalarieAutrement>,
+    ecran: EcranDesModeles,
+}
+
+fn modeles(ctx: &Contexte) -> R<ModelesDuBulletin> {
+    let choisi = Modele::du_choix(ctx.entreprise.modele_bulletin.dite());
     let modele = choisi.unwrap_or(Modele::Simplifie);
-    // Les salaries dont la case dit un autre modele que la compagnie : la page les nomme, la decision reste au moteur.
     let mut autrement = Vec::new();
     for (cle, sal) in &ctx.salaries {
-        if let Some(m) = Modele::de_la_fiche(sal, &format!("du salarié {}", cle)).map_err(refus)? {
+        if let Some(m) = documents::bulletin::modele_du_salarie(sal).map_err(refus)? {
             if m != modele {
-                let champ = |k: &str| sal.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
-                let nom = format!("{} {}", champ("prenom_affichage"), champ("nom_affichage")).trim().to_string();
-                let nom = if nom.is_empty() { cle.clone() } else { nom };
-                autrement.push(json!({"cle": cle, "nom": nom, "modele": m.cle()}));
+                let nom = format!("{} {}", sal.prenom_affichage.texte(), sal.nom_affichage.texte()).trim().to_string();
+                let nom = if nom.is_empty() { cle.to_string() } else { nom };
+                autrement.push(SalarieAutrement { cle: cle.to_string(), nom, modele: m.cle() });
             }
         }
     }
-    let liste: Vec<Value> = Modele::TOUS
+    let liste: Vec<ModeleDit> = Modele::TOUS
         .iter()
-        .map(|m| json!({"cle": m.cle(), "nom": m.nom(), "description": m.description(), "apercu_dit": format!("Aperçu du modèle {}", m.nom()), "apercu": adresse_apercu(*m),
-            // Le modele de la compagnie : sa pastille, celle d'un choix fait.
-            "pastille": if *m == modele { super::pastille("fait", if choisi.is_none() { "celui de la compagnie (par défaut)" } else { "celui de la compagnie" }) } else { Value::Null }}))
+        .map(|m| ModeleDit {
+            cle: m.cle(),
+            nom: m.nom(),
+            description: m.description(),
+            apercu_dit: format!("Aperçu du modèle {}", m.nom()),
+            apercu: adresse_apercu(*m),
+            pastille: (*m == modele).then(|| socle::ecran::Pastille::de("fait", if choisi.is_none() { "celui de la compagnie (par défaut)" } else { "celui de la compagnie" })),
+        })
         .collect();
-    Ok(json!({
-        "choisi": modele.cle(),
-        "par_defaut": choisi.is_none(),
-        "modeles": liste,
-        "salaries_autrement": autrement,
-    }))
+    let dits: Vec<String> = autrement.iter().map(|s| format!("{} ({})", s.nom, s.modele)).collect();
+    Ok(ModelesDuBulletin {
+        phrase: format!("Modèle de bulletin : {}{}.", modele.cle(), if choisi.is_none() { " (celui du logiciel)" } else { "" }),
+        choisi: modele.cle(),
+        par_defaut: choisi.is_none(),
+        modeles: liste,
+        salaries_autrement: autrement,
+        ecran: EcranDesModeles {
+            intro: "Le bulletin que la compagnie remet à ses salariés. Chaque modèle est montré sur la même paie fictive (une compagnie et un salarié inventés) : mêmes lignes du modèle réglementaire, mêmes totaux, même net. Un salarié qui demande l'autre modèle l'obtient par la case « Modèle de bulletin demandé par le salarié » de sa fiche, dans Avancé.",
+            autrement: (!dits.is_empty()).then(|| format!("Ces salariés ont demandé l'autre modèle (case de leur fiche, Avancé) et le gardent : {}.", dits.join(", "))),
+            ensuite: "Le choix vaut pour les bulletins produits ensuite ; ceux déjà remis ne changent pas.",
+        },
+    })
 }
 
 // ------------------------------------------------------------------ l'apercu
@@ -148,18 +210,28 @@ pub fn dossier_apercu() -> PathBuf {
     dossier_du_code().join("apercu-bulletin")
 }
 
+/// LA PAIE FICTIVE DE L'APERCU (`apercu-bulletin/saisie.json`) : ce qu'elle est, son mois et ses cartes.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SaisieDeLApercu {
+    #[allow(dead_code)]
+    source: String,
+    mois: socle::mois::Mois,
+    engagements: Vec<engagement::saisie::Carte>,
+}
+
 /// La description du bulletin de la paie fictive sous `modele` : le moteur du jour, la compagnie fictive, rien d'ecrit.
 pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let racine = dossier_apercu();
-    let saisie = lire_json(&racine.join("saisie.json"))?;
-    let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
-    let ctx = Contexte::nouveau(&racine, Some(socle::date::dernier_du_mois(&mois)?))?;
+    let lue: SaisieDeLApercu = socle::forme::lire(&lire_json(&racine.join("saisie.json"))?, "La paie de l'aperçu ne se lit pas.")?;
+    let saisie = engagement::saisie::VueDuMois { mois: lue.mois, taux_cachet: None, engagements: lue.engagements };
+    let mois = saisie.mois.to_string();
+    let ctx = Contexte::nouveau(&racine, Some(saisie.mois.dernier_jour()))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
-    let mut ent = ctx.entreprise.clone();
-    let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;
-    o.insert(CASE_MODELE.into(), json!(modele.cle()));
+    let mut fiche = ctx.entreprise.clone();
+    fiche.modele_bulletin = Some(modele.choix());
     // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
-    o.insert("_gabarits".into(), json!(racine.join("gabarits").to_string_lossy()));
+    let ent = ctx.pour_un_modele(&fiche);
     // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier
     // bulletin de l'annee.
     let numeros: Vec<Option<String>> = (1..=s.paies.len()).map(|n| Some(format!("{}/{}", n, &mois[..4]))).collect();
@@ -175,10 +247,12 @@ pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
 
 // ------------------------------------------------------------------ bulletin-modele-choisir
 
-fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn choisir(ctx: &Contexte, charge: &ChargeModele) -> R<ModelesDuBulletin> {
     let modele = modele_demande(charge)?;
     // Le modele vaut pour les documents faits a partir d'aujourd'hui ; ceux d'avant gardent le leur.
     crate::routes::fiches::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
-    modeles(&neuf)
+    let mut v = modeles(&neuf)?;
+    v.phrase = format!("Modèle choisi : {}, pour les documents faits à partir d'aujourd'hui.", v.choisi);
+    Ok(v)
 }

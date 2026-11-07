@@ -13,6 +13,7 @@
 //! le mot de passe du logiciel par `demande::autoriser_acte`, un secret a poser par `demande::saisir_deux_fois` (sa
 //! fenetre, sinon le terminal sans echo, sinon un refus).
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -21,13 +22,13 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
 use crate::compagnie::administrateur::Poste;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
+use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
-use super::{ou_texte, vers_route};
-use envois::etats::{get, joindre, objet_vide, ou};
+use super::vers_route;
 use envois::google::{champ, en_texte, jeton_par_rafraichissement, DELAI, PERMISSIONS};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{vrai, MARQUEUR_COPIE};
-use socle::valeur::{nom_type, valeur_en_texte};
+use socle::fichiers::MARQUEUR_COPIE;
+use documents::valeur::{nom_type, valeur_en_texte, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
 const SERVICE: Champ = Champ { nom: "service", libelle: Affiche::new("Service"), forme: Forme::Texte, sens: "net-entreprises, urssaf ou courriel", avance: false };
@@ -60,7 +61,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Coffre);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "coffre-etat",
+        route: Route::CoffreEtat,
         geste: "Dire quels mots de passe sont posés, et depuis quand ; jamais leur valeur.",
         charge: &[],
         exemple: r#"{}"#,
@@ -72,7 +73,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "google-etat",
+        route: Route::GoogleEtat,
         geste: "Dire si le compte Google de la sauvegarde est lié.",
         charge: &[],
         exemple: r#"{}"#,
@@ -84,7 +85,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "coffre-poser",
+        route: Route::CoffrePoser,
         geste: "Poser le mot de passe d'un organisme ; pour l'Urssaf, avec le compte des DPAE.",
         charge: &[
             SERVICE,
@@ -103,7 +104,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "coffre-verifier",
+        route: Route::CoffreVerifier,
         geste: "Essayer une fois le mot de passe posé d'un organisme.",
         charge: &[SERVICE],
         exemple: r#"{"service":"urssaf"}"#,
@@ -115,7 +116,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "coffre-oublier",
+        route: Route::CoffreOublier,
         geste: "Retirer du coffre le mot de passe d'un organisme.",
         charge: &[SERVICE, MOT_DE_PASSE],
         exemple: r#"{"service":"urssaf"}"#,
@@ -127,7 +128,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "mot-de-passe-changer",
+        route: Route::MotDePasseChanger,
         geste: "Poser ou changer le mot de passe du logiciel.",
         charge: &[
             MOT_DE_PASSE,
@@ -143,7 +144,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "mot-de-passe-retirer",
+        route: Route::MotDePasseRetirer,
         geste: "Retirer le mot de passe du logiciel.",
         charge: &[MOT_DE_PASSE],
         exemple: r#"{}"#,
@@ -155,7 +156,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "google-autoriser",
+        route: Route::GoogleAutoriser,
         geste: "Lier le compte Google de la sauvegarde : Google s'ouvre, la personne accepte.",
         charge: &[MOT_DE_PASSE],
         exemple: r#"{}"#,
@@ -167,7 +168,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "google-oublier",
+        route: Route::GoogleOublier,
         geste: "Délier le compte Google de la sauvegarde : le jeton du poste s'efface.",
         charge: &[MOT_DE_PASSE],
         exemple: r#"{}"#,
@@ -179,7 +180,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "administrateur-etat",
+        route: Route::AdministrateurEtat,
         geste: "Dire ce que l'administrateur est pour cette compagnie.",
         charge: &[],
         exemple: r#"{}"#,
@@ -191,7 +192,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Lecture,
     },
     Fiche {
-        nom: "administrateur-rattacher",
+        route: Route::AdministrateurRattacher,
         geste: "Rattacher cette compagnie à l'administrateur : son mot de passe l'ouvre aussi.",
         charge: &[
             ADMINISTRATEUR,
@@ -206,7 +207,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "administrateur-detacher",
+        route: Route::AdministrateurDetacher,
         geste: "Détacher cette compagnie : elle reçoit son propre mot de passe.",
         charge: &[
             ADMINISTRATEUR,
@@ -224,7 +225,7 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let mots = |v: &Value| valeur_en_texte(&v["pastille"]["mots"]);
     // L'etat du coffre en une phrase : chaque service et ce que l'ecran en dit.
     let coffre = |fait: &str, v: Value| {
@@ -233,16 +234,16 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         super::phrase_en_tete(v, p)
     };
     match nom {
-        "coffre-etat" => coffre_etat(ctx).map(|mut v| {
+        Route::CoffreEtat => coffre_etat(ctx).map(|mut v| {
             v["ecran"] = ecran_du_coffre(ctx, &mut v);
             coffre("", v)
         }),
-        "google-etat" => google_etat(ctx).map(|v| {
+        Route::GoogleEtat => google_etat(ctx).map(|v| {
             let p = format!("Google Drive : {}.", mots(&v));
             super::phrase_en_tete(v, p)
         }),
-        "coffre-poser" => coffre_poser(ctx, charge),
-        "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge).map(|v| {
+        Route::CoffrePoser => coffre_poser(ctx, charge),
+        Route::CoffreVerifier => crate::compagnie::coffre_verifier::route(ctx, charge).map(|v| {
             let service = valeur_en_texte(&v["service"]);
             // Un compte incomplet se dit avec ce qui lui manque et ou le donner (`identifiant_du_compte`).
             let manque = etat_du_coffre(ctx).ok().and_then(|e| {
@@ -255,20 +256,20 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             };
             super::phrase_en_tete(v, p)
         }),
-        "coffre-oublier" => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
-        "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge).map(|v| coffre("Mot de passe du logiciel posé. ", v)),
-        "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge).map(|v| coffre("Mot de passe du logiciel retiré. ", v)),
-        "google-oublier" => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive. L'accès accordé côté Google se retire sur myaccount.google.com.")),
-        "google-autoriser" => google_autoriser(ctx, charge).map(|v| {
+        Route::CoffreOublier => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
+        Route::MotDePasseChanger => mot_de_passe_changer(ctx, charge).map(|v| coffre("Mot de passe du logiciel posé. ", v)),
+        Route::MotDePasseRetirer => mot_de_passe_retirer(ctx, charge).map(|v| coffre("Mot de passe du logiciel retiré. ", v)),
+        Route::GoogleOublier => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive. L'accès accordé côté Google se retire sur myaccount.google.com.")),
+        Route::GoogleAutoriser => google_autoriser(ctx, charge).map(|v| {
             let p = format!("Drive lié : {}. La prochaine ouverture sauvegarde.", valeur_en_texte(&v["compte"]));
             super::phrase_en_tete(v, p)
         }),
-        "administrateur-etat" => {
-            let v = administrateur_etat(&ctx.racine);
-            let p = format!("Mot de passe de la compagnie : {}.", mots(&v));
-            Ok(super::phrase_en_tete(v, p))
+        Route::AdministrateurEtat => {
+            let etat = administrateur_etat(&ctx.racine);
+            let phrase = format!("Mot de passe de la compagnie : {}.", etat.pastille.mots);
+            super::en_json(EtatAdministrateurDit { phrase, etat })
         }
-        "administrateur-rattacher" | "administrateur-detacher" => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
+        Route::AdministrateurRattacher | Route::AdministrateurDetacher => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -276,14 +277,22 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 // ------------------------------------------------------------------ l'administrateur
 
 /// Ce que l'administrateur de l'installation est pour la compagnie `racine` (`administrateur::etat`).
-pub fn administrateur_etat(racine: &Path) -> Value {
+pub(crate) fn administrateur_etat(racine: &Path) -> crate::compagnie::administrateur::EtatAdministrateur {
     let inst = crate::compagnie::administrateur::installation_de(racine);
-    crate::compagnie::administrateur::etat(&inst, Some(racine), &Poste::de_ce_poste())
+    crate::compagnie::administrateur::etat(&inst, racine, &Poste::de_ce_poste())
+}
+
+/// Ce que rend `administrateur-etat` : la phrase qui le dit, et l'etat.
+#[derive(Debug, serde::Serialize)]
+struct EtatAdministrateurDit {
+    phrase: String,
+    #[serde(flatten)]
+    etat: crate::compagnie::administrateur::EtatAdministrateur,
 }
 
 /// `administrateur-rattacher` et `administrateur-detacher`, sur le coffre de `poste` : tout se decide dans
 /// `administrateur.rs`. Le mot de passe de l'administrateur vient de la charge (la page), sinon il est tape par un humain.
-pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -> R<Value> {
+pub fn administrateur(racine: &Path, nom: Route, charge: &Value, poste: &Poste) -> R<Value> {
     use crate::compagnie::administrateur as adm;
     let inst = adm::installation_de(racine);
     let admin = match chaine(charge, "administrateur") {
@@ -300,7 +309,7 @@ pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -
         1 => n[0].clone(),
         k => format!("{} et {}", n[..k - 1].join(", "), n[k - 1]),
     };
-    if nom == "administrateur-rattacher" {
+    if nom == Route::AdministrateurRattacher {
         // Une compagnie qui a deja son mot de passe le donne aussi : c'est lui que celui de l'administrateur remplace.
         let actuel = if charge.get("motdepasse").is_some() {
             chaine(charge, "motdepasse").map(String::from)
@@ -312,7 +321,7 @@ pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -
         };
         let noms = adm::rattacher(&inst, racine, &admin, actuel.as_deref(), poste).map_err(refus)?;
         let phrase = format!("Compagnie rattachée à l'administrateur : {} s'ouvrent avec le même mot de passe.", en_liste(&noms));
-        return Ok(json!({"compagnies": noms, "etat": adm::etat(&inst, Some(racine), poste), "phrase": phrase}));
+        return Ok(json!({"compagnies": noms, "etat": adm::etat(&inst, racine, poste), "phrase": phrase}));
     }
     let lignes = ["Le NOUVEAU mot de passe de cette compagnie, à elle seule.".to_string(), "La frappe ne s'affiche pas.".to_string()];
     let nouveau = secret_a_poser(charge, "nouveau", "PuppetPaie : son propre mot de passe", &lignes)?;
@@ -321,7 +330,7 @@ pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -
         None => nouveau.clone(),
     };
     adm::detacher(&inst, racine, &admin, &nouveau, &confirmation, poste).map_err(refus)?;
-    Ok(json!({"etat": adm::etat(&inst, Some(racine), poste), "phrase": "Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe."}))
+    Ok(json!({"etat": adm::etat(&inst, racine, poste), "phrase": "Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe."}))
 }
 
 // ------------------------------------------------------------------ outils
@@ -483,7 +492,7 @@ fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Le nom et le prenom du compte Urssaf qui depose les DPAE, tels que la charge les dit, s'ils changent ceux de la fiche ;
 /// `None` s'ils sont ceux de la fiche (vides compris). SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents.
 fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static str, String)>>> {
-    let actuel = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
+    let actuel = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
     let propres: Vec<(&'static str, String)> = ["nom", "prenom"]
         .into_iter()
         .map(|cle| {
@@ -493,7 +502,7 @@ fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static 
             (cle, sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" "))
         })
         .collect();
-    if propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str).unwrap_or("") == v) {
+    if propres.iter().all(|(k, v)| droit::fiche::case_en(&actuel, k, serde_json::value::Serializer).and_then(Result::ok).as_ref().and_then(Value::as_str).unwrap_or("") == v) {
         return Ok(None);
     }
     if let Some((cle, _)) = propres.iter().find(|(_, v)| v.is_empty()) {
@@ -507,18 +516,14 @@ fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static 
 
 /// Ecrit le compte DPAE dans la fiche entreprise, par l'ecrivain de la fiche (`fiches::poser_entreprise`), date du jour ;
 /// les autres cles d'`api_dpae` sont gardees. Rend la fiche telle qu'elle vaut aujourd'hui.
-fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<Value> {
-    let mut cfg = match ctx.entreprise.get("api_dpae").filter(|v| vrai(v)) {
-        Some(Value::Object(o)) => o.clone(),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
-        None => serde_json::Map::new(),
-    };
+fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<droit::fiche::ChampsEntreprise> {
+    let mut cfg = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
     for (cle, v) in propres {
-        cfg.insert(cle.to_string(), Value::String(v));
+        let case = if cle == "nom" { &mut cfg.nom } else { &mut cfg.prenom };
+        *case = Some(v);
     }
-    crate::routes::fiches::poser_entreprise(ctx, "api_dpae", Value::Object(cfg), Some(ctx.aujourdhui))?;
-    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join(droit::contexte::ENTREPRISE))?;
-    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, droit::contexte::ENTREPRISE).map_err(Echec::from)
+    crate::routes::fiches::poser_entreprise(ctx, "api_dpae", serde_json::to_value(&cfg).unwrap_or(Value::Null), Some(ctx.aujourdhui))?;
+    Ok(droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&ctx.racine.join(droit::contexte::ENTREPRISE), droit::contexte::ENTREPRISE).map_err(Echec::from)?.au(&ctx.aujourdhui))
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
@@ -894,50 +899,34 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
 
 /// `identifiant_du_compte` : le compte que ce mot de passe ouvre, en clair ; ce
 /// qui en manque ; et s'il se saisit sur cette ligne (`ici`).
-fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
+fn identifiant_du_compte(ent: &droit::fiche::ChampsEntreprise, service: &str) -> R<Value> {
     match service {
         "net-entreprises" => {
-            let d = envois::transport::declarant(ent).map_err(|v| Echec {
-                classe: match v.get("classe").and_then(Value::as_str) {
-                    Some("AttributeError") => Some("AttributeError"),
-                    _ => None,
-                },
-                message: v.get("erreur").and_then(Value::as_str).unwrap_or("").to_string(),
-            })?;
-            let mut manque: Vec<Value> = Vec::new();
-            for c in ["nom", "prenom"] {
-                if !vrai(get(&d, c)?) {
-                    manque.push(json!(c));
-                }
-            }
-            if !vrai(get(&d, "siret")?) {
-                manque.insert(0, json!("siret"));
-            }
-            let noms: Vec<Value> = [get(&d, "nom")?, get(&d, "prenom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
-            let texte = joindre(" ", &noms)?;
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(get(&d, "siret")?)) } else { String::new() };
-            let dits: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
+            let d = envois::transport::declarant(ent);
+            let manque: Vec<&str> = [("siret", &d.siret), ("nom", &d.nom), ("prenom", &d.prenom)].into_iter().filter(|(_, v)| v.is_empty()).map(|(c, _)| c).collect();
+            let texte = [d.nom.as_str(), d.prenom.as_str()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" ");
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, d.siret) } else { String::new() };
+            let dits = d.manquants();
             let incomplet_dit = if manque.is_empty() { String::new() } else { format!("identifiant incomplet ({})", dits.join(", ")) };
             Ok(json!({"texte": phrase, "manque": manque, "ici": false, "incomplet_dit": incomplet_dit, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }
         "urssaf" => {
-            let cfg = ou(get(ent, "api_dpae")?, objet_vide());
-            let siret = ou(get(cfg, "siret")?, get(ent, "siret")?);
+            let cfg = ent.api_dpae.dite().cloned().unwrap_or_default();
+            let siret = cfg.siret.remplie().unwrap_or(ent.siret.texte()).to_string();
             let mut manque: Vec<Value> = Vec::new();
-            for c in ["nom", "prenom"] {
-                if !vrai(get(cfg, c)?) {
+            for (c, case) in [("nom", &cfg.nom), ("prenom", &cfg.prenom)] {
+                if case.remplie().is_none() {
                     manque.push(json!(c));
                 }
             }
-            let noms: Vec<Value> = [get(cfg, "prenom")?, get(cfg, "nom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
-            let texte = joindre(" ", &noms)?;
+            let texte = [cfg.prenom.remplie(), cfg.nom.remplie()].into_iter().flatten().collect::<Vec<_>>().join(" ");
             // Ce qui manque, dit : le compte de la DPAE ne part pas sans lui.
             let noms_manquants: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
             let manque_dit = if manque.is_empty() { String::new() } else { format!("le compte Urssaf n'est pas dit ({}) : la DPAE ne partira pas", noms_manquants.join(", ")) };
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(siret)) } else { String::new() };
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, siret) } else { String::new() };
             Ok(json!({
                 "texte": phrase, "manque": manque, "ici": true, "manque_dit": manque_dit,
-                "nom": ou_texte(get(cfg, "nom")?), "prenom": ou_texte(get(cfg, "prenom")?),
+                "nom": cfg.nom.texte(), "prenom": cfg.prenom.texte(),
             }))
         }
         _ => Ok(json!({"texte": "", "manque": [], "ici": false})),
@@ -951,7 +940,7 @@ fn coffre_etat(ctx: &Contexte) -> R<Value> {
 }
 
 /// `coffre_etat` sur une fiche entreprise donnee : `poser_compte_dpae` le relit sur la fiche qu'il vient d'ecrire.
-pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
+pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &droit::fiche::ChampsEntreprise) -> R<Value> {
     let coffre = crate::compagnie::coffre::Coffre::du_poste(racine, "");
     let secrets = coffre.etat().map_err(vers_route)?;
     // UNE COMPAGNIE DONT LES ENVOIS SONT JOUES n'a rien a poser : chaque pastille le dit, en gris.
@@ -1009,14 +998,10 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
 /// rien ; chaque service porte aussi ce que sa confirmation d'oubli demande (`oublier`).
 fn ecran_du_coffre(ctx: &Contexte, v: &mut Value) -> Value {
     let fictive = crate::compagnie::bridage::branchement(&ctx.racine).joue();
-    let adm = if fictive { json!({}) } else { administrateur_etat(&ctx.racine) };
-    let autres: Vec<String> = adm["autres"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-    let en_liste = match autres.len() {
-        0 => String::new(),
-        1 => autres[0].clone(),
-        k => format!("{} et {}", autres[..k - 1].join(", "), autres[k - 1]),
-    };
-    let rattachee = vrai(&adm["rattachee"]);
+    let adm = (!fictive).then(|| administrateur_etat(&ctx.racine));
+    let en_liste = adm.as_ref().map(|a| a.autres_dit.clone()).unwrap_or_default();
+    let rattachee = adm.as_ref().is_some_and(|a| a.rattachee);
+    let peut_rattacher = adm.as_ref().is_some_and(|a| a.peut_rattacher);
     let pose = vrai(&v["mot_de_passe_pose"]);
     for s in v["services"].as_array_mut().into_iter().flatten() {
         s["oublier"] = json!(format!("Oublier le mot de passe {} ? Les retours et les dépôts ne seront plus possibles jusqu'à ce qu'il soit reposé.", valeur_en_texte(&s["libelle"])));
@@ -1040,7 +1025,7 @@ fn ecran_du_coffre(ctx: &Contexte, v: &mut Value) -> Value {
         },
         "administrateur": if rattachee {
             json!({"dit": format!("cette compagnie s'ouvre avec {}, d'un seul mot de passe", en_liste), "note": "Détachée, elle a son propre mot de passe : celui de l'administrateur ne l'ouvre plus, et elle dépose seule."})
-        } else if vrai(&adm["peut_rattacher"]) {
+        } else if peut_rattacher {
             json!({"dit": format!("le mot de passe de {} peut ouvrir aussi cette compagnie", en_liste), "note": "Rattachée, elle s'ouvre avec le mot de passe de l'administrateur, et ses déclarations prêtes partent avec celles des autres compagnies, d'un seul mot de passe."})
         } else {
             Value::Null

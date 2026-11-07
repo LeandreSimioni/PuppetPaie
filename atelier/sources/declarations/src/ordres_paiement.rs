@@ -5,10 +5,10 @@
 //! CE QUI SE LIT (regle 1 : rien ne se devine) :
 //!
 //! - L'ORGANISME : S21.G00.20.001 du fichier. Son nom propre et ce que couvre son versement (`nom`, `objet`) se lisent
-//!   dans la base livree, `donnees/organismes-base.json` (`versement_normatif`), qui cite pour chacun la
-//!   table IVO des nomenclatures DSN et Audiens ; a defaut, le libelle de l'organisme dans `organismes` (`Contexte::organismes`). « DGFIP » est la
+//!   dans la base livree, `donnees/organismes-base.json` (`droit::organismes::Base`), qui cite pour chacun la
+//!   table IVO des nomenclatures DSN et Audiens. « DGFIP » est la
 //!   valeur que la norme donne a la DGFiP (cahier technique 2026.1, `norme-dsn/texte/bloc-S21.G00.20.txt`, l. 47). Un
-//!   identifiant que ni la base ni la configuration ne connaissent se dit tel quel, sans nom invente.
+//!   identifiant que la base ne connait pas se dit tel quel, sans nom invente.
 //! - L'URSSAF : l'organisme du bordereau (S21.G00.22.001) du meme fichier ; une Urssaf par region, le nom est generique.
 //! - LA RETRAITE COMPLEMENTAIRE d'une autre institution qu'Audiens : l'organisme dont `codes81` porte le 131 ou le 105,
 //!   « Cotisation regime unifie Agirc-Arrco » (`texte/bloc-S21.G00.81.txt`, l. 269 et 287).
@@ -46,7 +46,7 @@
 //! quand la norme dit 81.002 « non concerne » (Agirc-Arrco, Conges Spectacles : `texte/bloc-S21.G00.81.txt`, l. 372 et
 //! 379). Ce qu'il en advient est dit a un seul endroit, `bordereau::credit`.
 
-use serde_json::{json, Map, Value};
+use droit::organismes::Versement;
 
 use documents::bordereau::{self, Destinataire};
 use socle::date::Jour;
@@ -59,21 +59,11 @@ const SOURCE_AUDIENS: &str = "Audiens, dossier DSN : « L'échéance de paiement
 const SOURCE_AGIRC: &str = "Cahier d'aide à la codification Agirc-Arrco CT2026, p. 47 : « le prélèvement sera exécuté au plus tard le dernier jour ouvré du mois d'exigibilité des cotisations », le mois qui suit la période déclarée (ou le trimestre civil).";
 const SOURCE_AUCUNE: &str = "La DSN ne porte pas de date de paiement pour cet organisme (S21.G00.20.011 absente), et aucun texte relevé par le logiciel ne dit quand il prélève : l'organisme prélève à sa propre échéance.";
 
-fn nom_du_mois(an: i32, mois: u32) -> String {
-    // `mois` vient d'un `Jour`, donc de 1 a 12 : le repli (vide) ne peut pas arriver.
-    format!("{} {}", socle::date::nom_du_mois(mois as i64, socle::date::Graphie::Accentuee).unwrap_or_default(), an)
-}
-
 /// « d'août 2026 », « de septembre 2026 », ou « du 01/07/2026 au 30/09/2026 ».
 fn periode_lisible(debut: Option<Jour>, fin: Option<Jour>) -> String {
     match (debut, fin) {
-        (Some(d), Some(f)) if d.jour == 1 && d.an == f.an && d.mois == f.mois && f.jour == f.jours_du_mois() => {
-            let n = nom_du_mois(d.an, d.mois);
-            if n.starts_with(['a', 'o']) {
-                format!("d'{}", n)
-            } else {
-                format!("de {}", n)
-            }
+        (Some(d), Some(f)) if d.mois_civil() == f.mois_civil() && d == d.mois_civil().premier_jour() && f == f.mois_civil().dernier_jour() => {
+            socle::texte::de(&d.mois_civil().libelle(socle::mois::Graphie::Accentuee))
         }
         (Some(d), Some(f)) => format!("du {} au {}", d.jj_mm_aaaa(), f.jj_mm_aaaa()),
         _ => "d'une période illisible dans le fichier".to_string(),
@@ -82,8 +72,7 @@ fn periode_lisible(debut: Option<Jour>, fin: Option<Jour>) -> String {
 
 /// Le dernier jour ouvre (ni samedi, ni dimanche, ni fete legale) du mois qui suit `fin`.
 fn dernier_ouvre_du_mois_suivant(fin: &Jour) -> Resultat<Jour> {
-    let (an, mois) = if fin.mois == 12 { (fin.an + 1, 1) } else { (fin.an, fin.mois + 1) };
-    let mut j = Jour::nouveau(an, mois, socle::date::jours_du_mois(an, mois)).ok_or_else(|| socle::date::jour_impossible(an, mois, 31))?;
+    let mut j = fin.mois_civil().suivant().dernier_jour();
     while crate::echeance_dsn::non_ouvre(&j)?.is_some() {
         j = j.plus_jours(-1)?;
     }
@@ -92,62 +81,46 @@ fn dernier_ouvre_du_mois_suivant(fin: &Jour) -> Resultat<Jour> {
 
 /// Le `jour` du mois qui suit le mois declare `mois` (`AAAA-MM`).
 fn jour_du_mois_suivant(mois: &str, jour: u32) -> Resultat<Jour> {
-    let d = socle::date::premier_du_mois(mois)?;
-    let (an, mo) = if d.mois == 12 { (d.an + 1, 1) } else { (d.an, d.mois + 1) };
-    Jour::nouveau(an, mo, jour).ok_or_else(|| socle::date::jour_impossible(an, mo, jour))
+    let m = socle::mois::Mois::lire(mois)?.suivant();
+    m.jour(jour).ok_or_else(|| socle::date::jour_impossible(m.annee(), m.numero(), jour))
 }
 
-fn versement_de<'a>(organismes: &'a Value, id: &str) -> Option<&'a Map<String, Value>> {
-    organismes.get("versements")?.as_array()?.iter().filter_map(Value::as_object).find(|v| {
-        v.get("siret").map(socle::date::en_texte).as_deref() == Some(id)
-    })
-}
-
-fn est_agirc_arrco(v: Option<&Map<String, Value>>) -> bool {
-    v.and_then(|v| v.get("codes81")).and_then(Value::as_array).is_some_and(|c| {
-        c.iter().filter_map(Value::as_str).any(|x| x == "131" || x == "105")
-    })
-}
-
-fn texte_de<'a>(v: Option<&'a Value>, cle: &str) -> Option<&'a str> {
-    v.and_then(|v| v.get(cle)).and_then(Value::as_str).filter(|s| !s.is_empty())
+/// L'organisme est-il une caisse de retraite complementaire Agirc-Arrco (`codes81` porte le 131 ou le 105) ?
+fn est_agirc_arrco(v: Option<&Versement>) -> bool {
+    v.is_some_and(|v| v.codes81.iter().any(|x| x == "131" || x == "105"))
 }
 
 /// Les ordres d'une DSN fabriquee (`dsn::fabriquer`), mois principal declare `mois` (`AAAA-MM`), en clair : `organisme`
 /// (le nom propre, ou l'identifiant quand rien ne le connait), `identifiant`, `objet`, `montant`, `periode` (du, au),
 /// `date` (ISO, ou `null` quand aucun texte ne la dit), `quand` (la phrase de la page), `source` (d'ou vient la date) et
 /// `credit` (le trop-verse que l'ordre ne reprend pas ou reprend, et ce que la compagnie en fait ; `null` sans
-/// trop-verse). `organismes` : `Contexte::organismes` (Null s'il manque) ; `jour_echeance` : 5 ou 15
-/// (`Contexte::echeance_dsn`).
-pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jour_echeance: u32) -> Resultat<Vec<Value>> {
+/// trop-verse). `jour_echeance` : 5 ou 15 (`Contexte::echeance_dsn`).
+pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, jour_echeance: u32) -> Resultat<Vec<OrdreEnClair>> {
+    let base = droit::organismes::base()?;
     let mut out = Vec::new();
     for o in ordres {
-        let config = versement_de(organismes, &o.organisme);
-        let norme = versement_normatif(&o.organisme)?;
-        let norme = norme.as_ref();
+        let norme = base.versement(&o.organisme);
         let dgfip = o.destinataire == Destinataire::Dgfip;
         let est_urssaf = o.destinataire == Destinataire::Urssaf;
         let organisme = if dgfip {
             "DGFiP".to_string()
-        } else if let Some(n) = texte_de(norme, "nom") {
-            n.to_string()
+        } else if let Some(n) = norme {
+            n.nom.clone()
         } else if est_urssaf {
             "Urssaf".to_string()
-        } else if let Some(l) = config.and_then(|v| v.get("libelle")).and_then(Value::as_str).filter(|s| !s.is_empty()) {
-            l.to_string()
         } else {
             format!("Organisme {} (inconnu de la configuration)", o.organisme)
         };
         let (debut, fin) = (Some(o.debut), Some(o.fin));
         let periode = periode_lisible(debut, fin);
-        let regularisation = debut.is_some_and(|d| d.mois_iso() != mois);
+        let regularisation = debut.is_some_and(|d| d.mois_civil().to_string() != mois);
         let quoi = if dgfip {
             "l'impôt sur le revenu prélevé à la source sur les salaires"
-        } else if let Some(q) = texte_de(norme, "objet") {
-            q
+        } else if let Some(n) = norme {
+            n.objet.as_str()
         } else if est_urssaf {
             "les cotisations et contributions sociales du bordereau Urssaf"
-        } else if est_agirc_arrco(config) {
+        } else if est_agirc_arrco(norme) {
             "la retraite complémentaire Agirc-Arrco"
         } else {
             "les cotisations déclarées"
@@ -157,7 +130,7 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
             let mut c = objet.chars();
             c.next().map(|p| p.to_uppercase().chain(c).collect::<String>()).unwrap_or_default()
         };
-        let jour_norme = norme.and_then(|v| v.get("jour_de_paiement")).and_then(Value::as_u64);
+        let jour_norme = norme.and_then(|v| v.jour_de_paiement);
         let (date, quand, source): (Option<Jour>, String, &str) = if let Some(j) = o.date_paiement {
             (Some(j), format!("le {}", j.jj_mm_aaaa()), SOURCE_011)
         } else if est_urssaf || dgfip {
@@ -166,44 +139,63 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
         } else if let Some(jour) = jour_norme {
             let j = jour_du_mois_suivant(mois, jour as u32)?;
             (Some(j), format!("le {}", j.jj_mm_aaaa()), SOURCE_AUDIENS)
-        } else if est_agirc_arrco(config) && fin.is_some() {
+        } else if est_agirc_arrco(norme) && fin.is_some() {
             let j = dernier_ouvre_du_mois_suivant(&fin.expect("fin lue"))?;
             (Some(j), format!("au plus tard le {}", j.jj_mm_aaaa()), SOURCE_AGIRC)
         } else {
             (None, "date non dite par la DSN".to_string(), SOURCE_AUCUNE)
         };
-        let credit = bordereau::credit(o.destinataire, &organisme, o.reste, o.deduit).map(|c| {
-            json!({"reste": crate::dsn::mt(c.reste), "deduit": crate::dsn::mt(c.deduit), "titre": c.titre, "que_faire": c.que_faire,
-                "source": c.source})
+        let credit = bordereau::credit(o.destinataire, &organisme, o.reste, o.deduit)
+            .map(|c| CreditEnClair { reste: crate::dsn::mt(c.reste), deduit: crate::dsn::mt(c.deduit), titre: c.titre, que_faire: c.que_faire, source: c.source });
+        out.push(OrdreEnClair {
+            organisme,
+            identifiant: o.organisme.clone(),
+            objet,
+            montant: crate::dsn::mt(o.montant),
+            periode: PeriodeEnClair { du: debut.map(|j| j.iso()), au: fin.map(|j| j.iso()) },
+            date: date.map(|j| j.iso()),
+            quand,
+            source,
+            credit,
         });
-        out.push(json!({
-            "organisme": organisme,
-            "identifiant": o.organisme,
-            "objet": objet,
-            "montant": crate::dsn::mt(o.montant),
-            "periode": {"du": debut.map(|j| j.iso()), "au": fin.map(|j| j.iso())},
-            "date": date.map(|j| j.iso()),
-            "quand": quand,
-            "source": source,
-            "credit": credit,
-        }));
     }
     Ok(out)
 }
 
-/// LE VERSEMENT NORMATIF D'UN ORGANISME : l'entree de `donnees/organismes-base.json` dont `siret` est
-/// `identifiant` (S21.G00.20.001), ou `None`. On y lit son `nom` propre, ce que couvre son versement (`objet`) et son
-/// `jour_de_paiement` dans le mois qui suit, chacun avec sa source (`_source_*`). Lu dans la base livree, pas dans
-/// `config/organismes.json` : c'est la norme, la meme pour toute compagnie.
-pub fn versement_normatif(identifiant: &str) -> Result<Option<Value>, String> {
-    let b = socle::fichiers::lire_json(&socle::fichiers::dossier_du_code().join("organismes-base.json"))?;
-    Ok(b.get("versements")
-        .and_then(Value::as_array)
-        .and_then(|vs| vs.iter().find(|v| v.get("siret").map(socle::date::en_texte).as_deref() == Some(identifiant)))
-        .cloned())
+/// UN ORDRE DE TELEPAIEMENT EN CLAIR (`decrire`), tel que la boite du depot le montre.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct OrdreEnClair {
+    pub organisme: String,
+    pub identifiant: String,
+    pub objet: String,
+    pub montant: String,
+    pub periode: PeriodeEnClair,
+    pub date: Option<String>,
+    pub quand: String,
+    pub source: &'static str,
+    pub credit: Option<CreditEnClair>,
 }
 
-/// Le jour du mois suivant ou l'organisme `identifiant` preleve (`jour_de_paiement` de la base), ou `None`.
-pub fn jour_de_paiement(identifiant: &str) -> Result<Option<u32>, String> {
-    Ok(versement_normatif(identifiant)?.and_then(|v| v.get("jour_de_paiement").and_then(Value::as_u64)).map(|j| j as u32))
+/// La periode d'un ordre : du, au (`AAAA-MM-JJ`).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PeriodeEnClair {
+    pub du: Option<String>,
+    pub au: Option<String>,
+}
+
+/// Le trop-verse d'un ordre (`bordereau::credit`) : ce qu'il ne reprend pas, ce qu'il reprend, et ce que la compagnie en
+/// fait.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CreditEnClair {
+    pub reste: String,
+    pub deduit: String,
+    pub titre: String,
+    pub que_faire: String,
+    pub source: &'static str,
+}
+
+/// Le jour du mois suivant ou l'organisme `identifiant` (S21.G00.20.001) preleve, quand la base livree le dit
+/// (`jour_de_paiement` de `donnees/organismes-base.json`, la norme, la meme pour toute compagnie), ou `None`.
+pub fn jour_de_paiement(identifiant: &str) -> Resultat<Option<u32>> {
+    Ok(droit::organismes::base()?.versement(identifiant).and_then(|v| v.jour_de_paiement))
 }

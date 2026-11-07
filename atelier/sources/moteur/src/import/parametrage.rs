@@ -1,6 +1,6 @@
 //! L'IMPORT QUI PARAMETRE LA COMPAGNIE : ce que les DSN reprises disent de la configuration et que la fiche Entreprise ne
 //! porte pas, pose apres l'ecriture des fiches (`ecrite::importer`). La fiche Entreprise recoit deja des DSN ce qu'elle
-//! declare (`dsn_aem::lire_une_dsn` : l'entreprise, le compte qui paie, le numero Conges Spectacles, la licence, le
+//! declare (`declarations::dsn_lue::lire` : l'entreprise, le compte qui paie, le numero Conges Spectacles, la licence, le
 //! contact DSN, la medecine du travail interne) ; ici se pose ce qui vit ailleurs :
 //!
 //! - LE CODE RISQUE ET LE TAUX AT/MP (S21.G00.40.040, .043 ; `norme-dsn/texte/bloc-S21.G00.40.txt` l. 1224-1315) dans la
@@ -20,9 +20,9 @@
 use serde_json::{json, Map, Value};
 
 use crate::import::dsn_aem::LectureDsn;
+use declarations::dsn_lue::Adhesion;
 use droit::contexte::Contexte;
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 fn texte(v: &Value, k: &str) -> String {
     v.get(k).filter(|x| vrai(x)).map(valeur_en_texte).map(|s| s.trim().to_string()).unwrap_or_default()
@@ -33,8 +33,8 @@ fn texte(v: &Value, k: &str) -> String {
 fn deja_pose(ctx: &Contexte, an: i32) -> (bool, Option<String>) {
     match ctx.taux_atmp_de(an) {
         Some(Ok(t)) => {
-            let code = t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte);
-            if t.get("_pose_a_la_creation").is_some_and(vrai) || t.get("_reporte_de").is_some() {
+            let code = t.code_risque.clone().filter(|c| !c.is_empty());
+            if t.pose_a_la_creation == Some(true) || t.reporte_de.is_some() {
                 (false, code)
             } else {
                 (true, code)
@@ -51,11 +51,11 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
         if *an > courante || deja_pose(ctx, *an).0 {
             continue;
         }
-        let valeur = taux.as_deref().and_then(|t| socle::num::decimal_lu(&t.replace(',', ".")));
-        let source = format!("Lu dans la DSN de {} reprise par l'import (S21.G00.40.040, S21.G00.40.043).", en_clair(mois));
+        let valeur = *taux;
+        let source = format!("Lu dans la DSN de {} reprise par l'import (S21.G00.40.040, S21.G00.40.043).", socle::mois::Mois::en_clair(mois));
         if crate::routes::atmp::poser(ctx, i64::from(*an), code, valeur, &source).is_ok() {
             let dit = valeur.map(|v| format!("taux {} %", v.normalize().to_string().replace('.', ","))).unwrap_or_else(|| "sans taux (pas encore de notification)".into());
-            faits.push(format!("Accidents du travail {} : code risque {}, {}, lus dans la DSN de {}.", an, code, dit, en_clair(mois)));
+            faits.push(format!("Accidents du travail {} : code risque {}, {}, lus dans la DSN de {}.", an, code, dit, socle::mois::Mois::en_clair(mois)));
         }
     }
     if lecture.atmp.contains_key(&courante) {
@@ -66,20 +66,20 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
     if dit || de_lui_meme.as_deref() == Some(code.as_str()) {
         return;
     }
-    let source = format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040) ; taux de l'arrêté de {}.", en_clair(mois), courante);
+    let source = format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040) ; taux de l'arrêté de {}.", socle::mois::Mois::en_clair(mois), courante);
     if crate::routes::atmp::poser(ctx, i64::from(courante), code, None, &source).is_ok() {
-        faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; le taux de {} est celui de l'arrêté.", code, en_clair(mois), courante));
+        faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; le taux de {} est celui de l'arrêté.", code, socle::mois::Mois::en_clair(mois), courante));
     } else {
         // Le taux de l'annee n'est pas celui de l'arrete pour ce code (ou l'etablissement est en Alsace-Moselle) : le code
         // se garde, sans taux, et « Pour demarrer » demande le taux notifie.
         let mut m = Map::new();
         m.insert("code_risque".into(), json!(code));
-        m.insert("_source".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", en_clair(mois))));
+        m.insert("note".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", socle::mois::Mois::en_clair(mois))));
         let p = ctx.racine.join(droit::contexte::BAREMES).join(format!("{}.json", courante));
-        let mut data = socle::fichiers::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
+        let mut data = documents::valeur::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
         data["taux_atmp"] = Value::Object(m);
         if socle::ecriture::ecrire_json(&p, &data, 2).is_ok() {
-            faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; son taux de {} est celui de la notification, à saisir.", code, en_clair(mois), courante));
+            faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; son taux de {} est celui de la notification, à saisir.", code, socle::mois::Mois::en_clair(mois), courante));
         }
     }
 }
@@ -113,28 +113,26 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
     let lignes: Vec<Value> = ecran["contrats"].as_array().cloned().unwrap_or_default();
     let fixes: Vec<String> = lignes.iter().map(|l| texte(l, "libelle").to_uppercase()).filter(|l| !l.is_empty()).collect();
     let a_saisir: Vec<&Value> = lignes.iter().filter(|l| texte(l, "libelle").is_empty()).collect();
-    let libres: Vec<&Value> = lecture
-        .adhesions
-        .iter()
-        .filter(|a| !texte(a, "libelle").is_empty() && !fixes.contains(&texte(a, "libelle").to_uppercase()))
-        .collect();
+    let libelle = |a: &Adhesion| a.libelle.trim().to_string();
+    let organisme = |a: &Adhesion| a.organisme.as_deref().unwrap_or_default().trim().to_string();
+    let libres: Vec<&Adhesion> =
+        lecture.adhesions.iter().filter(|a| !libelle(a).is_empty() && !fixes.contains(&libelle(a).to_uppercase())).collect();
     if a_saisir.is_empty() || libres.is_empty() {
         return;
     }
-    let roles: Vec<(String, String)> = droit::organismes::base(ctx)
-        .and_then(|b| droit::organismes::attendus(ctx, &b))
+    let roles: Vec<(String, String)> = droit::organismes::attendus(ctx)
         .unwrap_or_default()
         .iter()
-        .map(|s| (texte(s, "cle"), texte(s, "role")))
+        .map(|s| (s.cle.trim().to_string(), s.role.as_deref().unwrap_or_default().trim().to_string()))
         .collect();
     let role_de = |l: &Value| roles.iter().find(|(c, _)| *c == texte(l, "cle")).map(|(_, r)| r.clone()).unwrap_or_default();
-    let mut paires: Vec<(&Value, &Value, bool)> = Vec::new();
+    let mut paires: Vec<(&Value, &Adhesion, bool)> = Vec::new();
     if let ([l], [a]) = (a_saisir.as_slice(), libres.as_slice()) {
         paires.push((l, a, false));
     } else {
         for l in &a_saisir {
             let r = role_de(l);
-            let siens: Vec<&&Value> = libres.iter().filter(|a| role_nomme(&texte(a, "libelle")) == Some(r.as_str())).collect();
+            let siens: Vec<&&Adhesion> = libres.iter().filter(|a| role_nomme(&libelle(a)) == Some(r.as_str())).collect();
             let rivaux = a_saisir.iter().filter(|x| role_de(x) == r).count();
             if let ([a], 1) = (siens.as_slice(), rivaux) {
                 paires.push((l, a, true));
@@ -143,22 +141,22 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
     }
     let mut saisies = Map::new();
     for (l, a, _) in &paires {
-        saisies.insert(texte(l, "cle"), json!({"libelle": texte(a, "libelle"), "organisme": texte(a, "organisme")}));
+        saisies.insert(texte(l, "cle"), json!({"libelle": libelle(a), "organisme": organisme(a)}));
     }
     if !saisies.is_empty() && crate::compagnie::organismes::enregistrer(ctx, &json!({"contrats": saisies})).is_ok() {
         for (l, a, par_libelle) in &paires {
             faits.push(format!(
                 "{} : contrat {} chez {}, lu dans la DSN reprise (S21.G00.15.001, S21.G00.15.002){}.",
                 texte(l, "quoi"),
-                texte(a, "libelle"),
-                texte(a, "organisme"),
+                libelle(a),
+                organisme(a),
                 if *par_libelle { ", rattaché par ce que son libellé nomme" } else { "" }
             ));
         }
     } else {
         paires.clear();
     }
-    let restes: Vec<String> = libres.iter().filter(|a| !paires.iter().any(|(_, p, _)| std::ptr::eq(*p, **a))).map(|a| texte(a, "libelle")).collect();
+    let restes: Vec<String> = libres.iter().filter(|a| !paires.iter().any(|(_, p, _)| std::ptr::eq(*p, **a))).map(|a| libelle(a)).collect();
     let attendent = a_saisir.iter().any(|l| !paires.iter().any(|(p, _, _)| std::ptr::eq(*p, *l)));
     if attendent && !restes.is_empty() {
         faits.push(format!(
@@ -170,7 +168,10 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
 
 /// Ce que les DSN reprises de la compagnie (`historique/bulletins/`) disent de sa configuration, pose ; rend ce qui l'a ete.
 pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
-    let lecture = crate::import::dsn_aem::lire_dsn(&ctx.racine.join("historique").join("bulletins"));
+    let lecture = match crate::import::dsn_aem::lire_dsn(&ctx.racine.join("historique").join("bulletins")) {
+        Ok(l) => l,
+        Err(e) => return vec![e.phrase()],
+    };
     if lecture.fichiers == 0 {
         return Vec::new();
     }
@@ -186,20 +187,23 @@ pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
 /// l'applique (`compagnie::taux_pas::derniers_taux_des_dsn`, une inference). La validite se lit ensuite comme pour tout taux recu (`droit::pas`).
 fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
     let dossier = ctx.racine.join("historique").join("bulletins");
-    let releves = crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &dossier);
+    let releves = match crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &dossier) {
+        Ok(r) => r,
+        Err(e) => return faits.push(e.phrase()),
+    };
     let Ok(changes) = crate::compagnie::taux_pas::enregistrer(ctx, &releves, "DSN reprises par l'import") else { return };
     for r in &releves {
         let cle = texte(r, "salarie");
         if !changes.iter().any(|c| c.starts_with(&format!("{} :", cle))) {
             continue;
         }
-        let qui = ctx.salaries.get(&cle).and_then(socle::texte::salarie_nomme);
+        let qui = ctx.salaries.get(cle.as_str()).and_then(|s| s.nomme());
         faits.push(format!(
             "Prélèvement à la source de {} : taux {} % transmis par la DGFiP, appliqué dans la DSN de {} (S21.G00.50.006 à .008).",
             qui.filter(|q| !q.is_empty()).unwrap_or(cle),
             texte(r, "taux").replace('.', ","),
             // Le mois du versement qui l'applique (`mis_a_disposition`, AAAAMMJJ000000) : celui que la DSN declare.
-            en_clair(&texte(r, "mis_a_disposition").get(..6).map(|m| format!("{}-{}", &m[..4], &m[4..])).unwrap_or_default())
+            texte(r, "mis_a_disposition").get(..8).and_then(socle::date::lire_aaaammjj).map(|j| j.mois_civil().libelle(socle::mois::Graphie::Accentuee)).unwrap_or_default()
         ));
     }
 }
@@ -207,7 +211,10 @@ fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
 /// Les contrats des permanents que les DSN reprises portent, poses quand la compagnie se met a employer un permanent
 /// (la nature d'un contrat repris dite, `import::nature::dire`) : l'ecran ne les attendait pas encore a l'import.
 pub(crate) fn poser_organismes_repris(ctx: &Contexte) -> Vec<String> {
-    let lecture = crate::import::dsn_aem::lire_dsn(&ctx.racine.join("historique").join("bulletins"));
+    let lecture = match crate::import::dsn_aem::lire_dsn(&ctx.racine.join("historique").join("bulletins")) {
+        Ok(l) => l,
+        Err(e) => return vec![e.phrase()],
+    };
     let mut faits = Vec::new();
     if lecture.fichiers > 0 {
         poser_organismes(ctx, &lecture, &mut faits);
@@ -215,7 +222,3 @@ pub(crate) fn poser_organismes_repris(ctx: &Contexte) -> Vec<String> {
     faits
 }
 
-/// « décembre 2025 » pour `2025-12`.
-fn en_clair(mois: &str) -> String {
-    crate::regularisation::mois_en_clair(mois)
-}

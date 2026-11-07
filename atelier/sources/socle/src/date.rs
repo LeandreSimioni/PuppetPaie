@@ -6,8 +6,6 @@
 //! et un format entame ne revient pas en arriere (`20260315` n'est pas lu en `JJMMAAAA`). Ce parcours est celui des
 //! fichiers deja ecrits : une date lue aujourd'hui se lit comme elle s'est toujours lue.
 
-use serde_json::Value;
-
 use crate::num::Resultat;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -49,32 +47,31 @@ impl Jour {
 
     /// Une date ecrite dans l'un des cinq formats.
     pub fn lire(texte: &str) -> Resultat<Jour> {
+        match Jour::du_texte(texte) {
+            Some(j) => Ok(j),
+            None => Err(format!("date illisible : {}", repr_texte(texte.trim()))),
+        }
+    }
+
+    /// Le jour que `texte` ecrit, s'il en ecrit un (`lire` dit pourquoi il n'en ecrit pas) : une phrase qui cite un jour
+    /// le dit en clair, et ce qui n'est pas une date tel qu'il est ecrit.
+    pub fn du_texte(texte: &str) -> Option<Jour> {
         let s = texte.trim();
         // La forme qu'ecrit le moteur (`iso`), lue d'emblee : c'est celle que le premier format apparierait.
         let o = s.as_bytes();
         if o.len() == 10 && o[4] == b'-' && o[7] == b'-' && [0, 1, 2, 3, 5, 6, 8, 9].iter().all(|&i| o[i].is_ascii_digit()) {
-            let n = |a: usize, b: usize| s[a..b].parse::<u32>().unwrap_or(0);
+            let n = |a: usize, b: usize| o[a..b].iter().fold(0u32, |n, c| n * 10 + u32::from(c - b'0'));
             if let Some(j) = Jour::nouveau(n(0, 4) as i32, n(5, 7), n(8, 10)) {
-                return Ok(j);
+                return Some(j);
             }
         }
         let c: Vec<char> = s.chars().collect();
-        for format in FORMATS {
-            if let Some(j) = lire_format(format, &c) {
-                return Ok(j);
-            }
-        }
-        Err(format!("date illisible : {}", repr_texte(s)))
+        FORMATS.iter().find_map(|format| lire_format(format, &c))
     }
 
     /// `AAAA-MM-JJ`.
     pub fn iso(&self) -> String {
         format!("{:04}-{:02}-{:02}", self.an, self.mois, self.jour)
-    }
-
-    /// `AAAA-MM`, la cle d'un mois de paie.
-    pub fn mois_iso(&self) -> String {
-        format!("{:04}-{:02}", self.an, self.mois)
     }
 
     /// `JJ/MM/AAAA`.
@@ -150,17 +147,9 @@ impl Jour {
         ((self.ordinal() + 6) % 7) as u32
     }
 
-    /// Le mois suivant, `AAAA-MM` (`Engagement::mois_du_contrat` incremente ainsi).
-    pub fn mois_suivant(&self) -> String {
-        suivant(self.an, self.mois)
-    }
-}
-
-fn suivant(an: i32, mois: u32) -> String {
-    if mois == 12 {
-        format!("{:04}-01", an + 1)
-    } else {
-        format!("{:04}-{:02}", an, mois + 1)
+    /// Le mois civil du jour.
+    pub fn mois_civil(&self) -> crate::mois::Mois {
+        crate::mois::Mois::du_jour(self)
     }
 }
 
@@ -169,76 +158,10 @@ pub fn annee_impossible(an: impl std::fmt::Display) -> String {
     format!("année impossible : {}", an)
 }
 
-pub fn mois_impossible(mois: impl std::fmt::Display) -> String {
-    format!("mois impossible : {}", mois)
-}
+use crate::mois::mois_impossible;
 
 pub fn jour_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into<i64>) -> String {
     format!("date impossible : {:04}-{:02}-{:02}", an.into(), mois.into(), jour.into())
-}
-
-/// `AAAA-MM` : quatre chiffres, un tiret, un mois de 01 a 12, rien d'autre. Un mois nomme un fichier ou un dossier :
-/// `../config` ou `2026-06/envoi` n'en sont pas.
-pub fn mois_valide(mois: &str) -> bool {
-    let b = mois.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit) && (1..=12).contains(&(((b[5] - b'0') * 10 + (b[6] - b'0')) as u32))
-}
-
-/// Le numero du mois d'un « AAAA-MM », de 1 a 12 ; « 00 » (ou « 13 ») n'est aucun mois et se refuse, comme
-/// `premier_du_mois`, `dernier_du_mois` et `envoi::etiquette`. Le mois d'une paie est celui que sa DSN declare :
-/// « le premier jour du mois civil au titre duquel est etablie la paie », de forme `(01)(0[1-9]|1[0-2])(20)[0-9]{2}`
-/// (S20.G00.05.005, atelier/reference/norme-dsn/texte-2027/bloc-S20.G00.05.txt l. 122-129). La norme n'admet « 00 »
-/// qu'au mois d'une date de naissance inconnue (S21.G00.30.006, bloc-S21.G00.30.txt l. 143-148), ce que `champs.rs` lit
-/// du mois de naissance d'un NIR : jamais au mois d'une paie.
-pub fn numero_du_mois(mois: &str) -> Resultat<u32> {
-    let t: String = mois.chars().skip(5).take(2).collect();
-    let n: i64 = t.trim().parse().map_err(|_| format!("nombre entier illisible : {}", repr_texte(&t)))?;
-    if !(1..=12).contains(&n) {
-        return Err(mois_impossible(n));
-    }
-    Ok(n as u32)
-}
-
-/// Les trois graphies d'un nom de mois que le moteur ecrit, chacune la ou elle s'ecrivait deja :
-/// - `Titre` (« Aout ») : noms de fichiers (`DSN_Aout2026.dsn`), titres et sections des etats ;
-/// - `Minuscule` (« aout ») : sans accent, dans une phrase (le libelle d'un mois d'engagement, d'un dossier) ;
-/// - `Accentuee` (« août ») : dans une phrase en francais (courriels, contrats, avenants, ecrans).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Graphie {
-    Titre,
-    Minuscule,
-    Accentuee,
-}
-
-const MOIS_TITRE: [&str; 12] = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
-const MOIS_MINUSCULE: [&str; 12] = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
-const MOIS_ACCENTUE: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
-/// Le nom du mois `mois` (1 a 12) dans la graphie `g` : la seule table des noms de mois du moteur. Un mois hors 1-12
-/// n'est aucun mois et se refuse (`mois_impossible`), comme `numero_du_mois` : jamais le dernier de la liste (« 00 »
-/// n'est pas decembre) ni un mois ramene de force dans l'annee.
-pub fn nom_du_mois(mois: i64, g: Graphie) -> Resultat<&'static str> {
-    if !(1..=12).contains(&mois) {
-        return Err(mois_impossible(mois));
-    }
-    let table = match g {
-        Graphie::Titre => &MOIS_TITRE,
-        Graphie::Minuscule => &MOIS_MINUSCULE,
-        Graphie::Accentuee => &MOIS_ACCENTUE,
-    };
-    Ok(table[(mois - 1) as usize])
-}
-
-/// « octobre 2026 » d'un « AAAA-MM », dans la graphie `g` ; un mois illisible ou hors 01-12 se refuse.
-pub fn libelle_du_mois(mois: &str, g: Graphie) -> Resultat<String> {
-    let n = numero_du_mois(mois)?;
-    Ok(format!("{} {}", nom_du_mois(n as i64, g)?, mois.chars().take(4).collect::<String>()))
-}
-
-/// `libelle_du_mois` pour une phrase qui ne peut pas refuser pour son mois (un bandeau, un conseil, un avertissement) :
-/// un mois illisible ou hors 01-12 s'ecrit tel quel (« 2026-00 »), jamais sous le nom d'un autre mois.
-pub fn libelle_du_mois_ou_tel_quel(mois: &str, g: Graphie) -> String {
-    libelle_du_mois(mois, g).unwrap_or_else(|_| mois.to_string())
 }
 
 /// Ce qui rend une date impossible : l'annee d'abord, sinon le mois, sinon le jour.
@@ -255,55 +178,6 @@ pub fn date_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
 
 pub const HORS_CALENDRIER: &str = "date hors du calendrier (années 1 à 9999)";
 
-/// Le premier jour du mois `AAAA-MM`.
-pub fn premier_du_mois(mois: &str) -> Resultat<Jour> {
-    Jour::lire(&format!("{}-01", mois))
-}
-
-/// Le dernier jour du mois `AAAA-MM` ; un mois hors de 1 a 12 se refuse.
-pub fn dernier_du_mois(mois: &str) -> Resultat<Jour> {
-    let c: Vec<char> = mois.chars().collect();
-    let tranche = |a: usize, b: usize| -> String { c.iter().skip(a).take(b - a).collect() };
-    let entier = |t: String| -> Resultat<i64> {
-        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {}", repr_texte(&t)))
-    };
-    let an = entier(tranche(0, 4))?;
-    let mo = entier(tranche(5, 7))?;
-    if !(1..=12).contains(&mo) {
-        return Err(mois_impossible(mo));
-    }
-    let an = i32::try_from(an).unwrap_or(0);
-    Jour::lire(&format!("{}-{:02}-{:02}", an, mo, jours_du_mois(an.max(1), mo as u32)))
-}
-
-/// Les mois `AAAA-MM` de `debut` a `fin` inclus (`Engagement::mois_du_contrat`).
-pub fn mois_entre(debut: &Jour, fin: &Jour) -> Vec<String> {
-    let mut sortie = Vec::new();
-    let (mut an, mut mo) = (debut.an, debut.mois);
-    while (an, mo) <= (fin.an, fin.mois) {
-        sortie.push(format!("{:04}-{:02}", an, mo));
-        if mo == 12 {
-            an += 1;
-            mo = 1;
-        } else {
-            mo += 1;
-        }
-    }
-    sortie
-}
-
-/// Une date lue dans une valeur JSON : une chaine, un nombre (lu en texte), ou la
-/// date detaillee `{"jour": ..., "lieu": ...}` qui se lit par son `jour`.
-pub fn d(v: &Value) -> Resultat<Jour> {
-    match v {
-        Value::Object(o) => match o.get("jour") {
-            Some(j) => d(j),
-            None => Err(crate::echec::a_la_cle("Une date ne dit pas son jour.", "jour", forme_ecrite(v))),
-        },
-        Value::String(s) => Jour::lire(s),
-        autre => Jour::lire(&en_texte(autre)),
-    }
-}
 
 // ------------------------------------------------------------ la lecture d'une date
 
@@ -327,7 +201,7 @@ const FORMATS: [&[Champ]; 5] = [
 ];
 
 fn chiffre(c: &[char], i: usize) -> bool {
-    c.get(i).map_or(false, |x| x.is_ascii_digit())
+    c.get(i).is_some_and(|x| x.is_ascii_digit())
 }
 
 /// Les longueurs que le champ peut avaler en `pos`, dans l'ordre des
@@ -381,8 +255,14 @@ fn longueurs(champ: Champ, c: &[char], pos: usize) -> Vec<usize> {
     l
 }
 
+/// Le nombre de `len` caracteres de `c` a partir de `de`, ses blancs autour retires ; 0 quand ce n'est pas un nombre.
 fn nombre(c: &[char], de: usize, len: usize) -> u32 {
-    c[de..de + len].iter().collect::<String>().trim().parse().unwrap_or(0)
+    let t: String = c[de..de + len].iter().collect();
+    let t = t.trim();
+    if t.is_empty() || !t.bytes().all(|b| b.is_ascii_digit()) {
+        return 0;
+    }
+    t.bytes().fold(0u32, |n, b| n.saturating_mul(10).saturating_add(u32::from(b - b'0')))
 }
 
 /// Premier appariement de l'expression reguliere (avec retour sur les
@@ -463,8 +343,7 @@ pub fn repr_flottant(x: f64) -> String {
     if a != 0.0 && !(1e-4..1e16).contains(&a) {
         // `{:e}` donne `1e-5` ; la forme ecrite est `1e-05`.
         let t = format!("{:e}", x);
-        let (m, e) = t.split_once('e').unwrap_or((&t, "0"));
-        let e: i32 = e.parse().unwrap_or(0);
+        let (m, e) = crate::ecriture::scientifique(&t);
         return format!("{}e{}{:02}", m, if e < 0 { '-' } else { '+' }, e.abs());
     }
     let t = format!("{}", x);
@@ -473,71 +352,6 @@ pub fn repr_flottant(x: f64) -> String {
     } else {
         format!("{}.0", t)
     }
-}
-
-/// La forme ecrite d'une valeur dans un message : objet, liste, texte cite, nombre, `True`, `None`.
-pub fn forme_ecrite(v: &Value) -> String {
-    match v {
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                i.to_string()
-            } else if let Some(u) = n.as_u64() {
-                u.to_string()
-            } else {
-                repr_flottant(n.as_f64().unwrap_or(f64::NAN))
-            }
-        }
-        Value::String(s) => repr_texte(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(forme_ecrite).collect::<Vec<_>>().join(", ")),
-        Value::Object(o) => format!(
-            "{{{}}}",
-            o.iter().map(|(k, v)| format!("{}: {}", repr_texte(k), forme_ecrite(v))).collect::<Vec<_>>().join(", ")
-        ),
-    }
-}
-
-/// Une valeur en texte : un texte tel quel, le reste sous sa forme ecrite.
-pub fn en_texte(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        autre => forme_ecrite(autre),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn j(an: i32, mois: u32, jour: u32) -> Jour {
-        Jour::nouveau(an, mois, jour).unwrap()
-    }
-
-    #[test]
-    fn ajouter_et_soustraire() {
-        let x = j(2026, 1, 31);
-        assert_eq!(x.plus_jours(1).unwrap(), j(2026, 2, 1));
-        assert_eq!(x.plus_jours(-31).unwrap(), j(2025, 12, 31));
-        assert_eq!(j(2024, 2, 28).plus_jours(1).unwrap(), j(2024, 2, 29));
-        assert_eq!(j(2026, 7, 1).moins(&j(2026, 6, 30)), 1);
-        assert_eq!(j(2026, 1, 1).moins(&j(2025, 1, 1)), 365);
-        assert_eq!(j(9999, 12, 31).plus_jours(1).unwrap_err(), HORS_CALENDRIER);
-        assert_eq!(j(1, 1, 1).plus_jours(-1).unwrap_err(), HORS_CALENDRIER);
-    }
-
-}
-
-/// L'etiquette d'un mois `AAAA-MM` dans le nom d'un fichier : « Aout2026 » (le nom du mois en titre, sans accent).
-pub fn etiquette_du_mois(mois: &str) -> Result<String, String> {
-    let lire = |t: Option<&str>| -> Result<i64, String> {
-        let t = t.unwrap_or("");
-        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : '{}'", t))
-    };
-    let an = lire(mois.get(..4))?;
-    let mo = lire(mois.get(5..7))?;
-    Ok(format!("{}{}", nom_du_mois(mo, Graphie::Titre)?, an))
 }
 
 /// `AAAA-MM-JJ` ou `AAAAMMJJ`.
@@ -551,10 +365,33 @@ pub fn jour_iso(texte: &str) -> Option<Jour> {
     if !(chiffres(a) && chiffres(m) && chiffres(j)) {
         return None;
     }
-    Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
+    // Des chiffres seuls, quatre ou deux : leur valeur se compte, sans lecture qui puisse echouer.
+    let valeur = |t: &str| t.bytes().fold(0u32, |n, c| n * 10 + u32::from(c - b'0'));
+    Jour::nouveau(valeur(a) as i32, valeur(m), valeur(j))
 }
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (ou d'un instant, par ses dix premiers caracteres) ; le texte tel quel s'il ne se lit pas.
 pub fn jj_mm_aaaa(iso: &str) -> String {
-    jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
+    match jour_iso(&iso.chars().take(10).collect::<String>()) {
+        Some(j) => j.jj_mm_aaaa(),
+        None => iso.to_string(),
+    }
+}
+
+/// UN JOUR DANS UNE DONNEE LUE (`serde`) : la forme qu'ecrit le moteur, `AAAA-MM-JJ`, et elle seule ; il s'ecrit de meme.
+/// Les autres formats de `lire` sont ceux d'une saisie ou d'une piece, qui se lisent avant d'entrer dans une donnee.
+impl serde::Serialize for Jour {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&self.iso())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Jour {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Jour, D::Error> {
+        let s = String::deserialize(d)?;
+        match Jour::lire(&s) {
+            Ok(j) if j.iso() == s => Ok(j),
+            _ => Err(serde::de::Error::custom(format!("{} n'est pas une date AAAA-MM-JJ", repr_texte(&s)))),
+        }
+    }
 }

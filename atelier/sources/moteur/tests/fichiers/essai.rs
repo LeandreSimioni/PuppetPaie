@@ -21,7 +21,7 @@ fn identite() -> Value {
     json!({
         "siren": "987654324", "nic": "00019",
         "raison_sociale": "CIE ESSAI QUENOUILLE", "adresse": "7 IMPASSE DES ESSAIS", "code_postal": "75011", "commune": "PARIS",
-        "naf": "9001Z", "medecine_travail": "MTESSAI7",
+        "naf": "9001Z", "medecine_travail": "MT987",
         "declarant": {"nom": "QUENOUILLE", "prenom": "ARIANE MARIE"},
         "declarant_dsn": {"civilite": "02", "nom_prenom": "QUENOUILLE ARIANE", "tel": "0199887766", "email": "essai@quenouille.invalid", "qualite": "04"},
         "api_dpae": {"nom": "QUENOUILLEDPAE", "prenom": "ARIANE", "siret": "", "service": ""}
@@ -145,4 +145,26 @@ fn le_montage_refuse_un_dossier_dans_un_depot_git() {
     assert_eq!(s.code, 1, "{}", s.texte);
     assert!(!d.exists());
     let _ = std::fs::remove_dir_all(&racine);
+}
+
+/// UNE COMPAGNIE D'ESSAI MONTEE SE LIT : sa fiche porte le declarant net-entreprises et le compte DPAE de la variable, et
+/// la forme de la fiche (`droit::fiche`) les lit. Bug echappe : la forme ne les portait pas, l'essai ne se lisait plus.
+#[test]
+fn une_compagnie_d_essai_montee_se_lit_par_sa_forme() {
+    let source = dossier_de_test("essai", "fictive");
+    let config = source.join("config");
+    std::fs::create_dir_all(&config).unwrap();
+    std::fs::write(config.join("entreprise.json"), crate::outils::datee(&json!({"nom_affichage": "Fictive", "idcc": "3090"})).to_string()).unwrap();
+    for f in ["salaries.json", "spectacles.json"] {
+        std::fs::write(config.join(f), "{}").unwrap();
+    }
+    std::fs::write(source.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive fictive-du-test"}).to_string()).unwrap();
+    let d = dossier("se-lit");
+    let s = lancer(PAIE, &["essai", "monter", d.to_str().unwrap(), "--depuis", source.to_str().unwrap()], &[("PUPPETPAIE_COMPAGNIE", &identite().to_string())]);
+    assert_eq!(s.code, 0, "{}", s.texte);
+    let ctx = droit::contexte::Contexte::nouveau(&d, None).unwrap_or_else(|e| panic!("la compagnie d'essai ne se lit pas : {}", e));
+    let dpae = ctx.entreprise.api_dpae.as_ref().expect("le compte DPAE");
+    assert_eq!((dpae.nom.as_deref(), dpae.siret.as_deref()), (Some("QUENOUILLEDPAE"), Some("98765432400019")));
+    assert_eq!(ctx.entreprise.declarant.as_ref().and_then(|x| x.prenom.as_ref()).map(|p| p.to_string()), Some("ARIANE MARIE".to_string()));
+    let _ = std::fs::remove_dir_all(&d);
 }

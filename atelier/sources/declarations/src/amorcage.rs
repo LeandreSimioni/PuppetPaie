@@ -5,18 +5,20 @@
 //! l'entreprise, l'etablissement, l'individu, le contrat -- et rien de ce qui
 //! se paye. `Echec::Impossible` est la regle de la norme qui s'oppose.
 
+use droit::fiche::Lue as _;
 use std::collections::HashSet;
 
 use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::{aujourdhui, Contexte};
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{en_texte, json_en_cache, vrai};
 use crate::dsn::{
-    affiliations, bloc_anciennete, bloc_contrat, g, jj, jour, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
+    affiliations, bloc_anciennete, bloc_contrat, g, liste, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{dossier_du_code, repr};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "08";
@@ -121,9 +123,8 @@ annule-et-remplace ou un annule."
 
     // Le NIR, et pas un numero technique temporaire : sans NIR, la DGFiP n'a
     // personne a qui repondre.
-    let s = &paie.salarie;
-    if crate::ntt::nir_de(s).is_empty() {
-        let qui = ["_cle", "nom"].iter().map(|k| g(s, k)).find(|v| vrai(v)).map(en_texte).unwrap_or_else(|| "Ce salarie".into());
+    if crate::ntt::nir_de(&paie.salarie).is_empty() {
+        let qui = paie.salarie.id.to_string();
         return impossible(format!(
             "{} n'a pas de NIR : il se declare sous numero technique temporaire, et la DGFiP n'a alors personne a \
 qui repondre. Son taux de PAS restera le bareme de l'article 204 H jusqu'a son immatriculation -- c'est la loi, pas \
@@ -141,16 +142,15 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     let e = &paie.engagement;
     let s = &paie.salarie;
     let ent = &ctx.entreprise;
-    crate::dsn::exiges(ent, std::iter::once(s), paie.declaree_a_la_caisse_des_conges()?)?;
+    crate::dsn::exiges(ent, std::iter::once(&paie.salarie), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
     };
     // Le bareme ne sert a rien ici : le taux AT/MP est interdit en nature 08.
-    let bar = Value::Object(Default::default());
+    let bar = crate::dsn::BaremeDuMois::nouveau(droit::forme_bareme::Pile::default(), droit::bareme::EntrepriseLue { fiche: ent.clone(), effectif: None, taux_lus: false });
     let remplace = o.remplace.as_deref().filter(|r| !r.is_empty());
 
-    let ent_ = |k: &str| -> Resultat<&Value> { req(ent, k) };
     // La version de la norme d'un signalement suit le jour ou il est constitue (`norme-dsn-base.json`, une inference).
     let norme = crate::norme::du_signalement(&constitution)?;
     crate::naf::verifier_pour(&norme, ent)?;
@@ -164,14 +164,14 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     f.add("S10.G00.00.007", "01");
     // << 02 - envoi neant >> n'a pas de sens ici.
     f.add("S10.G00.00.008", "01");
-    f.add_v("S10.G00.01.001", ent_("siren")?)?;
-    f.add_v("S10.G00.01.002", ent_("nic")?)?;
-    f.add_v("S10.G00.01.003", ent_("raison_sociale")?)?;
-    f.add_v("S10.G00.01.004", ent_("adresse")?)?;
-    f.add_v("S10.G00.01.005", ent_("code_postal")?)?;
-    f.add_v("S10.G00.01.006", ent_("commune")?)?;
+    f.add_case("S10.G00.01.001", &ent.siren, "siren")?;
+    f.add_case("S10.G00.01.002", &ent.nic, "nic")?;
+    f.add_case("S10.G00.01.003", &ent.raison_sociale, "raison_sociale")?;
+    f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
+    f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
+    f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent.complement_adresse);
     crate::dsn::contact_emetteur(&mut f, ent)?;
-    let decl = ent_("declarant_dsn")?;
 
     // ---------------------------------------------------------- S20 declaration
     f.add("S20.G00.05.001", NATURE);
@@ -187,38 +187,37 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     f.add("S20.G00.05.011", &o.motif);
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = droit::bareme::entreprise_du_salarie(ent, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, &paie.salarie)?;
     // Le changement de logiciel nomme l'etablissement qui declarait le dernier contrat connu du salarie (S20.G00.05.012,
     // p. 138) : le sien.
     let changement = o.motif == CHANGEMENT_DE_LOGICIEL;
     if changement {
-        let siret = if vrai(g(&etab, "siret")) {
-            en_texte(&etab["siret"])
-        } else {
-            format!("{}{}", en_texte(req(&etab, "siren")?), en_texte(req(&etab, "nic")?))
+        let siret = match etab.siret.remplie() {
+            Some(s) => s.to_string(),
+            None => format!("{}{}", etab.siren.ecrite("siren")?, etab.nic.ecrite("nic")?),
         };
         f.add("S20.G00.05.012", siret);
     }
-    f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
-    f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
-    f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    crate::dsn::contact_chez_le_declare(&mut f, ent)?;
 
     // ------------------------------------------------------------ S21 entreprise
-    f.add_v("S21.G00.06.001", ent_("siren")?)?;
-    f.add_v("S21.G00.06.002", ent_("nic")?)?;
-    for (rub, k) in [
-        ("S21.G00.11.001", "nic"),
-        ("S21.G00.11.002", "naf"),
-        ("S21.G00.11.003", "adresse"),
-        ("S21.G00.11.004", "code_postal"),
-        ("S21.G00.11.005", "commune"),
+    f.add_case("S21.G00.06.001", &ent.siren, "siren")?;
+    f.add_case("S21.G00.06.002", &ent.nic, "nic")?;
+    for (rub, case, cle) in [
+        ("S21.G00.11.001", &etab.nic, "nic"),
+        ("S21.G00.11.002", &etab.naf.en_texte(), "naf"),
+        ("S21.G00.11.003", &etab.adresse.en_texte(), "adresse"),
+        ("S21.G00.11.004", &etab.code_postal.en_texte(), "code_postal"),
+        ("S21.G00.11.005", &etab.commune.en_texte(), "commune"),
     ] {
         // Le code APET : obligatoire en amorcage en P26V01, retire de la norme P27V01 (cahier 2027.1.1, p. 145).
         if rub == "S21.G00.11.002" && !usage_admet(&f, rub, NATURE)? {
             continue;
         }
-        f.add_v(rub, req(&etab, k)?)?;
+        f.add_case(rub, case, cle)?;
+        if rub == "S21.G00.11.005" {
+            f.add_complement("S21.G00.11.006", &etab.complement_adresse);
+        }
     }
 
     // Les adhesions prevoyance que le contrat designe, et elles seules -- sauf
@@ -229,59 +228,30 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     } else {
         // Celles auxquelles le salarie est affilie a l'embauche (`dsn::rattachements`) : un bloc 15 que nul bloc 70 ne
         // cite n'aurait personne de couvert.
-        let refs = affiliations(&orgs, &*e.nat()?, &Value::Null, (e.debut_periode()?, e.fin_periode()?))?;
+        let refs = affiliations(&orgs, &*e.nat()?, &[], (e.debut_periode()?, e.fin_periode()?))?;
         crate::dsn::rattachements(paie, &orgs, ent, refs)?.into_iter().map(|a| a.reference).collect()
     };
-    for a in liste(req(&orgs, "adhesions_prevoyance")?) {
-        if !rattachees.contains(&en_texte(req(a, "reference")?)) {
+    for a in &orgs.adhesions_prevoyance {
+        if !rattachees.contains(&a.reference) {
             continue;
         }
-        f.add_v("S21.G00.15.001", req(a, "libelle")?)?;
-        f.add_v("S21.G00.15.002", req(a, "delegataire")?)?;
-        f.add_v("S21.G00.15.005", req(a, "reference")?)?;
+        f.add("S21.G00.15.001", &a.libelle);
+        f.add("S21.G00.15.002", &a.delegataire);
+        f.add("S21.G00.15.005", &a.reference);
     }
 
     // ------------------------------------------------------------ S21 individu
-    crate::ntt::poser_nir(&mut f, s)?;
-    f.add_v("S21.G00.30.002", req(s, "nom")?)?;
-    f.add_v("S21.G00.30.004", req(s, "prenom")?)?;
-    f.add("S21.G00.30.006", jj(req(s, "date_naissance")?)?);
-    for (rub, k) in [
-        ("S21.G00.30.007", "lieu_naissance"),
-        ("S21.G00.30.008", "adresse"),
-        ("S21.G00.30.009", "code_postal"),
-        ("S21.G00.30.010", "commune"),
-    ] {
-        f.add_v(rub, req(s, k)?)?;
-    }
-    // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
-    for (rub, k) in [
-        ("S21.G00.30.014", "departement_naissance"),
-        ("S21.G00.30.015", "pays_naissance"),
-        ("S21.G00.30.018", "email"),
-        ("S21.G00.30.019", "code_salarie"),
-    ] {
-        // L'adresse mel est conditionnelle (usage « C » dans chaque nature, et « conditionne a l'accord explicite » de
-        // l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) : une fiche
-        // sans courriel n'en declare pas.
-        if k == "email" && !s.get(k).is_some_and(vrai) {
-            continue;
-        }
-        // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
-        let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
-        f.add_v(rub, &v)?;
-    }
-    crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, s, &e.debut, departs)?.as_ref())?;
+    crate::dsn::bloc_individu(&mut f, s, true)?;
+    crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, &paie.salarie, &e.debut, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
     if !changement {
         // Les emplois multiples (`40.036`) : les autres contrats du salarie dans le mois de l'embauche.
-        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_iso(), departs)?;
+        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_civil().to_string(), departs)?;
         let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
         bloc_contrat(&mut f, paie, &etab, &orgs, 1, &bar, false, &[], NATURE, emplois)?;
         // L'anciennete, due des qu'une adhesion prevoyance est declaree.
-        let depuis = if vrai(g(s, "date_anciennete")) { jour(&s["date_anciennete"])? } else { e.debut };
+        let depuis = s.date_anciennete.dite().copied().unwrap_or(e.debut);
         bloc_anciennete(&mut f, paie, 1.max(e.debut.moins(&depuis) + 1))?;
     }
 

@@ -25,7 +25,7 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 use crate::compagnie::incidents;
-use crate::import::bulletins::{self as ib, DossierLu};
+use crate::import::bulletins::DossierLu;
 use crate::import::tri::Sorte;
 use droit::contexte::Contexte;
 use socle::texte::sans_accent;
@@ -83,7 +83,7 @@ fn vocabulaire() -> &'static HashSet<String> {
             }
         }
         let chemin = socle::fichiers::dossier_du_code().join(crate::import::bulletin_lu::FICHIER_TABLE);
-        if let Ok(t) = socle::fichiers::json_en_cache(&chemin) {
+        if let Ok(t) = documents::valeur::json_en_cache(&chemin) {
             parcourir(&t, &mut v);
         }
         v
@@ -134,8 +134,7 @@ fn tete(s: &str, n: usize) -> String {
 /// l'envoi ordinaire (`incidents::envoyer`, qui ne part que si l'envoi a l'editeur est actif sur ce poste). Ne leve
 /// jamais : un incident qui ne s'ecrit pas ne change rien a l'import. Rend le nombre d'incidents notes.
 pub(crate) fn noter_les_non_lus(ctx: &Contexte, lu: &DossierLu) -> usize {
-    let vide: Vec<Value> = Vec::new();
-    let cr = lu.ap.reponse.get("tri").and_then(|t| t.get("fichiers")).and_then(Value::as_array).unwrap_or(&vide);
+    let cr = &lu.ap.reponse.tri.fichiers;
     let deja: BTreeSet<String> = incidents::lire(&ctx.racine, None, false)
         .unwrap_or_default()
         .iter()
@@ -144,36 +143,34 @@ pub(crate) fn noter_les_non_lus(ctx: &Contexte, lu: &DossierLu) -> usize {
     let mut vues: HashSet<String> = HashSet::new();
     let mut notes = 0;
     for (f, c) in lu.tri.fichiers.iter().zip(cr.iter()) {
-        let sort = c.get("sort").and_then(Value::as_str).unwrap_or("");
-        if f.sorte != Sorte::PdfTexte || !ib::non_repris(sort) {
+        if f.sorte != Sorte::PdfTexte || !c.sort.non_repris() {
             continue;
         }
         let Ok((pages, _)) = fabrique_pdf::lecture::texte(&f.disque.to_string_lossy()) else { continue };
-        let pages_cr: Vec<&Value> = c.get("pages").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default();
-        let logiciel = pages_cr.iter().find_map(|p| p.get("logiciel").and_then(Value::as_str)).unwrap_or("").to_string();
+        let logiciel = c.pages.iter().find_map(|p| p.infos.logiciel.clone()).unwrap_or_default();
         let genre = format!("document non lu : famille {}", famille(pages.first().map_or("", String::as_str), &logiciel));
         let empreinte = incidents::empreinte(incidents::LOGICIEL, OU, &genre);
         if deja.contains(&empreinte) || !vues.insert(empreinte) {
             continue;
         }
-        let forme: Vec<Value> = pages_cr
+        let forme: Vec<Value> = c
+            .pages
             .iter()
             .map(|p| {
-                let n = p.get("page").and_then(Value::as_u64).unwrap_or(0);
-                let l = f.pages.get((n as usize).saturating_sub(1));
+                let l = f.pages.get(p.page.saturating_sub(1));
                 json!({
-                    "page": n,
-                    "sort": p.get("sort").cloned().unwrap_or(Value::Null),
-                    "raison": masquer(p.get("raison").and_then(Value::as_str).unwrap_or("")),
+                    "page": p.page,
+                    "sort": p.sort,
+                    "raison": masquer(&p.raison),
                     "mots": l.map(|x| x.mots), "polices": l.map(|x| x.polices), "images": l.map(|x| x.images), "traits": l.map(|x| x.traits),
                 })
             })
             .collect();
-        let detail = json!({"sort": sort, "logiciel": logiciel, "pages": pages.len(), "forme": forme,
-            "raison": masquer(c.get("raison").and_then(Value::as_str).unwrap_or(""))});
+        let detail = json!({"sort": c.sort, "logiciel": logiciel, "pages": pages.len(), "forme": forme,
+            "raison": masquer(&c.raison)});
         let texte: Vec<String> = pages.iter().enumerate().map(|(k, p)| format!("--- page {} ---\n{}", k + 1, masquer(p.trim_end()))).collect();
         let trace = tete(&texte.join("\n"), TRACE_MAX);
-        let resume = format!("Import : un document accepté n'a pas été lu (« {} »). Sa forme, masquée.", sort.replace('_', " "));
+        let resume = format!("Import : un document accepté n'a pas été lu (« {} »). Sa forme, masquée.", c.sort.en_mots().1);
         let note = incidents::Note {
             nature: incidents::LOGICIEL,
             resume: &resume,

@@ -14,6 +14,7 @@
 use std::io::Read;
 use std::path::Path;
 
+use crate::echec::APart;
 use crate::num::Resultat;
 
 const NS_M: &str = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -22,7 +23,9 @@ const NS_P: &str = "http://schemas.openxmlformats.org/package/2006/relationships
 
 /// La valeur d'une case renseignee. `t="s"`, `"inlineStr"`, `"str"` et `"e"` donnent du texte ; `"b"` un booleen ; le
 /// reste (`"n"`, rien) un nombre : flottant s'il porte `.`, `e` ou `E`, entier sinon.
-#[derive(Clone, Debug, PartialEq)]
+/// Elle s'ecrit telle quelle (`Serialize`) : un texte, un nombre (le flottant reste flottant, l'entier entier), un booleen.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(untagged)]
 pub enum Cellule {
     Texte(String),
     Entier(i64),
@@ -53,23 +56,14 @@ impl Cellule {
             Cellule::Booleen(b) => *b,
         }
     }
-
-    /// La valeur en JSON (le flottant reste flottant, l'entier entier).
-    pub fn json(&self) -> serde_json::Value {
-        match self {
-            Cellule::Texte(s) => serde_json::Value::String(s.clone()),
-            Cellule::Entier(i) => serde_json::Value::from(*i),
-            Cellule::Flottant(f) => {
-                serde_json::Number::from_f64(*f).map_or(serde_json::Value::Null, serde_json::Value::Number)
-            }
-            Cellule::Booleen(b) => serde_json::Value::Bool(*b),
-        }
-    }
 }
 
 /// Une case lue en texte : `None` pour une case vide.
 pub fn cellule_en_texte(c: &Option<Cellule>) -> String {
-    c.as_ref().map_or_else(|| "None".to_string(), Cellule::en_texte)
+    match c {
+        Some(c) => c.en_texte(),
+        None => "None".to_string(),
+    }
 }
 
 struct Classeur {
@@ -81,7 +75,7 @@ impl Classeur {
     fn ouvrir(chemin: &Path) -> Resultat<Classeur> {
         let f = std::fs::File::open(chemin).map_err(|e| crate::echec::du_disque(chemin, &e))?;
         let archive = zip::ZipArchive::new(f)
-            .map_err(|e| crate::echec::avec("Ce fichier n'est pas un classeur Excel lisible.", serde_json::json!({"chemin": chemin.to_string_lossy(), "detail": e.to_string()})))?;
+            .map_err(|e| crate::echec::avec("Ce fichier n'est pas un classeur Excel lisible.", APart { chemin: Some(chemin.to_string_lossy().into_owned()), detail: Some(e.to_string()), ..APart::default() }))?;
         Ok(Classeur { archive, nom: chemin.display().to_string() })
     }
 
@@ -123,7 +117,7 @@ fn enfants<'a, 'i: 'a>(n: roxmltree::Node<'a, 'i>, nom: &'a str) -> impl Iterato
 /// Le texte d'un `<si>` ou d'un `<is>` : tous ses `<t>`, bout a bout (texte riche et lecture phonetique compris, comme
 /// `iter("{m}t")`).
 fn texte_de(n: roxmltree::Node) -> String {
-    n.descendants().filter(|d| est(d, NS_M, "t")).map(|t| t.text().unwrap_or("")).collect()
+    n.descendants().filter(|d| est(d, NS_M, "t")).filter_map(|t| t.text()).collect()
 }
 
 /// `C12` -> 2 (colonnes comptees depuis 0).
@@ -160,12 +154,15 @@ pub fn feuilles(chemin: &Path) -> Resultat<Vec<String>> {
 fn noms_des_feuilles(nom: &str, texte: &str) -> Resultat<Vec<(String, Option<String>)>> {
     let doc = analyser(nom, "xl/workbook.xml", texte)?;
     let sheets = enfant(doc.root_element(), "sheets")
-        .ok_or_else(|| crate::echec::avec("Ce classeur Excel n'a aucune feuille lisible.", serde_json::json!({"chemin": nom})))?;
-    Ok(sheets
+        .ok_or_else(|| crate::echec::avec("Ce classeur Excel n'a aucune feuille lisible.", APart { chemin: Some(nom.to_string()), ..APart::default() }))?;
+    sheets
         .children()
         .filter(|n| n.is_element())
-        .map(|f| (f.attribute("name").unwrap_or("").to_string(), f.attribute((NS_R, "id")).map(str::to_string)))
-        .collect())
+        .map(|f| match f.attribute("name") {
+            Some(n) => Ok((n.to_string(), f.attribute((NS_R, "id")).map(str::to_string))),
+            None => Err(crate::echec::avec("Une feuille de ce classeur Excel n'a pas de nom.", APart { chemin: Some(nom.to_string()), ..APart::default() })),
+        })
+        .collect()
 }
 
 /// Les lignes de la feuille nommee, de haut en bas, chacune la liste de ses cases de la premiere colonne a la derniere
@@ -251,7 +248,7 @@ pub fn lignes(chemin: &Path, feuille: &str) -> Resultat<Vec<Ligne>> {
         while (rangs.len() as i64) < numero - 1 {
             rangs.push(Vec::new());
         }
-        let largeur = cellules.keys().next_back().map_or(0, |m| m + 1);
+        let largeur: usize = cellules.keys().next_back().into_iter().map(|m| m + 1).sum();
         rangs.push((0..largeur).map(|j| cellules.get(&j).cloned()).collect());
     }
     Ok(rangs)

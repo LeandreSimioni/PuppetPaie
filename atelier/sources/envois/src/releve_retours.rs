@@ -12,19 +12,21 @@
 //! le message ne releve rien. Ce qu'elle trouve en chemin et qui touche a la compagnie (les incidents des retours, les
 //! attestations France Travail a ranger) va dans les suites (`suites::Suites`).
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use socle::echec::Echec;
 use socle::paris::{iso_de_naif, maintenant_naif};
 
 use crate::branchement::{Branchement, ANCIEN_PREFIXE_FLUX_FICTIF, PREFIXE_FLUX_FICTIF};
+use crate::journal::{Acte, Ligne, RetourOrganisme};
 use crate::suites::Suites;
 
 /// `AAAAMMJJ-HHMMSS` d'une heure locale naive.
@@ -139,12 +141,8 @@ fn adresses_dsn(environnement: &str) -> Result<Adresses, Panne> {
     })
 }
 
-fn adresses_dpae(ent: &Value) -> Adresses {
-    let service = ent
-        .get("api_dpae")
-        .and_then(|c| c.get("service"))
-        .filter(|s| vrai(s))
-        .map(valeur_en_texte);
+fn adresses_dpae(compte: &droit::fiche::ApiDpae) -> Adresses {
+    let service = compte.service.dite().filter(|s| !s.is_empty()).cloned();
     // L'atelier seulement : un faux Urssaf local (`redirection`).
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::redirection::base(crate::redirection::VARIABLE_DPAE) {
@@ -170,7 +168,7 @@ pub struct Client {
     pub adresses: Adresses,
     pub jeton: Option<String>,
     pub expire_le: Option<String>,
-    pub declarant: Value,
+    pub declarant: crate::transport::Identite,
     motdepasse: Option<String>,
     variable: &'static str,
     majuscules: bool,
@@ -179,7 +177,7 @@ pub struct Client {
 impl Client {
     /// `Client(ctx, environnement, motdepasse=...)` : le compte net-entreprises de la DSN.
     pub fn dsn(ctx: &Contexte, environnement: &str, motdepasse: Option<String>) -> Result<Client, Panne> {
-        let declarant = crate::transport::declarant(&ctx.entreprise).map_err(panne_de)?;
+        let declarant = crate::transport::declarant(&ctx.entreprise);
         Ok(Client {
             adresses: adresses_dsn(environnement)?,
             jeton: None,
@@ -193,14 +191,13 @@ impl Client {
 
     /// `ClientDpae(ctx, majuscules, motdepasse)` : le compte Urssaf, qui n'est pas celui de la DSN.
     pub fn dpae(ctx: &Contexte, majuscules: bool, motdepasse: Option<String>) -> Client {
-        let cfg = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
-        let champ = |k: &str| cfg.get(k).cloned().unwrap_or(Value::Null);
-        let siret = if vrai(&champ("siret")) { champ("siret") } else { ctx.entreprise.get("siret").cloned().unwrap_or(Value::Null) };
+        let compte = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
+        let siret = if compte.siret.texte().is_empty() { &ctx.entreprise.siret } else { &compte.siret }.texte().to_string();
         Client {
-            adresses: adresses_dpae(&ctx.entreprise),
+            adresses: adresses_dpae(&compte),
             jeton: None,
             expire_le: None,
-            declarant: json!({"siret": siret, "nom": champ("nom"), "prenom": champ("prenom")}),
+            declarant: crate::transport::Identite { siret, nom: compte.nom.texte().to_string(), prenom: compte.prenom.texte().to_string() },
             motdepasse,
             variable: VARIABLE_MOTDEPASSE_DPAE,
             majuscules,
@@ -358,7 +355,7 @@ fn deja_vus(ctx: &Contexte, canal: &str) -> Result<Vec<[Value; 3]>, Panne> {
 }
 
 fn egal_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| socle::valeur::valeurs_egales(x, y))
+    a.iter().zip(b).all(|(x, y)| documents::valeur::valeurs_egales(x, y))
 }
 
 /// La liste est-elle deja vue ? Les trois champs, comme `(flux, nature, publication) in connus`.
@@ -399,31 +396,28 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
     let mut faits = 0;
     for i in 0..lignes.len() {
         let l = &lignes[i];
-        let quoi = l.get("quoi").and_then(Value::as_str).unwrap_or("");
-        let flux = l.get("flux").map(|f| if vrai(f) { valeur_en_texte(f) } else { String::new() }).unwrap_or_default();
-        if (quoi == "dsn" || quoi == "dpae")
-            && l.get("accepte").is_some_and(vrai)
+        let quoi = l.acte();
+        let flux = l.flux().to_string();
+        if matches!(quoi, Acte::Dsn | Acte::Dpae)
+            && l.accepte()
             && (flux.starts_with(PREFIXE_FLUX_FICTIF) || flux.starts_with(ANCIEN_PREFIXE_FLUX_FICTIF))
-            && !l.get("retours").is_some_and(vrai)
+            && l.nombre_de_retours() == 0
         {
-            let base = |nature: &str, verdict: Option<&str>, libelle: &str| {
-                let mut m = Map::new();
-                m.insert("statut".into(), json!("fictive"));
-                m.insert("publication".into(), json!(pub_));
-                m.insert("anomalies".into(), json!([]));
-                m.insert("nature".into(), json!(nature));
-                if let Some(v) = verdict {
-                    m.insert("verdict".into(), json!(v));
-                }
-                m.insert("libelle".into(), json!(libelle));
-                m
+            let base = |nature: &str, verdict: Option<&str>, libelle: &str| RetourOrganisme {
+                nature: nature.into(),
+                verdict: verdict.map(String::from),
+                anomalies: Some(Vec::new()),
+                dpae: None,
+                libelle: libelle.into(),
+                statut: Some("fictive".into()),
+                publication: Some(pub_.clone()),
             };
-            let mut retours: Vec<Value> = Vec::new();
-            if quoi == "dpae" {
-                retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)")));
+            let mut retours: Vec<RetourOrganisme> = Vec::new();
+            if quoi == Acte::Dpae {
+                retours.push(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)"));
                 let mut m = base("41", Some("OK"), "Certificat de conformite des DPAE (compagnie fictive)");
-                m.insert("dpae".into(), json!([]));
-                retours.push(Value::Object(m));
+                m.dpae = Some(Vec::new());
+                retours.push(m);
             } else {
                 match crate::organismes_simules::reponses_dsn(ctx, &mut memoire, &lignes, l, &flux, &pub_)? {
                     // Refusee : ses deux bilans, rien d'autre ; le verdict se lit dans la piece.
@@ -434,19 +428,23 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
                     }
                     Ok(autres) => pieces.extend(autres),
                 }
-                retours.push(Value::Object(base("10", Some("OK"), "Accuse de reception (compagnie fictive)")));
-                retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)")));
+                retours.push(base("10", Some("OK"), "Accuse de reception (compagnie fictive)"));
+                retours.push(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)"));
                 // L'AER : seulement quand elle est due, et avec sa piece, comme France Travail la publie.
                 if let Some(archive) = aer_jouee(ctx, l)? {
                     let r46 = base("46", None, "Attestation employeur rematerialisee (compagnie fictive)");
-                    let mut a = r46.clone();
-                    a.insert("flux".into(), json!(flux));
-                    a_archiver.push((Value::Object(a), archive));
-                    retours.push(Value::Object(r46));
+                    let mut a = serde_json::to_value(&r46).map_err(|e| Echec::from(e.to_string()))?;
+                    a["flux"] = json!(flux);
+                    a_archiver.push((a, archive));
+                    retours.push(r46);
                 }
             }
             rangements.extend(retours.iter().map(|r| (i, crate::journal::Rangement::Retour(r.clone()))));
-            lignes[i]["retours"] = Value::Array(retours);
+            match &mut lignes[i] {
+                Ligne::Dsn(e) => e.retours = retours,
+                Ligne::Dpae(e) => e.retours = retours,
+                _ => {}
+            }
             faits += 1;
         }
     }
@@ -458,7 +456,7 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
         suites.aer.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
     }
     if !pieces.is_empty() {
-        let mut contenus: Vec<([Value; 3], Vec<u8>)> = Vec::new();
+        let mut contenus: Vec<((String, String, String), Vec<u8>)> = Vec::new();
         for x in &pieces {
             let chemin = archiver(ctx, &x.retour, &x.contenu, "application/xml", "").map_err(en_echec)?;
             if x.retour.get("nature").and_then(Value::as_str) == Some(crate::retours::NATURE_TAUX_PAS) {
@@ -466,10 +464,10 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
             } else if x.retour.get("nature").and_then(Value::as_str) == Some(crate::retours::NATURE_TAUX_ATMP) {
                 suites.taux_atmp.push((x.retour.clone(), chemin));
             }
-            contenus.push((cle_de_retour(&x.retour), x.contenu.clone()));
+            contenus.push((crate::etats::cle_du_contenu(&x.retour), x.contenu.clone()));
         }
         let decrits: Vec<Value> = pieces.into_iter().map(|x| x.retour).collect();
-        suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(decrits), &contenus))?;
+        suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &decrits, &contenus))?;
         // L'EFFECTIF S'ECRIT SEUL, comme a la releve reelle.
         reconstruire_effectifs(&ctx.racine)?;
     }
@@ -479,19 +477,15 @@ pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
 /// L'AER Cinema Spectacle qu'une DSN mensuelle REELLE jouee appelle (`aer_fictive::archive`) : l'archive de nature 46,
 /// ou `None` quand aucune n'est due (France Travail ne publie rien) ; un signalement (nature 04, 05, 07) n'en appelle pas.
 /// Le fichier depose est relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`).
-fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
-    if l.get("mode").and_then(Value::as_str) != Some("reel") {
+fn aer_jouee(ctx: &Contexte, l: &Ligne) -> R<Option<Vec<u8>>> {
+    if !l.reel() {
         return Ok(None);
     }
-    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
+    let nature = l.nature_dsn();
     if !nature.is_empty() && nature != "01" {
         return Ok(None);
     }
-    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
-    let fichier = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-    if mois.is_empty() || fichier.is_empty() {
-        return Ok(None);
-    }
+    let (Some(mois), Some(fichier)) = (l.mois().map(|m| m.to_string()), l.fichier().filter(|f| !f.is_empty()).map(String::from)) else { return Ok(None) };
     let chemin = if Path::new(&fichier).is_absolute() { PathBuf::from(&fichier) } else { ctx.racine.join("sorties").join(&mois).join(&fichier) };
     let Ok(octets) = std::fs::read(&chemin) else { return Ok(None) };
     crate::aer_fictive::archive(ctx, &octets, &mois, ctx.aujourdhui).map_err(Echec::from)
@@ -606,8 +600,8 @@ pub fn relever_retours(
         noter_vus(ctx, &vus, canal).map_err(en_echec)?;
         // Un depot n'est fini que quand sa reponse est la : chaque retour se range en face du depot qui l'a
         // provoque -- par le flux, et par rien d'autre.
-        let contenus: Vec<([Value; 3], Vec<u8>)> = releve.archives.iter().map(|a| (cle_de_retour(&a.retour), a.contenu.clone())).collect();
-        releve.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus))?;
+        let contenus: Vec<_> = releve.archives.iter().map(|a| (crate::etats::cle_du_contenu(&a.retour), a.contenu.clone())).collect();
+        releve.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &releve.trouves, &contenus))?;
     }
 
     // UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT : ce qu'un autre logiciel a depose sous le meme compte
@@ -685,8 +679,8 @@ pub fn relever_retours_dpae(
     if !r.trouves.is_empty() {
         noter_vus(ctx, &r.trouves, "dpae").map_err(en_echec)?;
         // Le chemin par flux accroche aussi ce qu'il trouve au journal.
-        let contenus: Vec<([Value; 3], Vec<u8>)> = r.archives.iter().map(|a| (cle_de_retour(&a.retour), a.contenu.clone())).collect();
-        r.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(r.trouves.clone()), &contenus))?;
+        let contenus: Vec<_> = r.archives.iter().map(|a| (crate::etats::cle_du_contenu(&a.retour), a.contenu.clone())).collect();
+        r.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &r.trouves, &contenus))?;
     }
     Ok(r)
 }
@@ -733,7 +727,7 @@ fn effectifs_lus(racine: &Path) -> Value {
 /// Ecrit `config/effectifs.json` s'il change : les effectifs par annee et par code.
 fn ecrire_effectifs(racine: &Path, existant: &Value, annees: std::collections::BTreeMap<String, Map<String, Value>>) -> R<()> {
     let donnees = json!({
-        "_quoi": "Effectifs par année civile. A01 = effectif de sécurité sociale (art. L. 130-1 CSS), celui des seuils de cotisation. Ceux que l'Urssaf calcule et renvoie en compte rendu de nature 118 s'écrivent au relevé des retours ; ceux que la compagnie dit (dit_le) pour une année sans 118, par la route effectif, jusqu'à ce qu'un 118 de cette année les remplace.",
+        "quoi": "Effectifs par année civile. A01 = effectif de sécurité sociale (art. L. 130-1 CSS), celui des seuils de cotisation. Ceux que l'Urssaf calcule et renvoie en compte rendu de nature 118 s'écrivent au relevé des retours ; ceux que la compagnie dit (dit_le) pour une année sans 118, par la route effectif, jusqu'à ce qu'un 118 de cette année les remplace.",
         "annees": Value::Object(annees.into_iter().map(|(an, codes)| (an, Value::Object(codes))).collect()),
     });
     if *existant != donnees {

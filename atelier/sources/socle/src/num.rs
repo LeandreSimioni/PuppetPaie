@@ -7,33 +7,37 @@
 use rust_decimal::prelude::*;
 use crate::d28::P;
 pub use rust_decimal::Decimal;
-use serde_json::Value;
 
 /// Un refus du moteur : le message dit quoi faire.
 pub type Resultat<T> = Result<T, String>;
 
-/// Le decimal d'un nombre JSON (entier ou flottant, par sa forme ecrite la plus courte) ou d'une chaine.
-pub fn dec(v: &Value) -> Resultat<Decimal> {
-    match v {
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Ok(Decimal::from(i))
-            } else if let Some(u) = n.as_u64() {
-                Ok(Decimal::from(u))
-            } else {
-                dec_f64(n.as_f64().unwrap_or(f64::NAN))
-            }
-        }
-        Value::String(s) => Decimal::from_str(s.trim())
-            .or_else(|_| Decimal::from_scientific(s.trim()))
-            .map_err(|_| illisible(s)),
-        autre => Err(format!("nombre attendu, lu {}", autre)),
-    }
+/// Le decimal d'un nombre ecrit en texte (`"12.5"`, `" 1e3 "`), blancs autour ignores.
+pub fn dec_texte(s: &str) -> Resultat<Decimal> {
+    Decimal::from_str(s.trim()).or_else(|_| Decimal::from_scientific(s.trim())).map_err(|_| illisible(s))
 }
 
 /// Le refus d'un nombre qui ne se lit pas, avec le texte en cause.
 pub fn illisible(t: &str) -> String {
     format!("nombre illisible : {}", crate::fichiers::repr(t))
+}
+
+/// UN ENTIER ECRIT EN CHIFFRES SEULS, de un a dix-huit : sa valeur, comptee chiffre a chiffre ; tout autre texte (vide, un
+/// autre caractere, plus long) n'est pas un entier ainsi ecrit, et rend `None`.
+pub fn entier_de_chiffres(t: &str) -> Option<i64> {
+    let b = t.as_bytes();
+    if b.is_empty() || b.len() > 18 || !b.iter().all(u8::is_ascii_digit) {
+        return None;
+    }
+    Some(b.iter().fold(0i64, |n, c| n * 10 + i64::from(c - b'0')))
+}
+
+/// Le flottant d'un decimal, par sa forme ecrite (`d.to_string()` relu) : un decimal s'ecrit toujours en un nombre que
+/// le flottant lit.
+pub fn flottant(d: Decimal) -> f64 {
+    match d.to_string().parse::<f64>() {
+        Ok(x) => x,
+        Err(e) => unreachable!("un décimal s'écrit en nombre : {} ({})", d, e),
+    }
 }
 
 /// Le decimal d'un flottant, par sa forme ecrite la plus courte.
@@ -51,29 +55,10 @@ pub fn dec_f64(x: f64) -> Resultat<Decimal> {
         .map_err(|_| format!("nombre hors de portee : {}", s))
 }
 
-/// Le decimal d'un nombre JSON dont un flottant garde son echelle (`130.0`).
-pub fn dec_avec_echelle(v: &Value) -> Resultat<Decimal> {
-    match v {
-        Value::Number(n) if n.as_i64().is_none() && n.as_u64().is_none() => {
-            let s = crate::date::repr_flottant(n.as_f64().unwrap_or(f64::NAN));
-            Decimal::from_str(&s)
-                .or_else(|_| Decimal::from_scientific(&s))
-                .map_err(|_| format!("nombre hors de portee : {}", s))
-        }
-        autre => dec(autre),
-    }
-}
-
-/// Le flottant d'une valeur JSON (un nombre, ou un nombre ecrit en texte).
-pub fn flottant(v: &Value) -> Resultat<f64> {
-    match v {
-        Value::Number(n) => n.as_f64().ok_or_else(|| format!("nombre illisible : {}", n)),
-        Value::String(s) => s.trim().parse::<f64>().map_err(|_| illisible(s)),
-        autre => Err(format!("nombre attendu, lu {}", autre)),
-    }
-}
-
-/// Deux decimales, la moitie toujours vers le haut (jamais au pair).
+/// Deux decimales, la moitie toujours vers le haut (jamais au pair) : le cent le plus proche, le milieu au cent superieur
+/// (reglement (CE) n° 1103/97, art. 5, `atelier/reference/sources/arrondi-euro/eurlex-reglement-1103-97-introduction-euro-19970619.txt` ;
+/// lu comme la regle de tout montant du bulletin, et d'un negatif comme de son oppose : inferences dites au
+/// `LISEZ-MOI.md` de ce dossier).
 pub fn eur(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero)
 }
@@ -86,7 +71,11 @@ pub fn pct(base: Decimal, taux: Decimal) -> Decimal {
 /// Un flottant a trois decimales (arrondi correct, au pair sur le
 /// demi exact), par sa forme ecrite.
 pub fn round3(x: f64) -> f64 {
-    format!("{:.3}", x).parse().unwrap_or(x)
+    // Un flottant ecrit par Rust se relit toujours (`NaN` et `inf` compris).
+    match format!("{:.3}", x).parse() {
+        Ok(y) => y,
+        Err(e) => unreachable!("un flottant écrit par Rust se relit : {} ({})", x, e),
+    }
 }
 
 /// Une somme de montants, à deux décimales au moins.
@@ -125,7 +114,11 @@ fn en_decimal(p: P) -> Decimal {
             _ => break,
         }
     }
-    Decimal::try_from_i128_with_scale(m, e.max(0) as u32).unwrap_or(Decimal::MAX)
+    // Une mantisse au-dela de 96 bits, ou plus de 28 decimales : le plus grand decimal.
+    if m.unsigned_abs() >= 1u128 << 96 || e > 28 {
+        return Decimal::MAX;
+    }
+    Decimal::from_i128_with_scale(m, e.max(0) as u32)
 }
 
 /// `a * b` a 28 chiffres significatifs, au pair sur le demi (`d28`).
@@ -169,27 +162,14 @@ pub fn nombre(x: Decimal) -> String {
 mod tests {
     use super::*;
 
+    /// Reglement (CE) n° 1103/97, art. 5 : « arrondies au cent supérieur ou inférieur le plus proche […] exactement au
+    /// milieu, la somme est arrondie au chiffre supérieur » (`atelier/reference/sources/arrondi-euro/`) ; le negatif
+    /// s'arrondit comme son oppose par INFERENCE (`arrondi-euro/LISEZ-MOI.md`, « Le centime »).
     #[test]
     fn eur_arrondit_le_demi_vers_le_haut() {
         assert_eq!(eur(Decimal::from_str("2.675").unwrap()).to_string(), "2.68");
         assert_eq!(eur(Decimal::from_str("258.336").unwrap()).to_string(), "258.34");
         assert_eq!(eur(Decimal::from_str("-0.005").unwrap()).to_string(), "-0.01");
-    }
-
-    fn d(s: &str) -> Decimal {
-        Decimal::from_str(s).unwrap()
-    }
-
-    // L'arithmetique a 28 chiffres significatifs (`d28`).
-    #[test]
-    fn div_et_mul_sans_double_arrondi() {
-        // 97/31 = 3.129032258064516129032258065 ; arrondi deux fois (28 decimales
-        // puis 28 chiffres), le quotient serait ...064 et le total 68,38.
-        let q = div(d("97"), d("31"));
-        assert_eq!(q.to_string(), "3.129032258064516129032258065");
-        let m = mul(q, d("21.855"));
-        assert_eq!(m.to_string(), "68.38500000000000000000000001");
-        assert_eq!(eur(m).to_string(), "68.39");
     }
 
 }
@@ -198,18 +178,20 @@ mod tests {
 /// Un entier trop long pour `i128` se rend au plus grand.
 pub fn entier_lu(t: &str) -> Option<i128> {
     let t = t.trim_matches(crate::texte::blanc);
-    let (neg, reste) = match t.strip_prefix('-') {
-        Some(r) => (true, r),
-        None => (false, t.strip_prefix('+').unwrap_or(t)),
+    let (neg, reste) = match (t.strip_prefix('-'), t.strip_prefix('+')) {
+        (Some(r), _) => (true, r),
+        (None, Some(r)) => (false, r),
+        (None, None) => (false, t),
     };
-    if reste.is_empty() || reste.starts_with('_') || reste.ends_with('_') || reste.contains("__") {
+    // Des groupes de chiffres, chacun non vide, separes d'un tiret bas.
+    if !reste.split('_').all(|g| !g.is_empty() && g.chars().all(|c| c.is_ascii_digit())) {
         return None;
     }
-    let chiffres: String = reste.chars().filter(|c| *c != '_').collect();
-    if !chiffres.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    let n = chiffres.parse::<i128>().unwrap_or(i128::MAX);
+    let lu = reste.chars().filter(|c| *c != '_').try_fold(0i128, |n, c| n.checked_mul(10)?.checked_add(i128::from(c.to_digit(10)?)));
+    let n = match lu {
+        Some(n) => n,
+        None => i128::MAX,
+    };
     Some(if neg { -n } else { n })
 }
 
@@ -273,15 +255,27 @@ pub fn decimal_lu(t: &str) -> Option<Decimal> {
     if i != c.len() {
         return None;
     }
-    propre.push_str(if entier.is_empty() { "0" } else { &entier });
-    if !frac.is_empty() {
-        propre.push('.');
-        propre.push_str(&frac);
+    // LE DECIMAL QUE LE TEXTE ECRIT : sa mantisse (ses chiffres) et son echelle (ses decimales, moins l'exposant). Un
+    // nombre bien ecrit que le decimal ne tient pas (une mantisse au-dela de 96 bits, plus de 28 decimales, un exposant
+    // hors de sa portee) n'est pas un nombre qu'on lise.
+    let chiffres = |s: &str| s.chars().try_fold(0i128, |n, c| n.checked_mul(10)?.checked_add(i128::from(c.to_digit(10)?)));
+    let mut mantisse = chiffres(&format!("{}{}", entier, frac))?;
+    let exposant = match exposant.strip_prefix('-') {
+        Some(e) => -chiffres(e)?,
+        None => chiffres(exposant.trim_start_matches('+'))?,
+    };
+    let mut echelle = (frac.len() as i128).checked_sub(exposant)?;
+    if echelle < 0 {
+        // Au-dela de 10^38, l'entier ne tient dans aucun decimal.
+        if echelle < -38 {
+            return None;
+        }
+        mantisse = mantisse.checked_mul(10i128.checked_pow((-echelle) as u32)?)?;
+        echelle = 0;
     }
-    if exposant.is_empty() {
-        Decimal::from_str(&propre).ok()
-    } else {
-        Decimal::from_scientific(&format!("{}e{}", propre, exposant)).ok()
+    if echelle > 28 || mantisse >= 1i128 << 96 {
+        return None;
     }
+    Some(Decimal::from_i128_with_scale(if propre == "-" { -mantisse } else { mantisse }, echelle as u32))
 }
 

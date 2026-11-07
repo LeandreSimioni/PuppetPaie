@@ -21,7 +21,7 @@ fn fuller_a_cheval(cas: &str) -> PathBuf {
     let sc = d.join("scenario");
     std::fs::create_dir_all(&sc).unwrap();
     let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
-    let novembre = r#""dates":["2026-11-20","2026-11-21"]}"#;
+    let novembre = r#""dates":["2026-11-20","2026-11-21"],"planning":[]}"#;
     assert!(gestes.contains(novembre));
     let gestes = gestes.replace(novembre, r#""dates":["2026-11-20","2026-11-21"],"planning":["2026-12-02","2026-12-03"]}"#);
     std::fs::write(sc.join("gestes.jsonl"), gestes).unwrap();
@@ -36,7 +36,13 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     assert!(!c.join("sorties/2026-12/envoi").exists(), "un contrat est refait en decembre : {:?}", noms(&c.join("sorties/2026-12/envoi")));
     let jour = "2026-12-20";
     let ctx = droit::contexte::Contexte::nouveau(&c, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
-    assert_eq!(moteur::routes::etapes::Moteur::nouveau(&ctx).embauches_a_declarer(None).unwrap(), json!([]));
+    assert!(moteur::routes::etapes::Moteur::nouveau(&ctx).embauches_a_declarer(None).unwrap().is_empty());
+    // LA LIGNE DU SECOND MOIS DIT SON EMBAUCHE, sa periode et son contrat, que la boite des DPAE, la carte et le detail d'une
+    // piece ecrivent (un bug qui a echappe : la route ne rendait plus ces phrases, la boite ecrivait « FULLER — »).
+    let lignes = reussi(&route(&c, "etat-par-engagement", json!({"mois": "2026-12"}), jour))["engagements"].clone();
+    let l = lignes.as_array().unwrap().iter().find(|l| l["salarie"] == "FULLER").unwrap();
+    assert!(l["embauche_dit"].as_str().unwrap().ends_with("embauche le 20/11/2026"), "{}", l);
+    assert!(l["numero_dit"] == json!("contrat n° FU1.26.01") && l["periode_dit"].as_str().is_some_and(|p| p.contains("20/11/2026")), "{}", l);
 
     let ecrite = reussi(&route(&c, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour)).clone();
     let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["fichier"].as_str().unwrap()).unwrap()).to_string();
@@ -53,7 +59,8 @@ fn la_carte_du_second_mois_renvoyee_telle_quelle_ne_change_rien() {
     let c = fuller_a_cheval("aller_retour");
     let jour = "2026-12-16";
     let fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "engagement": crate::outils::identite(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
+    let id = socle::ecriture::en_valeur(&crate::outils::identite(&c, "2026-12", "FULLER", None));
+    let r = crate::outils::modifier(&c, "2026-12", &id, &fuller, false, None, jour);
     assert_eq!(reussi(&r)["change"], json!(false), "{}", r);
 }
 
@@ -65,10 +72,8 @@ fn la_carte_du_second_mois_renvoyee_telle_quelle_ne_change_rien() {
 fn la_date_de_debut_changee_se_declare_avec_l_ancienne() {
     let c = fuller_a_cheval("date_de_debut");
     let jour = "2026-12-16";
-    let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
-    fuller["debut"] = json!("2026-11-19");
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
-        "engagement": crate::outils::identite(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
+    let id = socle::ecriture::en_valeur(&crate::outils::identite(&c, "2026-12", "FULLER", None));
+    let r = crate::outils::modifier(&c, "2026-12", &id, &json!({"debut": "2026-11-19"}), true, None, jour);
     assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
 
     let ecrite = reussi(&route(&c, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), "2026-12-20")).clone();
@@ -86,11 +91,10 @@ fn la_date_de_debut_changee_se_declare_avec_l_ancienne() {
 fn la_date_de_debut_changee_se_fait_signer_en_avenant() {
     let c = fuller_a_cheval("debut_en_avenant");
     let jour = "2026-12-16";
-    let mut fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
+    let fuller: Value = saisie(&c, "2026-12")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
     let numero = fuller["numero"].clone();
-    fuller["debut"] = json!("2026-11-19");
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
-        "engagement": crate::outils::identite(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
+    let id = socle::ecriture::en_valeur(&crate::outils::identite(&c, "2026-12", "FULLER", None));
+    let r = crate::outils::modifier(&c, "2026-12", &id, &json!({"debut": "2026-11-19"}), true, None, jour);
     assert_eq!(reussi(&r)["change"], json!(true), "{}", r);
 
     let contrat = |c: &PathBuf| -> Value {
@@ -123,10 +127,8 @@ fn une_notification_hors_du_contrat_se_refuse_a_la_validation() {
     let c = fuller_a_cheval("notification");
     let jour = "2026-12-16";
     let avant = saisie(&c, "2026-12");
-    let mut fuller: Value = avant["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").cloned().unwrap();
-    fuller["notification_rupture"] = json!("2026-11-14");
-    let r = route(&c, "modifier-engagement", json!({"mois": "2026-12", "confirme": true,
-        "engagement": crate::outils::identite(&c, "2026-12", "FULLER", None), "saisie": fuller}), jour);
+    let id = socle::ecriture::en_valeur(&crate::outils::identite(&c, "2026-12", "FULLER", None));
+    let r = crate::outils::modifier(&c, "2026-12", &id, &json!({"notification_rupture": "2026-11-14"}), true, None, jour);
     let (_, phrase) = refus(&r);
     assert!(phrase.contains("14/11/2026") && phrase.contains("20/11/2026") && phrase.contains("03/12/2026"), "{}", r);
     assert_eq!(saisie(&c, "2026-12"), avant, "une notification refusee s'est ecrite");

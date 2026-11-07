@@ -13,15 +13,13 @@
 //! plus, images comprises : une image collee dans la signature pese tout son poids, un lien vers une image en ligne
 //! presque rien. Au-dela, la fiche le signale et l'envoi refuse plutot que de partir sans signature.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use regex::Regex;
-use serde_json::Value;
 
-use declarations::champs::{trop_lourde, CLE_SIGNATURE};
+use declarations::champs::trop_lourde;
 use crate::envoi::Message;
-
-pub const CLE_NOM: &str = "courriel_nom";
 
 /// Les formules qui closent nos modeles : ce qui les suit est la signature.
 const FORMULES: [&str; 2] = ["Bien à toi,", "Bien cordialement,"];
@@ -37,10 +35,9 @@ pub struct Signature {
 }
 
 /// La signature d'une fiche Entreprise. `Err` : elle est posee mais trop lourde.
-pub fn de_la_fiche(ent: &Value) -> Result<Option<Signature>, String> {
-    let lire = |k: &str| ent.get(k).and_then(Value::as_str).map(str::trim).unwrap_or("").to_string();
-    let nom = lire(CLE_NOM);
-    let brut = lire(CLE_SIGNATURE);
+pub fn de_la_fiche(ent: &droit::fiche::ChampsEntreprise) -> Result<Option<Signature>, String> {
+    let nom = ent.courriel_nom.texte().trim().to_string();
+    let brut = ent.courriel_signature.texte().trim().to_string();
     if nom.is_empty() && brut.is_empty() {
         return Ok(None);
     }
@@ -58,7 +55,8 @@ pub fn du_poste(racine: &Path) -> Result<Option<Signature>, String> {
     if !p.exists() {
         return Ok(None);
     }
-    let ent = socle::fichiers::lire_json(&p)?;
+    // La fiche telle qu'elle vaut aujourd'hui, lue par sa forme : le fichier est date.
+    let ent = droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&p, droit::contexte::ENTREPRISE)?.au(&droit::contexte::jour_reel());
     de_la_fiche(&ent)
 }
 

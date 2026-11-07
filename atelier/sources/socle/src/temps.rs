@@ -27,7 +27,7 @@
 //! dans son processus). L'INSTANT FIGE ET LE COMPTEUR DES ALEAS sont propres a chaque route servie, donc a son fil : des
 //! routes servies en meme temps (la page, la veille, l'etat refait en fond) ne se figent ni ne se comptent l'une l'autre.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::sync::Mutex;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -51,24 +51,43 @@ thread_local! {
     static FIGE: Cell<Option<f64>> = const { Cell::new(None) };
     /// Les tirages deja faits par la route servie sur ce fil (aleas en suite fixe).
     static TIRAGES: Cell<u64> = const { Cell::new(0) };
+    /// Le pas de l'horloge d'une compagnie fictive joue sur ce fil hors d'un rejeu (`pendant_le_pas_fictif`) : ses aleas
+    /// sont une suite fixe, tiree de ce qui le nomme.
+    static PAS_FICTIF: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
 fn etat() -> std::sync::MutexGuard<'static, Option<Simule>> {
-    SIMULE.lock().unwrap_or_else(|p| p.into_inner())
+    crate::memoire::tenu(&SIMULE)
 }
 
 fn aleas_fixes_poses() -> bool {
     etat().as_ref().is_some_and(|s| s.aleas_fixes)
 }
 
+/// Les aleas sont-ils une suite fixe sur ce fil : le rejeu, le banc, ou un pas de l'horloge d'une fictive ?
+fn aleas_fixes_ici() -> bool {
+    aleas_fixes_poses() || PAS_FICTIF.with_borrow(Option::is_some)
+}
+
 fn montre() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(d) => d.as_secs_f64(),
+        Err(avant_1970) => horloge_dereglee(avant_1970),
+    }
 }
 
 /// L'heure du mur, en millisecondes depuis 1970 : celle de la page (`Date.now()`), jamais le temps simule. Elle date ce
 /// qu'on garde en memoire pour un diagnostic (les echecs, le fil des actions), pas ce qu'on ecrit.
 pub fn maintenant_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(d) => d.as_millis() as u64,
+        Err(avant_1970) => horloge_dereglee(avant_1970),
+    }
+}
+
+/// L'HORLOGE DU POSTE AVANT 1970 : rien ne se date, le moteur s'arrete en le disant.
+fn horloge_dereglee(e: std::time::SystemTimeError) -> ! {
+    panic!("L'horloge de cet ordinateur est réglée {} s avant le 1er janvier 1970 : la remettre à l'heure.", e.duration().as_secs())
 }
 
 /// L'instant present, en secondes depuis 1970 (UTC) : fige pour la route de ce fil, ou simule s'il coule, sinon la montre
@@ -85,20 +104,34 @@ pub fn secondes() -> f64 {
 
 /// LE JOUR POSE (`PUPPETPAIE_AUJOURDHUI`, AAAA-MM-JJ) : la montre, decalee d'autant de jours qu'il y en a entre le jour
 /// de Paris ou il a ete lu pour la premiere fois et le jour pose : la meme heure (a une heure pres d'un changement d'heure
-/// entre les deux), ce jour-la, et minuit passe comme a la montre. Sans jour pose, ou illisible, `t` tel quel.
+/// entre les deux), ce jour-la, et minuit passe comme a la montre. Sans jour pose (ou pose vide), `t` tel quel. Un jour
+/// pose illisible arrete le moteur : celui qui le pose (un test, un banc) le corrige, rien ne compte a la montre a sa place.
 fn au_jour_pose(t: f64) -> f64 {
-    static DECALAGE: Mutex<Option<(String, f64)>> = Mutex::new(None);
-    let Some(pose) = std::env::var("PUPPETPAIE_AUJOURDHUI").ok().filter(|v| !v.is_empty()) else { return t };
-    let mut d = DECALAGE.lock().unwrap_or_else(|p| p.into_inner());
-    if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == pose) {
+    static DECALAGE: Mutex<Option<(Jour, f64)>> = Mutex::new(None);
+    let Some(jour) = jour_pose() else { return t };
+    let mut d = crate::memoire::tenu(&DECALAGE);
+    if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == jour) {
         return t + decalage;
     }
-    let Ok(jour) = Jour::lire(&pose) else { return t };
     let entier = t.floor() as i64;
     let jour_de_la_montre = (entier + crate::paris::decalage(entier)).div_euclid(86_400);
     let decalage = ((jour.ordinal() - 719_163) - jour_de_la_montre) as f64 * 86_400.0;
-    *d = Some((pose, decalage));
+    *d = Some((jour, decalage));
     t + decalage
+}
+
+/// LE JOUR QUE `PUPPETPAIE_AUJOURDHUI` POSE (AAAA-MM-JJ), seul endroit ou cette variable se lit ; `None` : elle n'est pas
+/// posee (ou vide), le jour est celui de l'horloge. Illisible, le moteur s'arrete.
+pub fn jour_pose() -> Option<Jour> {
+    match std::env::var("PUPPETPAIE_AUJOURDHUI") {
+        Ok(v) if v.is_empty() => None,
+        Ok(v) => match Jour::lire(&v) {
+            Ok(jour) => Some(jour),
+            Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
+        },
+        Err(std::env::VarError::NotPresent) => None,
+        Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
+    }
 }
 
 /// Le temps est-il simule (le banc, le rejeu, un geste joue a sa date) ?
@@ -138,6 +171,22 @@ pub fn pendant<T>(instant: f64, f: impl FnOnce() -> T) -> T {
     let avant = FIGE.replace(Some(instant));
     let r = f();
     FIGE.set(avant);
+    r
+}
+
+/// `f`, UN PAS DE L'HORLOGE D'UNE COMPAGNIE FICTIVE, le temps fige a `instant` (`pendant`). Ses aleas ne sont jamais ceux
+/// du systeme : au rejeu, ils poursuivent la suite fixe du geste ; ailleurs (la fictive livree, que son horloge fait vivre
+/// sur le poste), ils sont la suite fixe du pas, tiree de `pas` (ce qui le nomme et son heure) et d'un compteur parti de
+/// zero : deux horloges qui jouent les memes pas ecrivent les memes octets (un code de signature, un nom de courriel).
+/// Une fictive n'a aucun secret : rien ne part d'elle.
+pub fn pendant_le_pas_fictif<T>(instant: f64, pas: &str, f: impl FnOnce() -> T) -> T {
+    if aleas_fixes_poses() {
+        return pendant(instant, f);
+    }
+    let avant = (PAS_FICTIF.replace(Some(pas.to_string())), TIRAGES.replace(0));
+    let r = pendant(instant, f);
+    PAS_FICTIF.set(avant.0);
+    TIRAGES.set(avant.1);
     r
 }
 
@@ -183,17 +232,22 @@ pub fn instant_de(jour: Jour, heure: i64) -> f64 {
 /// systeme, ou, au rejeu, la suite fixe (SHA-256 du rang du tirage). Jamais pour un secret : le coffre, la cle d'une
 /// mise a jour, l'autorisation Google tirent les leurs du systeme, toujours.
 pub fn aleas(o: &mut [u8]) -> Result<(), String> {
-    let tirage = aleas_fixes_poses().then(|| {
+    let pas = PAS_FICTIF.with_borrow(Clone::clone);
+    let tirage = aleas_fixes_ici().then(|| {
         let rang = TIRAGES.get() + 1;
         TIRAGES.set(rang);
-        (rang, FIGE.get().map_or(0, f64::to_bits))
+        let graine: u64 = FIGE.get().into_iter().map(f64::to_bits).sum();
+        (rang, graine)
     });
     let Some((rang, graine)) = tirage else {
         return getrandom::fill(o).map_err(|e| e.to_string());
     };
     let mut bloc = 0u64;
     for morceau in o.chunks_mut(32) {
-        let h = Sha256::digest(format!("puppetpaie-rejeu-{}-{}-{}", graine, rang, bloc).as_bytes());
+        let h = match &pas {
+            None => Sha256::digest(format!("puppetpaie-rejeu-{}-{}-{}", graine, rang, bloc).as_bytes()),
+            Some(p) => Sha256::digest(format!("puppetpaie-fictive-{}-{}-{}-{}", p, graine, rang, bloc).as_bytes()),
+        };
         morceau.copy_from_slice(&h[..morceau.len()]);
         bloc += 1;
     }
@@ -203,7 +257,7 @@ pub fn aleas(o: &mut [u8]) -> Result<(), String> {
 /// UNE DUREE QU'ON ECRIT (le temps qu'a pris un envoi, un passage de la veille) : celle de la montre ; au rejeu, zero --
 /// elle ne dit rien de la compagnie, et deux rejeux doivent ecrire les memes octets.
 pub fn duree(debut: Instant) -> std::time::Duration {
-    if aleas_fixes_poses() {
+    if aleas_fixes_ici() {
         std::time::Duration::ZERO
     } else {
         debut.elapsed()
@@ -212,7 +266,7 @@ pub fn duree(debut: Instant) -> std::time::Duration {
 
 /// Le numero du processus, pour un identifiant (un `Message-ID`) : au rejeu, toujours 1.
 pub fn numero_de_processus() -> u32 {
-    if aleas_fixes_poses() {
+    if aleas_fixes_ici() {
         1
     } else {
         std::process::id()

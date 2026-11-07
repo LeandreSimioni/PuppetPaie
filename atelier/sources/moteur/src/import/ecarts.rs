@@ -23,6 +23,7 @@
 //! nouveau a l'ouverture suivante. UN RAPPORT DEJA NOTE NE SE NOTE PAS DEUX FOIS (meme empreinte, meme resume, meme
 //! detail) : un import rejoue ne renvoie rien.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -34,9 +35,7 @@ use crate::import::caviardage::{self, Connus};
 use crate::compagnie::incidents;
 use droit::contexte::Contexte;
 use engagement::ecarts::{Comparaison, Grandeur};
-use socle::date::en_texte;
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 /// L'endroit, dans le journal des incidents.
 pub const OU: &str = "ecarts_import";
@@ -87,7 +86,7 @@ fn registre(racine: &Path) -> PathBuf {
 }
 
 fn comparees(racine: &Path) -> BTreeSet<String> {
-    socle::fichiers::lire_json(&registre(racine)).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default().iter().filter_map(|x| x.as_str().map(str::to_string)).collect()
+    documents::valeur::lire_json(&registre(racine)).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default().iter().filter_map(|x| x.as_str().map(str::to_string)).collect()
 }
 
 /// Les rapports des paies importees de la compagnie que le registre ne dit pas deja comparees, et les empreintes des
@@ -102,8 +101,9 @@ pub fn rapports(ctx: &Contexte) -> (Vec<Rapport>, Vec<String>) {
 }
 
 fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
-    let texte = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(en_texte);
-    let (idcc, annexe, organisation) = (texte("idcc"), texte("annexe_convention"), texte("organisation_patronale"));
+    let e = &ctx.entreprise;
+    let (idcc, annexe, organisation) =
+        (e.idcc.remplie().map(String::from), e.annexe_convention.dite().map(|a| a.as_str().to_string()), e.organisation_patronale.remplie().map(String::from));
     let mut connus = Connus::default();
     ajouter_les_fiches(ctx, &mut connus);
     let mut propre = Propre { connus: &connus, vus: Default::default() };
@@ -125,9 +125,9 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
                         }
                     }
                     let mut x = cas(c);
-                    let j = e.to_json();
-                    for k in ["notre_taux", "leur_taux", "ecart_relatif"] {
-                        x[k] = j[k].clone();
+                    let d = |t: Option<socle::num::Decimal>| t.map_or(Value::Null, |t| json!(socle::num::nombre(t)));
+                    for (k, t) in [("notre_taux", e.notre_taux), ("leur_taux", e.leur_taux), ("ecart_relatif", e.ecart_relatif)] {
+                        x[k] = d(t);
                     }
                     v.push(x);
                 }
@@ -222,13 +222,9 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
             }
         }
     };
-    let fiches = ctx
-        .salaries
-        .iter()
-        .filter(|(k, v)| !k.starts_with('_') && v.is_object())
-        .map(|(_, v)| v.clone());
-    for f in fiches {
-        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
+    for (_, f) in &ctx.salaries {
+        // Les cases que le releve compare se nomment (`ParCase`).
+        let t = |k: &str| droit::fiche::case_en(&f.champs, k, serde_json::value::Serializer).and_then(Result::ok).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
         for k in ["nom", "nom_affichage"] {
             pousser(&mut c.noms, t(k));
         }
@@ -252,7 +248,7 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
         pousser(&mut c.conges_spectacles, t("num_conges_spectacles"));
     }
     let e = &ctx.entreprise;
-    for k in ["raison_sociale", "nom_affichage", "adresse", "adresse_affichage", "code_postal", "commune", "commune_affichage"] {
-        pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(valeur_en_texte));
+    for k in [e.raison_sociale.remplie(), e.nom_affichage.remplie(), e.adresse.remplie(), e.adresse_affichage.remplie(), e.complement_adresse.remplie(), e.complement_adresse_affichage.remplie(), e.code_postal.remplie(), e.commune.remplie(), e.commune_affichage.remplie()] {
+        pousser(&mut c.entreprise, k.map(String::from));
     }
 }

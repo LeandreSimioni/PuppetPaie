@@ -20,37 +20,49 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     std::fs::copy(fil.join("description.json"), sc.join("description.json")).unwrap();
     let gestes = std::fs::read_to_string(fil.join("gestes.jsonl")).unwrap();
     let gestes: Vec<&str> = gestes.lines().collect();
-    let fiche = json!({"route": "enregistrer-fiche", "charge": {"nom": "salarie", "confirme": true, "donnees": {
-        "nom_affichage": "Sansnir", "prenom_affichage": "Armel", "sexe": "1", "emploi_affichage": "Technicien son",
-        "adresse_affichage": "3 rue Gloriette", "code_postal": "71100", "commune_affichage": "Chalon-sur-Saône",
-        "statut": "technicien", "pcs_ese": "465b", "code_emploi_ft": "TEC250", "statut_conventionnel": "07",
-        "statut_categoriel_rc": "04", "date_naissance": "1990-05-04", "lieu_naissance_affichage": "Chalon-sur-Saône",
-        "departement_naissance": "71", "pays_naissance": "FR", "code_nationalite_dsn": "01"}}});
-    let janvier = json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "saisie": {"salarie": "SANSNIR",
-        "spectacle": "objet-256Z00931108", "lignes": [{"rubrique": "heure", "quantite": 10, "taux": 23,
-        "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}]}}});
+    let fiche = json!({"route": "enregistrer-fiche", "charge": {"nom": "salarie", "confirme": true, "changements": [
+        {"case": "nom_affichage", "valeur": "Sansnir"}, {"case": "prenom_affichage", "valeur": "Armel"}, {"case": "sexe", "valeur": "1"},
+        {"case": "emploi_affichage", "valeur": "Technicien son"}, {"case": "adresse_affichage", "valeur": "3 rue Gloriette"},
+        {"case": "code_postal", "valeur": "71100"}, {"case": "commune_affichage", "valeur": "Chalon-sur-Saône"},
+        {"case": "statut", "valeur": "technicien"}, {"case": "pcs_ese", "valeur": "465b"}, {"case": "code_emploi_ft", "valeur": "TEC250"},
+        {"case": "statut_conventionnel", "valeur": "07"}, {"case": "statut_categoriel_rc", "valeur": "04"},
+        {"case": "date_naissance", "valeur": "1990-05-04"}, {"case": "lieu_naissance_affichage", "valeur": "Chalon-sur-Saône"},
+        {"case": "departement_naissance", "valeur": "71"}, {"case": "pays_naissance", "valeur": "FR"},
+        {"case": "code_nationalite_dsn", "valeur": "01"}]}});
+    // Sa carte de janvier, ses cases d'un appel, puis validee.
+    let janvier = [
+        json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-01", "carte": {"neuve": "cddu_spectacle"}, "changements": [
+            {"case": "salarie", "valeur": "SANSNIR"},
+            {"case": "spectacle", "valeur": "objet-256Z00931108"},
+            {"case": "lignes", "valeur": [{"rubrique": "heure", "quantite": 10, "taux": 23,
+                "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"], "planning": []}]},
+        ]}}),
+        json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "engagement": {"salarie": "SANSNIR", "debut": "2026-01-19", "rang": 0}}}),
+    ];
     // Jusqu'a la DSN de janvier partie (la premiere `envoyer-documents`).
     let fin = gestes.iter().position(|l| l.contains("\"envoyer-documents\"")).unwrap();
-    let debut = gestes.iter().position(|l| l.contains("\"valider-engagement\"")).unwrap();
+    // La fiche avant la premiere carte ; sa carte apres les deux premiers engagements valides.
+    let debut = gestes.iter().position(|l| l.contains("\"enregistrer-saisie\"")).unwrap();
+    let apres = gestes.iter().enumerate().filter(|(_, l)| l.contains("\"valider-engagement\"")).nth(1).unwrap().0 + 1;
     let mut joues: Vec<String> = gestes[..debut].iter().map(|l| l.to_string()).collect();
     joues.push(fiche.to_string());
-    joues.extend(gestes[debut..debut + 2].iter().map(|l| l.to_string()));
-    joues.push(janvier.to_string());
-    joues.extend(gestes[debut + 2..=fin].iter().map(|l| l.to_string()));
+    joues.extend(gestes[debut..apres].iter().map(|l| l.to_string()));
+    joues.extend(janvier.iter().map(|g| g.to_string()));
+    joues.extend(gestes[apres..=fin].iter().map(|l| l.to_string()));
     std::fs::write(sc.join("gestes.jsonl"), joues.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-02-05";
 
     // Le NIR arrive : une case vide qu'on remplit, sans date ni avertissement, apres la DSN partie de janvier.
     let r = reussi(&route(&c, "enregistrer-fiche", json!({"nom": "salarie", "cle": "SANSNIR",
-        "donnees": {"nir": "1900571123456", "nir_cle": "33"}}), jour)).clone();
+        "changements": [{"case": "nir", "valeur": "1900571123456"}, {"case": "nir_cle", "valeur": "33"}]}), jour)).clone();
     assert!(r.get("avertissement").is_none(), "la premiere valeur d'une case se date : {}", r);
     let fiches: serde_json::Value = serde_json::from_slice(&std::fs::read(c.join("config/salaries.json")).unwrap()).unwrap();
     assert_eq!(fiches["SANSNIR"]["nir"], json!([{"valeur": "1900571123456"}]), "le NIR vaut de tout temps");
 
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-02", "saisie": {"salarie": "SANSNIR",
-        "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "heure", "quantite": 15, "taux": 23,
-        "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"]}]}}), jour));
+    reussi(&crate::outils::valider(&c, "2026-02", None, &json!({"salarie": "SANSNIR",
+        "nature": "cddu_spectacle", "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "heure", "quantite": 15, "taux": 23,
+        "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"], "planning": []}]}), jour));
     reussi(&route(&c, "arret-enregistrer", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "debut": "2026-02-07", "fin": "2026-02-08",
         "motif": "01"}), jour));
     let f = reussi(&route(&c, "arret-signaler", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06"}), jour))["fichier"]
@@ -60,6 +72,9 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     let texte = std::fs::read_to_string(&f).unwrap();
     assert!(texte.contains("S21.G00.30.001,'1900571123456'"), "le signalement porte le NIR :\n{}", texte);
     assert!(texte.contains("S21.G00.30.020,'1"), "le signalement porte le NTT declare en janvier a cote du NIR :\n{}", texte);
+    // Son apercu se range au mois de l'evenement, et dit son jour.
+    let a = reussi(&route(&c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}), jour)).clone();
+    assert_eq!((&a["mois"], &a["evenement"]), (&json!("2026-02"), &json!("2026-02-06")), "{}", a);
 
     // LE SIGNALEMENT PARTI (son depot de test, rejoue en reel au journal), l'arret prolonge : il ne se refait pas, et le
     // fichier reste tel qu'il est parti (regle 4 de `atelier/AGENTS.md` ; « en cas de prolongation d'arret, il ne faut

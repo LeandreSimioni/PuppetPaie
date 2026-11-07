@@ -34,7 +34,6 @@
 //! 3. LA VEILLE DE L'ANNULE-ET-REMPLACE est celle de l'echeance reportee : le cahier dit « la veille » de « la date butoir
 //!    de la DSN (5 ou 15) », et R. 133-14, I, proroge cette date. Aucune piece ne tranche.
 
-use serde_json::{json, Value};
 
 use socle::date::Jour;
 use socle::num::Resultat;
@@ -99,7 +98,7 @@ pub fn du_mois(mois: &str, jour_du_mois: u32) -> Resultat<Echeance> {
     let (an, mo) = (entier(&mois.chars().take(4).collect::<String>())?, entier(&mois.chars().skip(5).take(2).collect::<String>())?);
     let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
     if !(1..=12).contains(&mo) {
-        return Err(socle::date::mois_impossible(mo));
+        return Err(socle::mois::mois_impossible(mo));
     }
     if !(1..=9999).contains(&an) {
         return Err(socle::date::annee_impossible(an));
@@ -167,17 +166,32 @@ impl Echeance {
     }
 
     /// Ce que les routes rendent a cote de leur date (`echeance_depot`).
-    pub fn en_json(&self) -> Value {
-        json!({
-            "jour": self.jour.iso(),
-            "heure": HEURE_LIMITE,
-            "nominale": self.nominale.iso(),
-            "reportee": self.reportee(),
-            "pourquoi": self.pourquoi(),
-            "phrase": self.phrase(),
-            "veille_annule_et_remplace": self.veille().ok().map(|j| j.iso()),
-            "textes": TEXTES,
-            "inference": INFERENCE,
-        })
+    pub fn dite(&self) -> EcheanceDite {
+        EcheanceDite {
+            jour: self.jour.iso(),
+            heure: HEURE_LIMITE,
+            nominale: self.nominale.iso(),
+            reportee: self.reportee(),
+            pourquoi: self.pourquoi(),
+            phrase: self.phrase(),
+            veille_annule_et_remplace: self.veille().ok().map(|j| j.iso()),
+            textes: TEXTES,
+            inference: INFERENCE,
+        }
     }
+}
+
+/// L'echeance telle que les routes la rendent : son jour et son heure limite, la nominale, si elle est reportee et
+/// pourquoi, sa phrase, la veille de l'annule-et-remplace, ses textes et l'inference qu'elle porte.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct EcheanceDite {
+    pub jour: String,
+    pub heure: &'static str,
+    pub nominale: String,
+    pub reportee: bool,
+    pub pourquoi: Option<String>,
+    pub phrase: String,
+    pub veille_annule_et_remplace: Option<String>,
+    pub textes: [&'static str; 4],
+    pub inference: &'static str,
 }

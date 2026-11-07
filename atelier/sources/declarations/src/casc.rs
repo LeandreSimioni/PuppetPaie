@@ -1,14 +1,9 @@
-//! La CASC-SVP que lit la DSN : sa base livree, et les mois regularises hors DSN.
+//! La CASC-SVP que lit la DSN : les mois regularises hors DSN (sa base livree : `droit::adhesions::casc_svp_base`).
 
 use droit::contexte::Contexte;
-use socle::fichiers::{dossier_du_code, lire_json};
+use documents::valeur::lire_json;
 use socle::num::Resultat;
 use serde_json::Value;
-
-/// `casc-svp-base.json`, livre avec le code.
-pub fn base() -> Resultat<Value> {
-    lire_json(&dossier_du_code().join("casc-svp-base.json"))
-}
 
 /// Ce que la compagnie dit de ses mois Conges Spectacles regularises hors DSN, sous sa racine.
 pub const CASC_SVP: &str = "config/casc-svp.json";
@@ -22,7 +17,7 @@ pub fn mois_regularises(ctx: &Contexte) -> Resultat<Vec<String>> {
     let mut mois: Vec<String> = vec![];
     for reg in d.get("regularisations").and_then(Value::as_array).into_iter().flatten() {
         for m in reg.get("mois").and_then(Value::as_array).into_iter().flatten() {
-            let m = socle::date::en_texte(m);
+            let m = documents::valeur::en_texte(m);
             if !mois.contains(&m) {
                 mois.push(m);
             }

@@ -61,7 +61,7 @@ fn amorcer(cadre: &Cadre) -> Result<i32, Echec> {
         dire!("Dossier introuvable : {}", export.display());
         return Ok(1);
     }
-    let releves = crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &export);
+    let releves = crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &export)?;
     let nom = export.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let chgts = crate::compagnie::taux_pas::enregistrer(ctx, &releves, &format!("amorcage depuis les DSN deposees ({})", nom))?;
     dire!("Amorcage depuis les DSN deposees ({}) :", export.display());
@@ -78,11 +78,11 @@ fn amorcer(cadre: &Cadre) -> Result<i32, Echec> {
 /// Les taux recus (la fiche de chaque salarie, `droit::pas::recus`), et ce qu'il faudrait demander a la DGFiP.
 fn lire(cadre: &Cadre) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
-    let diag = droit::pas::diagnostic(ctx, None, None, None).map_err(ko)?;
+    let diag: Vec<Value> = droit::pas::diagnostic(ctx, None, None, None).map_err(ko)?.iter().map(socle::ecriture::en_valeur).collect();
     dire!("Taux de prelevement a la source recus\n{}", "-".repeat(62));
     for s in &diag {
         let cle = champ(s, "salarie");
-        let recus = droit::pas::recus(ctx, &cle).map_err(ko)?;
+        let recus: Vec<Value> = droit::pas::recus(ctx, &cle).map_err(ko)?.iter().map(socle::ecriture::en_valeur).collect();
         let Some(e) = recus.last() else {
             dire!("  {:<12} aucun taux recu", cle);
             continue;
@@ -95,7 +95,7 @@ fn lire(cadre: &Cadre) -> Result<i32, Echec> {
         };
         dire!("  {:<12} {}{}\n", "", champ(s, "libelle"), jusqu);
     }
-    let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(socle::fichiers::vrai)).collect();
+    let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(documents::valeur::vrai)).collect();
     if !a_demander.is_empty() {
         dire!("A demander a la DGFiP (signalement d'amorcage, nature 08)\n{}", "-".repeat(62));
         for s in a_demander {
@@ -119,12 +119,12 @@ fn demander(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     use crate::compagnie::amorcage_demande::{produire, Demande};
     let ctx = &cadre.ctx;
     let mois = match args.texte("mois") {
-        Some(m) if socle::date::mois_valide(m) => m.to_string(),
+        Some(m) if socle::mois::Mois::lire(m).is_ok() => m.to_string(),
         Some(m) => {
             dire!("--mois attend AAAA-MM, recu {}.", socle::fichiers::repr(m));
             return Ok(1);
         }
-        None => match engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().filter(|m| socle::date::mois_valide(m)).last() {
+        None => match engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from).last() {
             Some(m) => m,
             None => {
                 dire!("Aucun mois saisi : un signalement d'amorcage declare un contrat (bloc 40), et il n'y en a aucun.");

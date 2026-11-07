@@ -32,13 +32,14 @@ use droit::contexte::Contexte;
 use envois::courriel::Courriel;
 use envois::drive::Drive;
 use envois::etats;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use socle::echec::R;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use envois::releve_retours::{Client, Releve};
 use crate::compagnie::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
@@ -48,7 +49,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Bandeau);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "ouverture",
+        route: Route::Ouverture,
         geste: "Ouvrir la compagnie : sauvegarder, relever retours, signatures et fiches.",
         charge: &[
             Champ { nom: "sauvegarder", libelle: Affiche::new("Sauvegarder"), forme: Forme::OuiNon, sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
@@ -255,7 +256,7 @@ impl Ouverture {
             "secondes": self.secondes,
             "sauvegarde": sauvegarde,
             "retours": retours,
-            "signatures": self.signatures.as_ref().map(ReleveSignatures::en_json),
+            "signatures": self.signatures.clone().map(ReleveSignatures::dite),
             "incidents": self.incidents,
             "manquants": self.manquants,
             "retours_dpae": retours_dpae,
@@ -277,9 +278,9 @@ impl Ouverture {
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
 ///   "incidents_editeur"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "ouverture" => {
+        Route::Ouverture => {
             let mut v = ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json();
             // Ce que le passage a fait et trouve, une ligne par chose : ce que l'horloge a joue, ce qui
             // manque, les incidents.
@@ -353,18 +354,14 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     }
     // LES RETOURS DE LA COMPAGNIE, PAS CEUX DU BAC A SABLE : les retours des depots de test ne se comptent que
     // dans la copie de developpement.
-    let tests: Vec<Value> = if est_copie(&ctx.racine) {
+    let tests: Vec<String> = if est_copie(&ctx.racine) {
         Vec::new()
     } else {
         // Un journal illisible ne doit pas empecher la trace (l'ouverture n'echoue jamais).
-        envois::journal::lu(&ctx.racine).map(|j| j.lignes)
-            .and_then(|l| etats::flux_de_test(&l).map_err(|e| e.message))
-            .ok()
-            .and_then(|v| v.as_array().cloned())
-            .unwrap_or_default()
+        envois::journal::lu(&ctx.racine).map(|j| etats::flux_de_test(&j.lignes)).unwrap_or_default()
     };
     let hors_tests = |liste: &[Value]| -> usize {
-        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| socle::valeur::valeurs_egales(f, t)))).count()
+        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").and_then(Value::as_str) == Some(t.as_str()))).count()
     };
     let (trouves, nouveaux) = match &r.releve {
         Some(rel) => (hors_tests(&rel.trouves), hors_tests(&rel.nouveaux)),

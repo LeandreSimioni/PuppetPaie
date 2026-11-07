@@ -6,6 +6,22 @@ pub fn blanc(c: char) -> bool {
     matches!(c, '\u{9}'..='\u{d}' | '\u{1c}'..='\u{20}' | '\u{85}' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
 
+/// Un chiffre decimal d'Unicode (`str.isdigit()` : la table `nfkd_ascii::CHIFFRES`).
+pub fn est_chiffre(c: char) -> bool {
+    let n = c as u32;
+    crate::nfkd_ascii::CHIFFRES
+        .binary_search_by(|(a, b)| {
+            if n < *a {
+                std::cmp::Ordering::Greater
+            } else if n > *b {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        })
+        .is_ok()
+}
+
 /// Le texte sans le blanc autour (`blanc`).
 pub fn strip(s: &str) -> &str {
     s.trim_matches(blanc)
@@ -57,7 +73,10 @@ const ACCENTS: [(&str, char); 38] = [
 
 /// La lettre de base d'un caractere accentue (NFD sans les marques), ou lui-meme.
 fn sans_diacritique(c: char) -> char {
-    ACCENTS.iter().find(|(lettres, _)| lettres.contains(c)).map_or(c, |(_, base)| *base)
+    match ACCENTS.iter().find(|(lettres, _)| lettres.contains(c)) {
+        Some((_, base)) => *base,
+        None => c,
+    }
 }
 
 /// Sans les accents (NFD, marques retirees). Les lettres
@@ -117,25 +136,22 @@ pub fn ascii_nfkd(v: &str) -> String {
             continue;
         }
         let cp = c as u32;
-        if let Some((a, _, t, avance)) = crate::nfkd_ascii::TABLE
-            .binary_search_by(|(a, b, _, _)| {
-                if cp < *a {
-                    std::cmp::Ordering::Greater
-                } else if cp > *b {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Equal
-                }
-            })
-            .ok()
-            .map(|i| crate::nfkd_ascii::TABLE[i])
-        {
-            if avance {
-                let base = t.chars().next().unwrap_or(' ') as u32;
-                ascii.push(char::from_u32(base + (cp - a)).unwrap_or(' '));
-            } else {
-                ascii.push_str(t);
-            }
+        // La plage du caractere (la table est triee, ses plages disjointes : la premiere qui ne finit pas avant lui, si elle
+        // le contient). Hors de la table, le caractere n'a pas d'ASCII : il tombe (`encode("ascii", "ignore")`).
+        let table = &crate::nfkd_ascii::TABLE;
+        let (a, t, avance) = match table.get(table.partition_point(|(_, b, _, _)| *b < cp)) {
+            Some(&(a, _, t, avance)) if a <= cp => (a, t, avance),
+            _ => continue,
+        };
+        if avance {
+            // Une plage qui avance (`a` a `b` vers `t`, `t+1`...) : le caractere de meme rang depuis le premier de `t`.
+            let decale = t.chars().next().and_then(|base| char::from_u32(base as u32 + (cp - a)));
+            ascii.push(match decale {
+                Some(c) => c,
+                None => ' ',
+            });
+        } else {
+            ascii.push_str(t);
         }
     }
     ascii
@@ -143,10 +159,8 @@ pub fn ascii_nfkd(v: &str) -> String {
 /// La première lettre en capitale, le reste en minuscules.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
-    match c.next() {
-        Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
-        None => String::new(),
-    }
+    let tete: String = c.next().into_iter().flat_map(char::to_uppercase).collect();
+    tete + &c.as_str().to_lowercase()
 }
 
 /// « de » devant `mot`, elide devant une voyelle : « de mars 2026 », « d'avril 2026 », « d'absence non rémunérée ».
@@ -157,27 +171,13 @@ pub fn de(mot: &str) -> String {
 
 /// LE SALARIE TEL QUE L'ECRAN LE NOMME, partout ou le moteur parle de lui (refus, avis, listes, phrases d'un envoi) :
 /// « NOM Prénom » comme la page le montre : le nom avec ses accents (`nom_affichage`, sinon `nom`) en capitales, puis le
-/// prénom d'usage (`prenom_affichage`, sinon `prenom`).
-/// Une fiche datée (`[{"valeur"}, {"depuis", "valeur"}]`, telle que `config/salaries.json` l'écrit) se lit à sa
-/// dernière valeur. `None` si la fiche ne porte ni nom ni prénom.
-pub fn salarie_nomme(fiche: &serde_json::Value) -> Option<String> {
-    use serde_json::Value;
-    let t = |k: &str| -> String {
-        let v = match fiche.get(k) {
-            Some(Value::Array(versions)) => versions.last().and_then(|v| v.get("valeur")),
-            autre => autre,
-        };
-        match v {
-            Some(Value::String(s)) => strip(s).to_string(),
-            Some(Value::Null) | None => String::new(),
-            Some(autre) => crate::valeur::valeur_en_texte(autre).trim().to_string(),
-        }
+/// prénom d'usage (`prenom_affichage`, sinon `prenom`). `None` si la fiche ne porte ni nom ni prénom.
+pub fn salarie_nomme(nom: &str, nom_affichage: &str, prenom: &str, prenom_affichage: &str) -> Option<String> {
+    let l_un_ou_l_autre = |usage: &str, etat_civil: &str| match strip(usage) {
+        "" => strip(etat_civil).to_string(),
+        u => u.to_string(),
     };
-    let ou = |usage: &str, etat_civil: &str| match t(usage) {
-        v if v.is_empty() => t(etat_civil),
-        v => v,
-    };
-    let tout = format!("{} {}", ou("nom_affichage", "nom").to_uppercase(), ou("prenom_affichage", "prenom")).trim().to_string();
+    let tout = format!("{} {}", l_un_ou_l_autre(nom_affichage, nom).to_uppercase(), l_un_ou_l_autre(prenom_affichage, prenom)).trim().to_string();
     (!tout.is_empty()).then_some(tout)
 }
 
@@ -187,8 +187,14 @@ pub fn salarie_nomme(fiche: &serde_json::Value) -> Option<String> {
 /// fichier déclaré (DSN, bordereau, format d'un organisme) écrit ses montants dans la forme que sa norme impose.
 pub fn euros(x: rust_decimal::Decimal) -> String {
     let t = crate::num::eur2(x).to_string();
-    let (signe, t) = t.strip_prefix('-').map_or(("", t.as_str()), |r| ("-", r));
-    let (entier, centimes) = t.split_once('.').unwrap_or((t, "00"));
+    let (signe, t) = match t.strip_prefix('-') {
+        Some(r) => ("-", r),
+        None => ("", t.as_str()),
+    };
+    let (entier, centimes) = match t.split_once('.') {
+        Some(e_c) => e_c,
+        None => (t, "00"),
+    };
     let mut milliers = String::new();
     for (i, c) in entier.chars().enumerate() {
         if i > 0 && (entier.len() - i) % 3 == 0 {
@@ -199,38 +205,9 @@ pub fn euros(x: rust_decimal::Decimal) -> String {
     format!("{}{},{}\u{a0}€", signe, milliers, centimes)
 }
 
-/// `euros` d'une valeur (`12.8`, `"12,80"`) ; rien pour une valeur absente, le texte tel quel s'il n'est pas un nombre.
-pub fn euros_de(v: &serde_json::Value) -> String {
-    let x = match v {
-        serde_json::Value::Null => return String::new(),
-        serde_json::Value::String(s) => s.trim().replace(',', ".").parse().ok(),
-        serde_json::Value::Number(_) => crate::num::dec(v).ok(),
-        _ => None,
-    };
-    x.map_or_else(|| crate::valeur::valeur_en_texte(v), euros)
-}
-
 /// UNE QUANTITÉ TELLE QU'ON LA LIT (des heures, des jours, un nombre de cachets) : la virgule décimale, sans zéro
 /// inutile (« 151,67 », « 8 », « 2,5 »).
 pub fn virgule(x: rust_decimal::Decimal) -> String {
     x.normalize().to_string().replace('.', ",")
 }
 
-/// `salarie_nomme`, ou la clé de sa fiche quand elle ne nomme personne (ou qu'il n'y a pas de fiche).
-pub fn salarie_nomme_ou(fiche: Option<&serde_json::Value>, cle: &str) -> String {
-    fiche.and_then(salarie_nomme).unwrap_or_else(|| cle.to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::salarie_nomme;
-    use serde_json::json;
-
-    #[test]
-    fn le_salarie_est_nomme_comme_la_page_le_montre() {
-        let f = json!({"nom": "SERAPHIN", "nom_affichage": "Séraphin", "prenom": "Loie", "prenom_affichage": "Loïe"});
-        assert_eq!(salarie_nomme(&f).as_deref(), Some("SÉRAPHIN Loïe"));
-        let f = json!({"nom": "Martin", "prenom": "Léa"});
-        assert_eq!(salarie_nomme(&f).as_deref(), Some("MARTIN Léa"));
-    }
-}

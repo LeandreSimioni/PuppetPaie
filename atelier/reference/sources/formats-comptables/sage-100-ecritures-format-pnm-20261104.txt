@@ -1,0 +1,148 @@
+Les écritures au format Sage                                                             Imprimer
+
+(*.pnm)
+
+RÉSUMÉ
+Cette fiche détaille la structure d’un format *.pnm, les contrôles effectués ainsi que des exemples
+précis pour réussir votre import dans Sage 100 Comptabilité.
+
+
+
+LA DESCRIPTION
+
+Le fichier a pour extension *.pnm. Pour l’intégrer dans Sage 100cloud Comptabilité, il faut aller
+dans le menu Ffichier > Importer > Format Sage puis choisir le type de fichier Ecritures Sage
+(*.pnm).
+
+
+La 1ère ligne du fichier est réservée au nom de la société (30 caractères maximum).
+
+
+Les lignes suivantes correspondent aux écritures comptables. Chaque ligne est séparée par un
+retour chariot.
+
+
+Les deux dernières lignes peuvent être des retours chariot.
+
+
+Les différents formats acceptés sont les suivants :
+
+
+           Format 105 caractères.
+
+
+           Format 112 caractères.
+
+
+           Format 138 caractères.
+
+
+           Format 141 caractères.
+
+
+           Format 164 caractères.
+
+
+           Format 199 caractères.
+Pour l'export de fichier au format Ecritures Sage, sont générés des fichiers au format :
+• Format 138 caractères.
+• Format 199 caractères (Si l'option "Exporter les zones devises et multi plan analytique" est cochée
+dans la fenêtre de génération du fichier)
+
+
+
+Retrouvez dans cette documentation la structure complète du format *.pnm.
+
+description_format_pnm.pdf
+k2dockey=…&fileName=1837_20220407073618_description_format_pnm.pdf)
+
+
+
+
+Résolution
+
+Lors de l’importation d’un fichier *.pnm, de nombreux contrôles sont réalisés par l’application Sage
+100 Comptabilité.
+
+
+Retrouvez ci-dessous les différents messages qui pourraient apparaître dans le journal de
+traitement (Structure > Afficher le journal de traitement) ainsi que leurs fiches associées.
+
+
+     Format de fichier incorrect !
+
+     Le journal n'existe pas à la ligne XXX !
+
+     L'écriture n'appartient pas à un exercice à la ligne XXX !
+
+     La devise XXX n'existe pas dans la liste. Vérifier le paramétrage des devises ou votre fichier
+    
+
+     Le compte général n'existe pas à la ligne XXX !
+
+     Une incohérence à la ligne XXX a été détectée !
+
+     Les écritures générales ne sont pas équilibrées pour le journal [Code journal] [Mois] [Année] à
+     la ligne XXX
+
+     Le solde des écritures analytiques n'est pas équilibré pour le journal [Code journal] [Mois]
+     [Année] à la ligne XXX, veuillez définir une section d'attente sur le plan concerné pour
+     générer l'écart !
+
+     Le total des échéances pour le compte [Compte général] [Compte tiers] n'est pas équilibré
+     dans le journal [Code journal] [Mois] [Année] à la ligne XXX
+      k2dockey=…)
+
+
+
+
+En complément, nous vous proposons dans le fichier ci-dessous 4 modèles de fichier *.pnm :
+
+
+      Fichier ecritures multi axe analytique.pnm au format 199 caractères reprenant une ventilation
+      analytique multi-axe :
+
+      Fichier ecritues multi echeance.pnm au format 199 caractères reprenant une écriture
+      comptable contenant une multi échéance
+
+      Fichier ecritures devise.pnm au format 199 caractères reprenant une écriture comptable en
+      devise
+
+      Fichier ecritures sage.pnm au format 199 caractères reprenant tous les exemples
+
+
+
+
+exemples_fichiers_pnm.zip
+k2dockey=…&fileName=1837_20220407080014_exemples_fichiers_pnm.zip)
+
+
+
+
+Solutions connexes
+Les contenus ci-dessous peuvent vous être utiles :
+
+
+Article OHC : Echange de données entre logiciels (https://sage100cloud.online-
+help.sage.fr/echange-interlogiciels/)
+
+
+
+
+Propriétés de la solution
+ID de la solution
+
+…
+
+
+date de dernière modification
+
+Fri Aug 25 10:38:03 UTC 2023
+LES ATTRIBUTS
+
+Détails de produit
+
+Views
+
+22169
+

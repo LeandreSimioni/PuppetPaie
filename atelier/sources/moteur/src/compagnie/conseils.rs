@@ -23,24 +23,28 @@
 //!
 //! Le salarie se nomme par son seul prenom (`{prenom}`), jamais par un pronom qui le genre.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::{json, Map, Value};
+use droit::source::Source;
+use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::cumul::{self, Constantes, Declare, Fenetre};
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{en_texte, json_en_cache, vrai};
 use droit::emplois;
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::fichiers::dossier_du_code;
 use droit::minima::Par;
 
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION, SALARIE};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
@@ -51,7 +55,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de lecture des conseils, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "conseil-du-jour",
+        route: Route::ConseilDuJour,
         geste: "Dire le conseil du jour (« Le saviez-vous ? »).",
         charge: &[Champ { nom: "decalage", libelle: Affiche::new("Autre conseil"), forme: Forme::Nombre, sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
         exemple: r#"{}"#,
@@ -63,7 +67,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "conseils-salarie",
+        route: Route::ConseilsSalarie,
         geste: "Dire les conseils qui valent pour un salarié.",
         charge: &[SALARIE],
         exemple: r#"{"salarie":"FULLER"}"#,
@@ -75,7 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
-        nom: "conseils-resume",
+        route: Route::ConseilsResume,
         geste: "Dire les conseils qui valent pour la compagnie, en résumé.",
         charge: &[],
         exemple: r#"{}"#,
@@ -98,8 +102,8 @@ fn annexes_en_jeu(annexe: Option<&'static str>) -> Vec<&'static str> {
 }
 
 /// L'option de la fiche Entreprise : absente vaut NON.
-pub fn actifs(entreprise: &Value) -> bool {
-    entreprise.get("conseils") == Some(&Value::Bool(true))
+pub fn actifs(entreprise: &droit::fiche::ChampsEntreprise) -> bool {
+    entreprise.conseils.oui()
 }
 
 /// La banque, `donnees/conseils.json`.
@@ -197,7 +201,7 @@ fn donnee(source: &Value, expr: &str) -> Option<String> {
         _ => (expr, None),
     };
     let (chemin, ops) = expr.split_at(expr.find('*').unwrap_or(expr.len()));
-    let mut x = socle::num::dec(suivre(source, chemin)?).ok()?;
+    let mut x = documents::valeur::dec(suivre(source, chemin)?).ok()?;
     let mut reste = ops;
     while let Some(op) = reste.chars().next() {
         let suite = &reste[1..];
@@ -225,7 +229,7 @@ impl Donnees {
         Donnees {
             annee,
             bareme: json_en_cache(&code.join("baremes").join(format!("{}.json", annee))).ok(),
-            minima: droit::minima::table().ok(),
+            minima: json_en_cache(&code.join("minima-conventionnels.json")).ok(),
         }
     }
 }
@@ -271,29 +275,18 @@ fn resoudre(dedans: &str, d: &Donnees, vals: &Valeurs) -> Option<String> {
 }
 
 /// La reference lisible d'une source : le titre du document, l'article.
-fn reference_de(b: &Value, s: &Value) -> String {
-    let fichier = texte(s, "fichier");
-    let cle = match s.get("code") {
-        Some(c) => format!("{}#{}", fichier, en_texte(c)),
-        None => fichier.clone(),
-    };
-    let titre = b.get("documents").and_then(|d| d.get(&cle)).map(en_texte).unwrap_or(fichier);
-    let article = texte(s, "article");
-    if article.is_empty() {
-        titre
-    } else if s.get("code").is_some() {
-        format!("{}, art. {}", titre, article)
-    } else {
-        format!("{}, {}", titre, article)
+fn reference_de(b: &Value, s: &Source) -> String {
+    let titre = b.get("documents").and_then(|d| d.get(s.fichier.texte())).map(en_texte).unwrap_or_else(|| s.fichier.fichier().to_string());
+    match (s.article.as_deref().filter(|a| !a.is_empty()), s.fichier.code()) {
+        (None, _) => titre,
+        (Some(a), Some(_)) => format!("{}, art. {}", titre, a),
+        (Some(a), None) => format!("{}, {}", titre, a),
     }
 }
 
-fn sources_de(c: &Value) -> Vec<&Value> {
-    match c.get("source") {
-        Some(Value::Array(a)) => a.iter().collect(),
-        Some(o @ Value::Object(_)) => vec![o],
-        _ => vec![],
-    }
+/// Les sources d'un conseil (`droit::source::Source`) ; une banque dont une source ne se lit pas n'en a aucune.
+fn sources_de(c: &Value) -> Vec<Source> {
+    c.get("source").map_or(Ok(Vec::new()), |s| socle::forme::lire(s, "La banque des conseils ne se lit pas : le signaler au développeur.")).unwrap_or_default()
 }
 
 /// Le conseil rendu pour l'ecran : son identifiant, son texte (la phrase courte d'un conseil de saisie), son detail
@@ -303,7 +296,7 @@ fn sources_de(c: &Value) -> Vec<&Value> {
 fn vue(b: &Value, c: &Value, d: &Donnees, vals: &Valeurs, annexes: &[&str]) -> Option<Value> {
     let references: Vec<String> = sources_de(c)
         .iter()
-        .filter(|s| s.get("annexe").and_then(Value::as_str).map_or(true, |a| annexes.contains(&a)))
+        .filter(|s| s.annexe.as_deref().map_or(true, |a| annexes.contains(&a)))
         .map(|s| reference_de(b, s))
         .collect();
     let mut v = json!({
@@ -328,12 +321,14 @@ fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs, annexes: &[&str]
 
 /// Le prenom du salarie, tel que sa fiche l'affiche (`prenom_affichage`, sinon `prenom`, en capitales initiales s'il
 /// est tout en majuscules) ; sans prenom, son nom, sinon sa cle.
-pub fn prenom(sal: &Value) -> String {
-    let lu = |k: &str| sal.get(k).filter(|v| vrai(v)).map(en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
-    if let Some(p) = lu("prenom_affichage") {
+pub fn prenom(sal: &droit::fiche::ChampsSalarie, cle: &str) -> String {
+    fn lu<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
+        Some(c.texte().trim().to_string()).filter(|s| !s.is_empty())
+    }
+    if let Some(p) = lu(&sal.prenom_affichage) {
         return p;
     }
-    if let Some(p) = lu("prenom").or_else(|| lu("nom_affichage")).or_else(|| lu("nom")) {
+    if let Some(p) = lu(&sal.prenom).or_else(|| lu(&sal.nom_affichage)).or_else(|| lu(&sal.nom)) {
         if p.chars().any(char::is_lowercase) {
             return p;
         }
@@ -350,7 +345,7 @@ pub fn prenom(sal: &Value) -> String {
         }
         return out;
     }
-    texte(sal, "_cle")
+    cle.to_string()
 }
 
 // ------------------------------------------------------------ le demarrage
@@ -405,13 +400,12 @@ pub fn du_jour(ctx: &Contexte, decalage: i64) -> Resultat<Value> {
 
 /// L'annexe du salarie de cette paie, lue du metier de sa fiche : X pour un artiste, VIII pour un technicien ; rien
 /// sinon (rien ne se devine).
-fn annexe_de(sal: &Value) -> Resultat<Option<&'static str>> {
-    let Some(m) = emplois::metier(&texte(sal, "code_emploi_ft"))? else { return Ok(None) };
-    Ok(match texte(&m, "statut").as_str() {
-        "artiste" => Some("X"),
-        "technicien" => Some("VIII"),
-        _ => None,
-    })
+fn annexe_de(sal: &droit::fiche::ChampsSalarie) -> Resultat<Option<&'static str>> {
+    let Some(m) = emplois::metier(sal.code_emploi_ft.texte())? else { return Ok(None) };
+    Ok(Some(match m.statut() {
+        droit::fiche::Statut::Artiste => "X",
+        droit::fiche::Statut::Technicien => "VIII",
+    }))
 }
 
 /// Les constantes de l'article 30 pour une annexe (`conseils.json`, `annexes`).
@@ -423,7 +417,7 @@ struct Art30 {
 
 fn art30(b: &Value, annexe: &str) -> Option<Art30> {
     let a = b.get("annexes")?.get(annexe)?;
-    let n = |k: &str| a.get(k).and_then(|v| socle::num::dec(v).ok());
+    let n = |k: &str| a.get(k).and_then(|v| documents::valeur::dec(v).ok());
     Some(Art30 { heures_par_jour: n("heures_par_jour")?, coefficient: n("coefficient")?, jours_sans_allocation: n("jours_sans_allocation")? })
 }
 
@@ -469,10 +463,7 @@ fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat
         if l.code != "repetition" || l.heures_annexes.is_zero() {
             continue;
         }
-        let dates: BTreeSet<String> = s.get("dates").and_then(Value::as_array).into_iter().flatten().map(|j| match j {
-            Value::Object(m) => m.get("jour").map(en_texte).unwrap_or_default(),
-            autre => en_texte(autre),
-        }).filter(|j| !j.is_empty()).collect();
+        let dates: BTreeSet<String> = s.map_or(&[][..], |s| s.dates()).iter().map(|j| j.jour().to_string()).filter(|j| !j.is_empty()).collect();
         if dates.is_empty() {
             continue;
         }
@@ -589,7 +580,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         if e.sans_paie() || e.nat()?.mensuelle() {
             continue;
         }
-        let x = du_mois.entry(texte(&p.salarie, "_cle")).or_insert((0, 0));
+        let x = du_mois.entry(p.salarie.id.to_string()).or_insert((0, 0));
         x.0 += e.heures.unwrap_or(0.0).round_ties_even() as i64 + e.cachets * c.heures_par_cachet;
         x.1 += e.cachets;
     }
@@ -603,10 +594,10 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         }
         let Some(annexe) = annexe_de(&p.salarie)? else { continue };
         let Some(a30) = art30(&b, annexe) else { continue };
-        let cle = texte(&p.salarie, "_cle");
+        let cle = p.salarie.id.to_string();
         let (heures_mois, cachets_mois) = du_mois.get(&cle).copied().unwrap_or((0, 0));
-        let qui = prenom(&p.salarie);
-        let mois = socle::date::libelle_du_mois_ou_tel_quel(&e.mois, socle::date::Graphie::Accentuee);
+        let qui = prenom(&p.salarie, p.salarie.id.as_str());
+        let mois = socle::mois::Mois::en_clair(&e.mois);
         let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
             let mut v = Valeurs::new();
             v.insert("prenom".into(), val_texte(qui.clone()));
@@ -698,11 +689,8 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                         if r.compte_pour != "ouverture_des_droits" {
                             continue;
                         }
-                        let pl = r.plafond_annuel_heures.clone().unwrap_or(Value::Null);
-                        let bas = pl.get("moins_de_50_ans").and_then(Value::as_i64);
-                        let haut = pl.get("50_ans_et_plus").and_then(Value::as_i64);
-                        if let (Some(bas), Some(haut)) = (bas, haut) {
-                            trouve = Some(base(vec![("plafond", val_entier(bas)), ("plafond_50", val_entier(haut))]));
+                        if let Some(pl) = r.plafond_annuel_heures {
+                            trouve = Some(base(vec![("plafond", val_entier(pl.moins_de_50_ans)), ("plafond_50", val_entier(pl.cinquante_ans_et_plus))]));
                         }
                         break;
                     }
@@ -733,11 +721,11 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
     let (debut, fin, _) = f;
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
-    for mois in socle::date::mois_entre(debut, fin) {
+    for mois in socle::mois::Mois::entre(debut, fin).iter().map(socle::mois::Mois::to_string) {
         let Ok(Some((_, paies))) = engagement::etats::validees_du_mois(ctx, &mois, departs) else { continue };
         for p in &paies {
             let e = &p.engagement;
-            if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {
+            if p.salarie.id.to_string() != cle || e.sans_paie() || e.nat()?.mensuelle() {
                 continue;
             }
             let fp = e.fin_periode()?;
@@ -773,13 +761,9 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
     }
-    let mut f = fiche.clone();
-    if let Value::Object(m) = &mut f {
-        m.insert("_cle".into(), Value::String(cle.into()));
-    }
-    let qui = prenom(&f);
+    let qui = prenom(fiche, cle);
     let fenetre = phrase_fenetre(&b, &pos, anniv);
-    let annexe = annexe_de(&f)?;
+    let annexe = annexe_de(fiche)?;
     let a30 = annexe.and_then(|a| art30(&b, a));
     let heures = pos.heures_ouverture()?;
     let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
@@ -828,7 +812,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         pousser(
             "historique:cachets-perdus",
             base(vec![
-                ("mois", val_texte(socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee))),
+                ("mois", val_texte(socle::mois::Mois::en_clair(&m))),
                 ("cachets", val_entier(n)),
                 ("plafond", val_entier(c.cachets_par_mois)),
                 ("perdus", val_entier(n - c.cachets_par_mois)),
@@ -870,12 +854,8 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     for cle in cles {
         let (p, anniv) = position(ctx, cle, &engs, jour)?;
         if p.heures_ouverture()? >= c.seuil_heures {
-            let mut fiche = ctx.salaries.get(cle).cloned().unwrap_or(Value::Null);
-            if !fiche.is_object() {
-                fiche = Value::Object(Map::new());
-            }
-            fiche["_cle"] = Value::String(cle.to_string());
-            fiches.push((prenom(&fiche), fiche, anniv));
+            let fiche = ctx.salaries.get(cle).map(|f| f.champs.clone()).unwrap_or_default();
+            fiches.push((prenom(&fiche, cle), fiche, anniv));
         }
     }
     if fiches.is_empty() {
@@ -895,7 +875,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
         .iter()
         .map(|(p, fiche, anniv)| {
             let n = if fiches.iter().filter(|(q, _, _)| q == p).count() > 1 {
-                let nom = Some(texte(fiche, "nom_affichage")).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| texte(fiche, "nom"));
+                let nom = Some(fiche.nom_affichage.texte().to_string()).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| fiche.nom.texte().to_string());
                 if nom.trim().is_empty() { p.clone() } else { format!("{} {}", p, nom.trim()) }
             } else {
                 p.clone()
@@ -929,23 +909,23 @@ fn et(noms: &[String]) -> String {
 // ------------------------------------------------------------------ routes
 
 /// L'aiguillage des trois routes de lecture. La phrase : le texte du conseil, ou ceux de la liste un par un (`phrases`).
-pub fn route(ctx: &Contexte, route: &str, charge: &Value) -> R<Value> {
+pub fn route(ctx: &Contexte, route: Route, charge: &Value) -> R<Value> {
     let liste = |conseils: Vec<Value>| {
         let lignes: Vec<Value> = conseils.iter().map(|c| c["texte"].clone()).collect();
         json!({ "phrase": format!("Conseils : {}.", conseils.len()), "phrases": lignes, "conseils": conseils })
     };
     match route {
-        "conseil-du-jour" => {
+        Route::ConseilDuJour => {
             let decalage = charge.get("decalage").and_then(Value::as_i64).unwrap_or(0);
             let v = du_jour(ctx, decalage)?;
             let p = v["conseil"]["texte"].as_str().map(String::from).unwrap_or_else(|| "Pas de conseil aujourd'hui.".to_string());
             Ok(crate::routes::phrase_en_tete(v, p))
         }
-        "conseils-salarie" => {
+        Route::ConseilsSalarie => {
             let cle = charge.get("salarie").map(en_texte).unwrap_or_default();
             Ok(liste(du_salarie(ctx, &cle)?))
         }
-        "conseils-resume" => Ok(liste(resume(ctx)?)),
+        Route::ConseilsResume => Ok(liste(resume(ctx)?)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

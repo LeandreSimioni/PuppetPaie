@@ -270,7 +270,7 @@ impl Aem {
 #[derive(Clone, Debug)]
 pub enum Lecture {
     Lue(Aem),
-    Refusee { sort: &'static str, raison: String, partiel: Option<Aem> },
+    Refusee { sort: crate::import::reponse::Sort, raison: String, partiel: Option<Aem> },
     Notice,
 }
 
@@ -292,10 +292,10 @@ pub fn lire(chemin: &Path) -> Result<Vec<PageAem>, String> {
         if notices[i] {
             out.push(PageAem { page, lecture: Lecture::Notice });
         } else if notices.iter().any(|n| *n) && illisible(mots) {
-            out.push(PageAem { page, lecture: Lecture::Refusee { sort: "sans_texte", raison: ILLISIBLE.into(), partiel: None } });
+            out.push(PageAem { page, lecture: Lecture::Refusee { sort: crate::import::reponse::Sort::SansTexte, raison: ILLISIBLE.into(), partiel: None } });
         } else if let Some(a) = lire_page(mots, page) {
             let lecture = match a.manque() {
-                Some(raison) => Lecture::Refusee { sort: "incomplet", raison, partiel: Some(a) },
+                Some(raison) => Lecture::Refusee { sort: crate::import::reponse::Sort::Incomplet, raison, partiel: Some(a) },
                 None => Lecture::Lue(a),
             };
             out.push(PageAem { page, lecture });
@@ -338,7 +338,7 @@ pub fn lire_aer(octets: &[u8]) -> Option<Vec<Lecture>> {
         let page = champs.get(&nom("SAL_DT_DEB_")).and_then(|c| c.get("page")).and_then(Value::as_u64).unwrap_or(0) as usize;
         let a = Aem {
             page,
-            mois: Some(debut.mois_iso()),
+            mois: Some(debut.mois_civil().to_string()),
             numero: None,
             siret: v("EMP_SIRET"),
             ape: v("EMP_APE"),
@@ -373,7 +373,7 @@ pub fn lire_aer(octets: &[u8]) -> Option<Vec<Lecture>> {
             faute: None,
         };
         out.push(match a.manque() {
-            Some(raison) => Lecture::Refusee { sort: "incomplet", raison: raison.replacen("AEM", "AER", 1), partiel: Some(a) },
+            Some(raison) => Lecture::Refusee { sort: crate::import::reponse::Sort::Incomplet, raison: raison.replacen("AEM", "AER", 1), partiel: Some(a) },
             None => Lecture::Lue(a),
         });
     }

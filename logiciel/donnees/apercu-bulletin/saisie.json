@@ -1,9 +1,20 @@
 {
-  "_source": "La paie fictive de l'apercu du bulletin : deux jours de regie, au tarif horaire.",
+  "source": "La paie fictive de l'apercu du bulletin : deux jours de regie, au tarif horaire.",
   "mois": "2026-10",
   "engagements": [
-    {"salarie": "APERCU", "spectacle": "266Z00900011", "debut": "2026-10-20", "fin": "2026-10-21", "numero": "AP1.26.10",
-     "date_paiement": "2026-10-21",
-     "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 14.0, "lieu": "Théâtre fictif", "dates": ["2026-10-20", "2026-10-21"]}]}
+    {"salarie": "APERCU", "spectacle": "apercu", "nature": "cddu_spectacle", "debut": "2026-10-20", "fin": "2026-10-21",
+     "numero": "AP1.26.10", "etablissement": null, "metier": null, "cadre": null, "lieu": null, "motif_recours": null,
+     "quotite_contrat": null, "quotite_reference": null, "modalite_temps_travail": null, "salaire_mensuel": null,
+     "emploi": null, "pcs_ese": null, "code_emploi_ft": null, "statut": null, "statut_conventionnel": null,
+     "statut_categoriel_rc": null, "periode_essai_jours": null, "personne_remplacee": null, "repartition_horaire": null,
+     "clauses_particulieres": null,
+     "lignes": [{"forme": "unites", "rubrique": "heure", "quantite": "16", "taux": "14.0", "lieu": "Théâtre fictif", "dates": ["2026-10-20", "2026-10-21"], "planning": []}],
+     "conges_pris": null, "primes": null, "date_paiement": "2026-10-21", "jours": null, "taux_cachet": null,
+     "heures_supplementaires": null, "heures_supplementaires_a_50": null, "heures_complementaires": null,
+     "indemnite_licenciement": null, "faute_grave": null, "motif_rupture": null, "notification_rupture": null,
+     "engagement_licenciement": null, "signature_convention": null, "preavis": null, "transaction": null,
+     "dernier_jour_paye": null, "en_droit_a_la_retraite": null, "preavis_non_effectue": null, "preavis_mois": null,
+     "precarite_due": null, "precarite_pourquoi": null, "jours_contrat": null, "date_modification": null, "avant": null,
+     "valide": null, "importe": null}
   ]
 }

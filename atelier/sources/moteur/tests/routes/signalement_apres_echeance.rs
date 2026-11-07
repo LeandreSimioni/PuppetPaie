@@ -22,8 +22,8 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
     let gestes: Vec<String> = gestes
         .lines()
         .take_while(|l| !l.contains("\"enregistrer-saisie\""))
-        .map(|l| l.replacen("\"declarant_dsn\":{", "\"cinquante_salaries_et_plus\":true,\"declarant_dsn\":{\"civilite\":\"01\",", 1))
-        .map(|l| if l.contains("\"cle\":\"CRAIG\"") { l.replacen("\"date_anciennete\":\"2026-02-02\"", "\"date_anciennete\":\"2026-01-29\"", 1) } else { l })
+        .map(|l| l.replacen("{\"case\":\"declarant_dsn\",\"valeur\":{", "{\"case\":\"cinquante_salaries_et_plus\",\"valeur\":true},{\"case\":\"declarant_dsn\",\"valeur\":{\"civilite\":\"01\",", 1))
+        .map(|l| if l.contains("\"cle\":\"CRAIG\"") { l.replacen("{\"case\":\"date_anciennete\",\"valeur\":\"2026-02-02\"}", "{\"case\":\"date_anciennete\",\"valeur\":\"2026-01-29\"}", 1) } else { l })
         .collect();
     std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
@@ -34,29 +34,30 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
     let mut bareme = lire(&c, "config/baremes/2026.json");
     let surcouche = json!({
         "versement_mobilite": "aucun",
-        "cotisations_dsn": [{"code81": "049", "taux": 0.35, "base": "brut_x115"}],
-        "rubriques_bulletin": [{"id": "autres_2", "taux_pat": 0.35, "base": "brut_x115"}],
+        "cotisations_dsn": {"049": {"taux": 0.35, "base": "brut_x115"}},
+        "rubriques": {"autres_2": {"taux_pat": 0.35, "base": "brut_x115"}},
         "par_statut": {"technicien": {
-            "cotisations_dsn": [{"code81": "049", "taux": 0.5, "base": "brut_x115"}],
-            "rubriques_bulletin": [{"id": "autres_2", "taux_pat": 0.5, "base": "brut_x115"}],
+            "cotisations_dsn": {"049": {"taux": 0.5, "base": "brut_x115"}},
+            "rubriques": {"autres_2": {"taux_pat": 0.5, "base": "brut_x115"}},
             "reduction_generale": {"tdelta": 0.3821}
         }},
         "par_nature": {"permanent": {
-            "cotisations_dsn": [{"code81": "049", "taux": 0.5, "base": "brut_x115", "base78": "brut"}, {"code81": "128", "taux": 1.0}],
+            "cotisations_dsn": {"049": {"taux": 0.5, "base": "brut_x115", "base78": "brut"}, "128": {"taux": 1.0}},
             "rubriques": {"autres_2": {"taux_pat": 0.5, "base": "brut_x115"}},
-            "rubriques_ajoutees": [{"id": "autres_4", "taux_pat": 1.0, "composants": [1.0]}]
+            "rubriques_ajoutees": {"autres_4": {"taux_pat": 1.0, "composants": [1.0]}}
         }}
     });
     bareme.as_object_mut().unwrap().extend(surcouche.as_object().unwrap().clone());
     ecrire(&c, "config/baremes/2026.json", &bareme);
 
     // Un CDD d'usage rompu a l'initiative de la salariee (motif 037), notifie le 29, dernier jour le 30/01.
-    reussi(&route(
+    reussi(&crate::outils::valider(
         &c,
-        "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete",
-            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}],
-            "motif_rupture": "037", "preavis": {"type": "90"}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}}),
+        "2026-01",
+        None,
+        &json!({"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
+            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "lieu": null, "dates": ["2026-01-29", "2026-01-30"], "planning": []}],
+            "motif_rupture": "037", "preavis": {"type": "90", "debut": null, "fin": null}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}),
         "2026-01-05",
     ));
     let horloge = |jour: &str| -> Vec<String> {

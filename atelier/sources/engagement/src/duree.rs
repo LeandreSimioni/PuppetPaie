@@ -13,11 +13,11 @@
 
 use std::collections::BTreeMap;
 
-use serde_json::Value;
+use crate::LignePaie;
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
-use socle::date::{d, en_texte, Jour};
+use socle::date::Jour;
 use socle::num::{dec_f64, Resultat};
 use socle::texte::virgule;
 
@@ -27,13 +27,12 @@ pub const MAXIMUM_QUOTIDIEN: f64 = 10.0;
 /// Une journee.
 const JOURNEE: f64 = 24.0;
 
-/// Les heures de travail de chaque jour de l'engagement `e` (une saisie), et si l'une d'elles est une moyenne (une
+/// Les heures de travail de chaque jour des lignes `lignes` d'un engagement, et si l'une d'elles est une moyenne (une
 /// ligne qui repartit ses heures sur plusieurs jours).
-fn heures_par_jour(ctx: &Contexte, e: &Value) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
+fn heures_par_jour(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
     let mut jours: BTreeMap<Jour, (f64, bool)> = BTreeMap::new();
-    for l in e.get("lignes").and_then(Value::as_array).into_iter().flatten() {
-        let Some(code) = l.get("rubrique") else { continue };
-        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+    for l in lignes {
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         let travail = r.nature == "salaire"
             && matches!(r.unite.as_str(), "heure" | "jour" | "service")
             && r.heures_forfait.is_none()
@@ -41,12 +40,13 @@ fn heures_par_jour(ctx: &Contexte, e: &Value) -> Resultat<BTreeMap<Jour, (f64, b
         if !travail {
             continue;
         }
-        let dates: Vec<Jour> = l.get("dates").and_then(Value::as_array).into_iter().flatten().filter_map(|x| d(x.get("jour").unwrap_or(x)).ok()).collect();
+        let dates: Vec<Jour> = l.jours()?;
         if dates.is_empty() {
             continue;
         }
-        let nombre = |k: &str| l.get(k).and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().replace(',', ".").parse().ok())));
-        let total = r.heures(nombre("quantite").unwrap_or(0.0), nombre("heures"));
+        // La quantite d'une ligne de travail est dite (`lignes_dites`, avant ce compte) : sans elle, rien ne se compte.
+        let quantite = socle::num::flottant(l.quantite().ok_or_else(|| socle::fichiers::absent("quantite"))?);
+        let total = r.heures(quantite, l.heures_lues());
         let par_jour = total / dates.len() as f64;
         for j in &dates {
             let x = jours.entry(*j).or_insert((0.0, false));
@@ -58,8 +58,8 @@ fn heures_par_jour(ctx: &Contexte, e: &Value) -> Resultat<BTreeMap<Jour, (f64, b
 }
 
 /// LE REFUS : un jour de plus de 24 heures dans l'engagement `e` de `qui`. `None` quand il n'y en a pas.
-pub fn plus_d_une_journee(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Option<String>> {
-    let trop: Vec<(Jour, (f64, bool))> = heures_par_jour(ctx, e)?.into_iter().filter(|(_, (h, _))| *h > JOURNEE + 1e-9).collect();
+pub fn plus_d_une_journee(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<Option<String>> {
+    let trop: Vec<(Jour, (f64, bool))> = heures_par_jour(ctx, lignes)?.into_iter().filter(|(_, (h, _))| *h > JOURNEE + 1e-9).collect();
     let Some((j, (h, moyenne))) = trop.first() else { return Ok(None) };
     Ok(Some(format!(
         "{} : {} h de travail {}le {}{} : saisissez les heures de ce jour-là, ou répartissez-les sur plus de jours.",
@@ -73,14 +73,14 @@ pub fn plus_d_une_journee(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Opti
 
 /// CE QUI SE DIT SANS SE REFUSER : les jours de l'engagement `e` de `qui` au-dela de la duree quotidienne maximale
 /// (L. 3121-18). `None` quand il n'y en a pas.
-pub fn au_dela_du_maximum(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Option<String>> {
+pub fn au_dela_du_maximum(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<Option<String>> {
     let longs: Vec<(Jour, (f64, bool))> =
-        heures_par_jour(ctx, e)?.into_iter().filter(|(_, (h, _))| *h > MAXIMUM_QUOTIDIEN + 1e-9 && *h <= JOURNEE + 1e-9).collect();
+        heures_par_jour(ctx, lignes)?.into_iter().filter(|(_, (h, _))| *h > MAXIMUM_QUOTIDIEN + 1e-9 && *h <= JOURNEE + 1e-9).collect();
     if longs.is_empty() {
         return Ok(None);
     }
     let moyenne = longs.iter().any(|(_, (_, m))| *m);
-    let dits: Vec<String> = longs.iter().map(|(j, (h, _))| format!("{} h le {}", dec_f64(*h).map(|h| virgule(h.round_dp(2))).unwrap_or_default(), j.jj_mm())).collect();
+    let dits: Vec<String> = longs.iter().map(|(j, (h, _))| format!("{} h le {}", dec_f64(*h).iter().map(|h| virgule(h.round_dp(2))).collect::<String>(), j.jj_mm())).collect();
     Ok(Some(format!(
         "{} : {}{}. La durée quotidienne de travail effectif ne peut dépasser 10 heures (code du travail, L. 3121-18), sauf \
          une convention ou un accord qui la porte jusqu'à 12 heures (L. 3121-19), une dérogation de l'inspecteur du travail \

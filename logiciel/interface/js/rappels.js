@@ -165,11 +165,13 @@ function brancherDemarrage(conteneur) {
 
 /* CE QUE LA LISTE PORTE ET QUI N'EST PAS ENREGISTRÉ : par fiche (l'entreprise,
  * chaque salarié, chaque spectacle), les cases remplies qui disent autre chose que la fiche.
- * Une case de structure part seule dans sa structure : le moteur garde les
- * autres cases (`enregistrer-fiche`). */
+ * Une case de structure part dans sa structure entière, celle de la fiche
+ * complétée : le moteur remplace la structure (`enregistrer-fiche`). */
 function changementsDemarrage(liste) {
   const parFiche = new Map();
   const memes = (a, b) => JSON.stringify(a ?? "") === JSON.stringify(b ?? "");
+  // Une case de structure dont aucune sous-case n'est remplie (`signataire`, `banque`) est vide, comme une case seule.
+  const vide = (v) => v === null || v === undefined || v === "" || (typeof v === "object" && Object.values(v).every(vide));
   const fondre = (a, b) => {
     if (!a || typeof a !== "object" || !b || typeof b !== "object") return b;
     const o = { ...a };
@@ -183,13 +185,13 @@ function changementsDemarrage(liste) {
     const lu = lireFormulaire(`[data-demarrage-liste="${liste.dataset.demarrageListe}"] [data-demarrage="${li.dataset.demarrage}"] .demarrage-case`, {});
     const v = lu[k.racine];
     const avant = k.fiche.donnees[k.racine];
-    if (v === null || v === undefined || v === "" || (v === false && !avant) || memes(v, avant)) return;
+    if (vide(v) || (v === false && !avant) || memes(v, avant)) return;
     const cle = k.nom + "|" + (k.nom === "entreprise" ? "" : k.fiche.cle);
     const f = parFiche.get(cle) || { nom: k.nom, ...(k.nom === "entreprise" ? {} : { cle: k.fiche.cle }), donnees: {} };
-    f.donnees[k.racine] = fondre(f.donnees[k.racine], v);
+    f.donnees[k.racine] = fondre(f.donnees[k.racine] ?? avant, v);
     parFiche.set(cle, f);
   });
-  return [...parFiche.values()];
+  return [...parFiche.values()].map(({ donnees, ...f }) => ({ ...f, ...casesDeLaCharge(donnees) }));
 }
 function demarrageModifie() {
   return [...document.querySelectorAll(".demarrage-liste")].some((l) => changementsDemarrage(l).length);
@@ -459,7 +461,7 @@ async function agirSurRappel(r) {
  * tant que le spectacle se joue : on
  * demande seulement lesquels continuent. Tout est coché ; décocher archive,
  * et une fiche archivée se réactive d'un clic dans Configuration. */
-function boiteRevueSpectacles(r) {
+function boiteRevueSpectacles(r, charge) {
   const lignes = (r.spectacles || []).map((s, i) => `
     <label class="coche"><input type="checkbox" class="rv-garde" data-cle="${echapper(s.cle)}" checked>
       ${echapper(s.titre)}${s.numero_objet ? ` <span class="discret">${echapper(s.numero_objet)}</span>` : ""}</label>`).join("");
@@ -478,7 +480,7 @@ function boiteRevueSpectacles(r) {
     const continuent = [...document.querySelectorAll(".rv-garde")]
       .filter((c) => c.checked).map((c) => c.dataset.cle);
     try {
-      const res = await api("revue-spectacles", { annee: r.annee, continuent });
+      const res = await api("revue-spectacles", { ...charge, continuent });
       await relireEtat();
       fermerBoite();
       dire(res.phrase);

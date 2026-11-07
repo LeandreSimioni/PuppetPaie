@@ -43,7 +43,7 @@ fn sortie_absente(dossier: &Path) -> ErreurGoogle {
 pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&mut dyn Drive>) -> Result<Archivage, ErreurGoogle> {
     // `..` ou `../config` archiverait le dossier `config` (coffre et jeton compris), `2026-06/envoi` les fiches de
     // salaries une a une : seul `AAAA-MM` est un mois.
-    if !socle::date::mois_valide(mois) {
+    if !socle::mois::Mois::lire(mois).is_ok() {
         return Err(ErreurGoogle::nouvelle("ErreurOperation", format!("Mois illisible : '{}' (AAAA-MM attendu).", mois)));
     }
     let dossier = racine.join("sorties").join(mois);

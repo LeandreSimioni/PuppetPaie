@@ -7,28 +7,28 @@
 //! Aucun calcul de paie : les engagements se lisent sans chiffrer, et leur etat (`engagement::etats`), le journal par
 //! `etats`.
 //!
-//! Un refus porte sa `classe`.
+//! Chaque charge, chaque reponse, l'echeancier livre (`donnees/echeancier-base.json`) et ce que la compagnie a coche
+//! (`config/echeancier.json`) sont une forme declaree ici, lue une fois (`socle::forme::lire`). Un refus porte sa `classe`.
 
+use droit::fiche::Lue as _;
 use socle::date::jj_mm_aaaa;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-use droit::contexte::{archivee, Contexte};
-use socle::date::{en_texte, Jour};
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use documents::valeur::{en_texte, vrai};
+use socle::mois::{Graphie, Mois};
 use engagement;
-use envois::etats;
 use crate::compagnie::etat_dsn;
-use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusFiche, FORME, MANQUE, OPERATION};
-use crate::routes::qui_de;
-use crate::routes::fiches::{entier, exiger};
-use crate::routes::ouverture::marquer_echeance;
-use envois::etats::{getd, items};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusFiche, FORME, OPERATION};
+use crate::routes::catalogue::Route;
+use crate::routes::{en_json, lire_charge, Pastille, SansCharge};
 use socle::echec::{erreur, Echec};
-use socle::valeur::{nom_type, valeurs_egales};
 use std::collections::HashMap;
-use socle::fichiers::{lire_json, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
 // ------------------------------------------------------------------ les refus
@@ -46,55 +46,55 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "rappels",
+        route: Route::Rappels,
         geste: "Dire ce que la compagnie a à faire ce jour : DSN, fins de contrat, DPAE…",
         charge: &[],
         exemple: r#"{}"#,
         rend: "rappels : les échéances dues maintenant (chacune : quoi, titre, question, mois ou année, état et sa pastille, sa date ; action : la route que son geste ouvre, sa charge, puis la route de l'acte, le mot du bouton)",
-        refus: &[OPERATION],
+        refus: &[OPERATION, FORME],
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
         ecran: ECRAN,
     },
     Fiche {
-        nom: "echeancier",
+        route: Route::Echeancier,
         geste: "Lire les échéances du mois et de l'année.",
         charge: &[],
         exemple: "{}",
         rend: "ce_mois et a_venir : les échéances, chacune avec sa date, son état et si un rappel la dit",
-        refus: &[OPERATION],
+        refus: &[OPERATION, FORME],
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
         ecran: ECRAN,
     },
     Fiche {
-        nom: "revue-spectacles",
+        route: Route::RevueSpectacles,
         geste: "Archiver les spectacles qui ne continuent pas, et noter la revue faite.",
         charge: &[ANNEE, Champ { nom: "continuent", libelle: Affiche::new("Spectacles qui continuent"), forme: Forme::Liste, sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
         exemple: r#"{"annee":2026,"continuent":["le-banc-des-menteurs"]}"#,
         rend: "phrase, archives, continuent, configuration",
-        refus: &[MANQUE, FORME],
+        refus: &[RefusFiche { classe: "ErreurOperation", corriger: "les spectacles qui continuent : des spectacles actifs, par leur clé" }, FORME],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
         ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
-        nom: "pour-demarrer",
+        route: Route::PourDemarrer,
         geste: "Dire ce que la compagnie peut remplir d'avance pour ses premiers actes.",
         charge: &[],
         exemple: r#"{}"#,
         rend: "titre, note, manques (chacun sa case, sa phrase, où il vit ; une ligne d'un salarié dit qui), poses (ce que le moteur a posé, en information)",
-        refus: &[OPERATION],
+        refus: &[OPERATION, FORME],
         acte: Acte::Lit,
         avance: false,
         phrase: 0,
         ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
-        nom: "echeance-faite",
+        route: Route::EcheanceFaite,
         geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
         charge: &[
             Champ { nom: "cle", libelle: Affiche::new("Échéance"), forme: Forme::Texte, sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
@@ -102,7 +102,7 @@ pub const ROUTES: &[Fiche] = &[
         ],
         exemple: r#"{"cle":"revue-spectacles:2026"}"#,
         rend: "cle, fait",
-        refus: &[RefusFiche { classe: "ErreurOperation", corriger: "une échéance qui se coche, avec son année" }, MANQUE],
+        refus: &[RefusFiche { classe: "ErreurOperation", corriger: "une échéance qui se coche, avec son année" }, FORME],
         acte: Acte::Ecrit,
         avance: false,
         phrase: 0,
@@ -112,48 +112,95 @@ pub const ROUTES: &[Fiche] = &[
 
 const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
+// ------------------------------------------------------------------ les charges
+
+/// La charge de `revue-spectacles` : l'annee de la revue, et les spectacles qui continuent (leurs cles ; les autres
+/// s'archivent). Le geste qu'offre son rappel l'ecrit aussi.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeRevue {
+    annee: i32,
+    #[serde(default)]
+    continuent: Vec<String>,
+}
+
+/// La charge de `echeance-faite` : l'echeance « quoi:AAAA », cochee sauf `fait: false`.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeFaite {
+    cle: String,
+    #[serde(default)]
+    fait: Option<bool>,
+}
+
+// ------------------------------------------------------------------ les reponses
+
+/// Ce que rend `rappels`.
+#[derive(Debug, Serialize)]
+pub(crate) struct Rappels {
+    phrase: String,
+    pub(crate) rappels: Vec<EcheanceDite>,
+    /// La boite des rappels se ferme « plus tard » quand il y a quelque chose a faire.
+    fermer_dit: &'static str,
+    phrases: Vec<String>,
+}
+
+/// Ce que rend `echeancier`.
+#[derive(Debug, Serialize)]
+struct Echeancier {
+    phrase: String,
+    aujourdhui: String,
+    date: String,
+    date_dit: String,
+    bienvenue: &'static str,
+    compagnie: String,
+    /// La convention de la fiche de l'entreprise, telle que la fiche la porte.
+    idcc: Value,
+    ce_mois: Vec<EcheanceDite>,
+    a_venir: Vec<EcheanceDite>,
+    a_faire: usize,
+    phrases: Vec<String>,
+}
+
+/// Ce que rend `revue-spectacles`.
+#[derive(Debug, Serialize)]
+struct Revue {
+    phrase: String,
+    annee: i32,
+    archives: Vec<String>,
+    continuent: Vec<String>,
+    /// La configuration relue (`ouverture`, route `configuration`).
+    configuration: crate::routes::ouverture::ConfigurationDite,
+}
+
+/// Ce que rend `echeance-faite`.
+#[derive(Debug, Serialize)]
+struct Faite {
+    phrase: &'static str,
+    cle: String,
+    fait: bool,
+}
+
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> socle::echec::R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> socle::echec::R<Value> {
     match nom {
-        "rappels" => rappels(ctx).map(|mut v| {
-            let lignes: Vec<Value> = v["rappels"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|r| {
-                    let quand = r["quand"].as_str().filter(|q| !q.is_empty()).map(|q| format!(" Échéance : {}.", q)).unwrap_or_default();
-                    json!(format!("{} ({}) : {} {}{}", super::mot(&r["titre"]), super::mot(&r["pastille"]["mots"]), super::mot(&r["question"]), super::mot(&r["detail"]), quand).replace("  ", " "))
-                })
-                .collect();
-            let p = format!("Rappels : {}.", lignes.len());
-            v["phrases"] = Value::Array(lignes);
-            super::phrase_en_tete(v, p)
-        }),
-        "echeancier" => echeancier(ctx).map(|mut v| {
-            let ligne = |x: &Value| {
-                let quand = super::mot(&x["quand"]);
-                json!(format!("{} ({}{})", super::mot(&x["titre"]), super::mot(&x["pastille"]["mots"]), if quand.is_empty() { String::new() } else { format!(", {}", quand) }))
-            };
-            let ce_mois: Vec<Value> = v["ce_mois"].as_array().into_iter().flatten().map(ligne).collect();
-            let n = ce_mois.len();
-            let mut lignes = ce_mois;
-            lignes.extend(v["a_venir"].as_array().into_iter().flatten().map(ligne));
-            let p = format!("{} : {} ce mois-ci, {} à venir.", socle::valeur::valeur_en_texte(&v["compagnie"]), super::compte(n, "échéance", "échéances"), super::nombre(&v["a_venir"]));
-            v["phrases"] = Value::Array(lignes);
-            super::phrase_en_tete(v, p)
-        }),
-        "revue-spectacles" => revue_spectacles(o, ctx, charge).map(|v| {
-            let p = format!("Spectacles qui continuent : {} ; archivés : {}.", super::nombre(&v["continuent"]), super::nombre(&v["archives"]));
-            super::phrase_en_tete(v, p)
-        }),
-        "echeance-faite" => echeance_faite(ctx, charge).map(|v| {
-            let p = if v["fait"] == json!(true) { "Échéance cochée : faite." } else { "Échéance décochée." };
-            super::phrase_en_tete(v, p)
-        }),
+        Route::Rappels => {
+            let SansCharge {} = lire_charge(charge)?;
+            en_json(rappels(ctx)?)
+        }
+        Route::Echeancier => {
+            let SansCharge {} = lire_charge(charge)?;
+            en_json(echeancier(ctx)?)
+        }
+        Route::RevueSpectacles => en_json(revue_spectacles(ctx, lire_charge(charge)?)?),
+        Route::EcheanceFaite => en_json(echeance_faite(ctx, lire_charge(charge)?)?),
         // Ce que la compagnie peut remplir d'avance, d'un coup ; ce que le moteur a pose de lui-meme se dit en information
         // (gris) ; les acces aux organismes et le Drive se proposent (`acces_proposes`).
-        "pour-demarrer" => {
+        Route::PourDemarrer => {
+            let SansCharge {} = lire_charge(charge)?;
             let (proposes, simules) = acces_proposes(ctx)?;
+            let proposes = proposes.iter().map(en_json).collect::<Result<Vec<_>, _>>()?;
+            let simules = simules.as_ref().map(en_json).transpose()?;
             declarations::demarrage::route(ctx, proposes, simules).map(|mut v| {
                 if let Some(Value::Array(p)) = v.get_mut("poses") {
                     p.iter_mut().filter(|x| x.get("pastille").is_none()).for_each(|x| x["pastille"] = super::pastille("information", "posé pour vous"));
@@ -167,53 +214,34 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// Archive les spectacles actifs qui ne sont pas dans
 /// `continuent`, note la revue de l'annee faite, rend la configuration.
-fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> socle::echec::R<Value> {
-    let annee = entier(exiger(charge, "annee")?)?;
-    let continuent = etats::ou(getd(charge, "continuent", &etats::LISTE_VIDE)?, &etats::LISTE_VIDE);
-    // `set(continuent)` : l'ordre ne compte pas, les doublons non plus.
-    let mut garder: Vec<Value> = Vec::new();
-    for c in items(continuent)? {
-        if matches!(c.as_ref(), Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&c))));
-        }
-        if !garder.iter().any(|g| valeurs_egales(g, &c)) {
-            garder.push(c.into_owned());
-        }
-    }
+fn revue_spectacles(ctx: &Contexte, charge: ChargeRevue) -> socle::echec::R<Revue> {
+    let ChargeRevue { annee, continuent } = charge;
+    // L'ordre ne compte pas, les doublons non plus.
+    let garder: BTreeSet<String> = continuent.into_iter().collect();
     let actifs = ctx.spectacles_actifs();
-    let est_actif = |v: &Value| v.as_str().is_some_and(|s| actifs.contains(&s));
-    let mut inconnus: Vec<&Value> = garder.iter().filter(|g| !est_actif(g)).collect();
+    let inconnus: Vec<&str> = garder.iter().map(String::as_str).filter(|g| !actifs.contains(g)).collect();
     if !inconnus.is_empty() {
-        if let Some((i, autre)) = inconnus.iter().enumerate().find(|(_, c)| !c.is_string()) {
-            return Err(erreur("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre)))));
-        }
-        inconnus.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
-        let noms: Vec<&str> = inconnus.iter().filter_map(|c| c.as_str()).collect();
-        return Err(erreur("ErreurOperation", format!("Spectacle actif inconnu : {}.", noms.join(", "))));
+        return Err(erreur("ErreurOperation", format!("Spectacle actif inconnu : {}.", inconnus.join(", "))));
     }
-    let archives: Vec<String> = actifs.iter().filter(|c| !garder.iter().any(|g| g.as_str() == Some(c))).map(|c| c.to_string()).collect();
+    let archives: Vec<String> = actifs.iter().filter(|c| !garder.contains(**c)).map(|c| c.to_string()).collect();
     for cle in &archives {
         crate::routes::fiches::activer_fiche(ctx, "spectacle", cle, false)?;
     }
-    marquer_echeance(ctx, &format!("revue-spectacles:{}", annee), true, "interface")?;
-    let mut continuent: Vec<String> = garder.iter().filter_map(|g| g.as_str().map(String::from)).collect();
-    continuent.sort();
+    marquer_echeance(ctx, &format!("{}:{}", REVUE_SPECTACLES, annee), true, "interface")?;
+    let continuent: Vec<String> = garder.into_iter().collect();
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(|m| socle::echec::noter_et(None, m))?;
-    let configuration = crate::routes::ouverture::route(o, &neuf, "configuration", &json!({}))?;
-    Ok(json!({"annee": annee, "archives": archives, "continuent": continuent, "configuration": configuration}))
+    let configuration = crate::routes::ouverture::configuration_dite(&neuf)?;
+    let phrase = format!("Spectacles qui continuent : {} ; archivés : {}.", continuent.len(), archives.len());
+    Ok(Revue { phrase, annee, archives, continuent, configuration })
 }
 
-/// `echeance-faite` : coche (`fait`) ou decoche l'echeance `charge["cle"]`, au nom de `qui`.
-fn echeance_faite(ctx: &Contexte, charge: &Value) -> socle::echec::R<Value> {
-    let cle = exiger(charge, "cle")?;
-    let fait = charge.get("fait") != Some(&Value::Bool(false));
-    let Some(texte) = cle.as_str() else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(cle))));
-    };
-    marquer_echeance(ctx, texte, fait, &qui_de(charge))?;
-    Ok(json!({"cle": texte, "fait": fait}))
+/// `echeance-faite` : coche (`fait`) ou decoche l'echeance `cle`, au nom de la fenetre (`routes::INTERFACE`).
+fn echeance_faite(ctx: &Contexte, charge: ChargeFaite) -> socle::echec::R<Faite> {
+    let ChargeFaite { cle, fait } = charge;
+    let fait = fait != Some(false);
+    marquer_echeance(ctx, &cle, fait, crate::routes::INTERFACE)?;
+    Ok(Faite { phrase: if fait { "Échéance cochée : faite." } else { "Échéance décochée." }, cle, fait })
 }
-
 
 // ------------------------------------------------------------------ outils
 
@@ -222,44 +250,6 @@ pub(super) fn texte(v: Option<&Value>) -> String {
     v.map_or("None".to_string(), en_texte)
 }
 
-fn vrai_opt(v: Option<&Value>) -> bool {
-    v.map_or(false, vrai)
-}
-
-/// La valeur de `cle` en texte, vide si elle manque ou est vide.
-fn texte_ou_vide(v: &Value, cle: &str) -> String {
-    match v.get(cle) {
-        Some(x) if vrai(x) => en_texte(x),
-        _ => String::new(),
-    }
-}
-
-fn mois_precedent(mois: &str) -> String {
-    let (an, mo): (i32, u32) = (mois[..4].parse().unwrap_or(0), mois[5..7].parse().unwrap_or(1));
-    if mo == 1 {
-        format!("{:04}-12", an - 1)
-    } else {
-        format!("{:04}-{:02}", an, mo - 1)
-    }
-}
-
-fn mois_suivant(mois: &str) -> String {
-    let (an, mo): (i32, u32) = (mois[..4].parse().unwrap_or(0), mois[5..7].parse().unwrap_or(1));
-    if mo == 12 {
-        format!("{:04}-01", an + 1)
-    } else {
-        format!("{:04}-{:02}", an, mo + 1)
-    }
-}
-
-fn mois_de(j: &Jour) -> String {
-    format!("{:04}-{:02}", j.an, j.mois)
-}
-
-/// Ce que `journal.lire(ctx, quoi, reel_seulement=...)` rend, sur des lignes deja lues.
-fn lire_journal<'a>(lignes: &'a [Value], quoi: &str, reel: bool) -> R<Vec<&'a Value>> {
-    Ok(etats::filtrer(lignes, Some(quoi), None, reel)?)
-}
 
 // ============================================================ les echeances
 
@@ -272,10 +262,37 @@ const OBLIGATION: &str = "obligation";
 const DPAE: &str = "dpae";
 
 /// L'etat d'une echeance.
-const A_FAIRE: &str = "a_faire";
-const FAIT: &str = "fait";
-const EN_RETARD: &str = "en_retard";
-const INFORMATION: &str = "information";
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum EtatEcheance {
+    AFaire,
+    Fait,
+    EnRetard,
+    Information,
+}
+use EtatEcheance::{AFaire, EnRetard, Fait, Information};
+
+impl EtatEcheance {
+    /// Son nom, celui que la couleur lit (`super::couleur_de_l_etat`).
+    fn nom(self) -> &'static str {
+        match self {
+            AFaire => "a_faire",
+            Fait => "fait",
+            EnRetard => "en_retard",
+            Information => "information",
+        }
+    }
+
+    /// Ses mots, sur sa pastille.
+    fn mots(self) -> &'static str {
+        match self {
+            EnRetard => "en retard",
+            AFaire => "à faire",
+            Fait => "fait",
+            Information => "pour info",
+        }
+    }
+}
 
 /// Ou en est le mois dont on rappelle la DSN (`etape`) : un mois sans saisie se cree, un
 /// mois saisi se produit, un mois produit se depose, une DSN refusee se corrige.
@@ -296,14 +313,13 @@ pub(crate) struct Echeance {
     question: String,
     detail: String,
     source: String,
-    /// Le mois ou elle tombe (AAAA-MM) : l'echeancier la range sous ce mois.
-    tombe: String,
-    /// Son dernier jour (ISO), quand elle en a un.
-    date: Option<String>,
+    /// Le mois ou elle tombe : l'echeancier la range sous ce mois (aucun : une obligation sans date butoir).
+    tombe: Option<Mois>,
+    /// Son dernier jour, quand elle en a un.
+    date: Option<Jour>,
     /// Quand, en clair (« vendredi 15/01/2027 à midi », « après la DSN de décembre… »).
     quand: String,
-    /// `a_faire`, `en_retard`, `fait`, `information`.
-    etat: &'static str,
+    etat: EtatEcheance,
     /// DUE MAINTENANT : son moment est venu et elle n'est pas faite. Les rappels sont exactement celles-ci.
     due: bool,
     /// Ou en est la chose : le mois d'une DSN (`a_saisir`, `a_produire`, `a_deposer`, `a_corriger`), l'etat d'une obligation.
@@ -311,24 +327,24 @@ pub(crate) struct Echeance {
     /// Seule la compagnie peut la dire faite (`echeance-faite`).
     cochable: bool,
     /// Le mois sur lequel elle porte (la DSN de ce mois, la DPAE d'un engagement de ce mois).
-    mois: Option<String>,
-    annee: Option<String>,
+    mois: Option<Mois>,
+    annee: Option<i32>,
     fichier: Option<String>,
     engagements: i64,
     validees: i64,
-    spectacles: Vec<Value>,
+    spectacles: Vec<SpectacleARevoir>,
     salarie: Option<String>,
     a_saisir: Vec<String>,
-    /// Une DSN : son echeance de depot (`echeance_dsn::Echeance::en_json`).
-    echeance_depot: Option<Value>,
+    /// Une DSN : son echeance de depot (`echeance_dsn::Echeance::dite`).
+    echeance_depot: Option<declarations::echeance_dsn::EcheanceDite>,
     /// Une obligation due : l'obligation telle que `obligations.rs` l'a calculee.
-    obligation: Option<Value>,
+    obligation: Option<crate::obligations::Obligation>,
     /// Ce sur quoi elle porte (la fin de contrat, l'arret resume), que la page repasse au geste qui la fait.
     objet: Option<Value>,
 }
 
 impl Echeance {
-    fn nouveau(quoi: &str, cle: String, titre: String, question: String, tombe: String) -> Echeance {
+    fn nouveau(quoi: &str, cle: String, titre: String, question: String, tombe: Option<Mois>) -> Echeance {
         Echeance {
             quoi: quoi.to_string(),
             cle,
@@ -339,7 +355,7 @@ impl Echeance {
             tombe,
             date: None,
             quand: String::new(),
-            etat: A_FAIRE,
+            etat: AFaire,
             due: true,
             etape: String::new(),
             cochable: false,
@@ -359,8 +375,18 @@ impl Echeance {
 
     /// Son dernier jour, et ce jour en clair.
     fn le(&mut self, jour: &Jour) {
-        self.date = Some(jour.iso());
+        self.date = Some(*jour);
         self.quand = format!("le {}", jour.jj_mm_aaaa());
+    }
+
+    /// Ce sur quoi l'echeancier la range : son dernier jour, ou le mois ou elle tombe (en texte : « 2026-11-05 » se range
+    /// apres « 2026-11 »).
+    fn rang(&self) -> String {
+        self.date.map(|j| j.iso()).unwrap_or_else(|| self.tombe_texte())
+    }
+
+    fn tombe_texte(&self) -> String {
+        self.tombe.map(String::from).unwrap_or_default()
     }
 
     /// LE GESTE QUI LA FAIT, en routes du catalogue (`etapes::action` : la route qu'il ouvre, sa charge, la route de
@@ -369,67 +395,139 @@ impl Echeance {
     /// l'engagement modifie) ; un signalement DSN d'arret ou de reprise se signale ; une obligation hors DSN qu'une route
     /// dit faite (`accident-declare`, `attestation-declare`) se dit faite ; le reste s'ouvre dans son mois. Une DSN, une
     /// DPAE : l'apercu de son depot, puis le depot. La cloture, l'export compta, la revue des spectacles : leur route.
-    fn action(&self) -> Value {
-        use crate::routes::etapes::{action, deposer_dsn};
-        let mois = self.mois.clone().unwrap_or_default();
-        let annee = || json!({"annee": self.annee.clone().unwrap_or_default()});
+    /// Le geste d'une route qui a sa structure de charge (le mois, les signalements des imprevus, la revue des
+    /// spectacles) la passe ; un objet qui ne la remplit pas (un arret sans son salarie ou son dernier jour travaille)
+    /// n'offre pas de geste.
+    fn action(&self) -> Option<crate::routes::etapes::Action> {
+        use crate::routes::etapes::{action, deposer_dsn, ChargeAnnee, ChargeMois, ChargeObligationDArret};
+        use crate::routes::imprevus::{ChargeArretSignaler, ChargeFinContratSignaler, NatureSignalement};
+        let annee_dite = self.annee.map(|a| a.to_string()).unwrap_or_default();
+        let annee = || ChargeAnnee { annee: annee_dite.clone() };
         let objet = self.objet.as_ref().unwrap_or(&Value::Null);
-        match self.quoi.as_str() {
+        let salarie = || objet["salarie"].as_str().map(String::from);
+        Some(match self.quoi.as_str() {
             OBLIGATION => {
-                let Some(o) = self.obligation.as_ref() else { return Value::Null };
-                let arret = || json!({"salarie": objet["salarie"], "dernier_jour": objet["dernier_jour_travaille"]});
-                match o.get("cle").and_then(Value::as_str).unwrap_or("") {
-                    "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
-                        action("saisie", json!({"mois": mois}), Some("modifier-engagement"), "Compléter le contrat".into())
+                let o = self.obligation.as_ref()?;
+                let arret = || Some(ChargeObligationDArret { salarie: salarie()?, dernier_jour: objet["dernier_jour_travaille"].as_str()?.to_string() });
+                let hors_dsn = matches!(o.ou, Some(crate::obligations::Ou::Lieux(_)));
+                use crate::obligations::CleDObligation as C;
+                match o.cle {
+                    C::SignalementFinContrat if !self.a_saisir.is_empty() => {
+                        action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
-                    "signalement_fin_contrat" => {
-                        action("fin-contrat-signaler", json!({"mois": mois, "salarie": objet["salarie"]}), Some("deposer"), "Signaler…".into())
+                    C::SignalementFinContrat => {
+                        let charge = ChargeFinContratSignaler::de(self.mois?, salarie()?);
+                        action(Route::FinContratSignaler, charge, Some(Route::Deposer), "Signaler…".into())
                     }
-                    cle @ ("signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise") => {
-                        let mut charge = arret();
-                        charge["nature"] = json!(if cle == "signalement_reprise" { "05" } else { "04" });
-                        action("arret-signaler", charge, Some("deposer"), "Signaler…".into())
+                    cle @ (C::SignalementArret | C::SignalementArretRectificatif | C::SignalementReprise) => {
+                        let dernier_jour = Jour::lire(objet["dernier_jour_travaille"].as_str()?).ok()?;
+                        let nature = if cle == C::SignalementReprise { NatureSignalement::Reprise } else { NatureSignalement::Arret };
+                        action(Route::ArretSignaler, ChargeArretSignaler::de(salarie()?, dernier_jour, nature), Some(Route::Deposer), "Signaler…".into())
                     }
-                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action("accident-declare", arret(), None, "Faite le".into()),
-                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action("attestation-declare", arret(), None, "Faite le".into()),
-                    _ => action("etat-du-mois", json!({"mois": mois}), None, "Ouvrir le mois".into()),
+                    C::DeclarationAccident if hors_dsn => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
+                    C::AttestationSalaire if hors_dsn => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
+                    _ => action(Route::EtatDuMois, ChargeMois { mois: self.mois? }, None, "Ouvrir le mois".into()),
                 }
             }
-            DSN => deposer_dsn(&mois, &Value::Null, "Vérifier et envoyer".into()),
-            DPAE => action("depot-apercu", json!({"quoi": DPAE, "mois": mois}), Some("deposer"), "Préparer la DPAE".into()),
-            CLOTURE => action("cloture", annee(), None, format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
-            EXPORT_COMPTA => action("export-compta", annee(), None, "Exporter pour la compta".into()),
+            DSN => deposer_dsn(self.mois?, &Value::Null, "Vérifier et envoyer".into()),
+            DPAE => action(Route::DepotApercu, crate::routes::depots::Designation::du_mois(crate::routes::depots::Quoi::Dpae, self.mois?), Some(Route::Deposer), "Préparer la DPAE".into()),
+            CLOTURE => action(Route::Cloture, annee(), None, format!("Clôturer {}", annee_dite).trim().to_string()),
+            EXPORT_COMPTA => action(Route::ExportCompta, annee(), None, "Exporter pour la compta".into()),
             // Tous continuent, tant qu'on n'en a pas décoché un : la boîte s'ouvre ainsi.
             REVUE_SPECTACLES => {
-                let mut charge = annee();
-                charge["continuent"] = self.spectacles.iter().map(|s| s["cle"].clone()).collect();
-                action("revue-spectacles", charge, None, "Choisir les spectacles".into())
+                let charge = ChargeRevue { annee: self.annee.unwrap_or_default(), continuent: self.spectacles.iter().map(|s| s.cle.clone()).collect() };
+                action(Route::RevueSpectacles, charge, None, "Choisir les spectacles".into())
             }
-            _ => Value::Null,
-        }
-    }
-
-    /// L'échéance en objet JSON, champ par champ.
-    fn json(&self) -> Value {
-        let opt = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
-        json!({
-            "quoi": self.quoi, "cle": self.cle, "titre": self.titre, "question": self.question, "detail": self.detail,
-            "source": self.source, "tombe": self.tombe, "date": opt(&self.date), "quand": self.quand, "etat": self.etat,
-            "en_retard": self.etat == EN_RETARD, "rappel": self.due, "etape": self.etape, "cochable": self.cochable,
-            // Sa pastille : la couleur et les mots de son etat (`super::pastille`).
-            "pastille": super::pastille(self.etat, match self.etat { EN_RETARD => "en retard", A_FAIRE => "à faire", FAIT => "fait", _ => "pour info" }),
-            "mois": opt(&self.mois), "annee": opt(&self.annee), "fichier": opt(&self.fichier),
-            "engagements": self.engagements, "validees": self.validees,
-            "spectacles": self.spectacles.iter().map(brut_valeur).collect::<Vec<_>>(),
-            "salarie": opt(&self.salarie), "a_saisir": self.a_saisir,
-            "echeance_depot": self.echeance_depot,
-            "obligation": self.obligation, "objet": self.objet.as_ref().map(brut_valeur),
-            // Le geste qui la fait (une route du catalogue et son bouton), la case « C'est fait », le titre de sa boite.
-            "action": self.action(),
-            "bouton_coche": if self.etat == FAIT { "Pas encore fait" } else { "C'est fait" },
-            "titre_boite": self.annee.as_ref().map(|a| format!("Les spectacles de {}", a)),
+            _ => return None,
         })
     }
+
+    /// L'échéance telle que les routes la rendent.
+    fn dite(&self) -> EcheanceDite {
+        EcheanceDite {
+            quoi: self.quoi.clone(),
+            cle: self.cle.clone(),
+            titre: self.titre.clone(),
+            question: self.question.clone(),
+            detail: self.detail.clone(),
+            source: self.source.clone(),
+            tombe: self.tombe_texte(),
+            date: self.date.map(|j| j.iso()),
+            quand: self.quand.clone(),
+            etat: self.etat,
+            en_retard: self.etat == EnRetard,
+            rappel: self.due,
+            etape: self.etape.clone(),
+            cochable: self.cochable,
+            pastille: Pastille::de(self.etat.nom(), self.etat.mots()),
+            mois: self.mois,
+            annee: self.annee.map(|a| a.to_string()),
+            fichier: self.fichier.clone(),
+            engagements: self.engagements,
+            validees: self.validees,
+            spectacles: self.spectacles.clone(),
+            salarie: self.salarie.clone(),
+            a_saisir: self.a_saisir.clone(),
+            echeance_depot: self.echeance_depot.clone(),
+            obligation: self.obligation.clone(),
+            objet: self.objet.as_ref().map(brut_valeur),
+            action: self.action(),
+            bouton_coche: if self.etat == Fait { "Pas encore fait" } else { "C'est fait" },
+            titre_boite: self.annee.map(|a| format!("Les spectacles de {}", a)),
+        }
+    }
+}
+
+/// UNE ECHEANCE TELLE QUE LES ROUTES LA RENDENT (`rappels`, `echeancier`), champ par champ.
+#[derive(Debug, Serialize)]
+pub(crate) struct EcheanceDite {
+    pub(crate) quoi: String,
+    pub(crate) cle: String,
+    pub(crate) titre: String,
+    pub(crate) question: String,
+    pub(crate) detail: String,
+    pub(crate) source: String,
+    /// Le mois ou elle tombe, vide sans date butoir.
+    pub(crate) tombe: String,
+    pub(crate) date: Option<String>,
+    pub(crate) quand: String,
+    pub(crate) etat: EtatEcheance,
+    pub(crate) en_retard: bool,
+    /// Due maintenant : un rappel la dit.
+    pub(crate) rappel: bool,
+    pub(crate) etape: String,
+    pub(crate) cochable: bool,
+    /// Sa pastille : la couleur et les mots de son etat.
+    pub(crate) pastille: Pastille,
+    pub(crate) mois: Option<Mois>,
+    pub(crate) annee: Option<String>,
+    pub(crate) fichier: Option<String>,
+    pub(crate) engagements: i64,
+    pub(crate) validees: i64,
+    pub(crate) spectacles: Vec<SpectacleARevoir>,
+    pub(crate) salarie: Option<String>,
+    pub(crate) a_saisir: Vec<String>,
+    /// Une DSN : son echeance de depot, telle que `declarations::echeance_dsn` l'ecrit.
+    pub(crate) echeance_depot: Option<declarations::echeance_dsn::EcheanceDite>,
+    /// Une obligation due, telle que `obligations.rs` l'a calculee.
+    pub(crate) obligation: Option<crate::obligations::Obligation>,
+    /// Ce sur quoi elle porte (la fin de contrat de `imprevus`, l'arret resume), sans ses cles `_`.
+    pub(crate) objet: Option<Value>,
+    /// Le geste qui la fait (`etapes::action` : une route du catalogue et son bouton).
+    pub(crate) action: Option<crate::routes::etapes::Action>,
+    /// La case « C'est fait ».
+    pub(crate) bouton_coche: &'static str,
+    /// Le titre de sa boite.
+    pub(crate) titre_boite: Option<String>,
+}
+
+/// Un spectacle actif que la revue de l'annee demande : sa cle, son titre et son numero d'objet tels que sa fiche les
+/// porte.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct SpectacleARevoir {
+    cle: String,
+    titre: Value,
+    numero_objet: Value,
 }
 
 /// `sortie_json.brut` d'un JSON : les cles qui commencent par `_` s'en vont.
@@ -445,7 +543,7 @@ pub(super) fn brut_valeur(v: &Value) -> Value {
 pub(crate) struct Etat<'a> {
     pub(crate) ctx: &'a Contexte,
     pub(crate) aujourdhui: Jour,
-    pub(crate) journal: std::sync::Arc<Vec<Value>>,
+    pub(crate) journal: std::sync::Arc<Vec<envois::journal::Ligne>>,
 }
 
 impl Etat<'_> {
@@ -459,50 +557,65 @@ impl Etat<'_> {
 }
 
 /// `rappels` : les echeances dues maintenant (`echeances`, `due`), dans l'ordre ou elles se font, au jour de la compagnie.
-pub(crate) fn rappels(ctx: &Contexte) -> socle::echec::R<Value> {
+pub(crate) fn rappels(ctx: &Contexte) -> socle::echec::R<Rappels> {
     let st = Etat::de(ctx)?;
-    let out = echeances(&st)?;
-    let rappels: Vec<Value> = out.iter().filter(|e| e.due).map(Echeance::json).collect();
-    // La boite des rappels se ferme « plus tard » quand il y a quelque chose à faire.
-    let fermer = if rappels.is_empty() { "Fermer" } else { "Plus tard" };
-    Ok(json!({ "rappels": rappels, "fermer_dit": fermer }))
+    let rappels: Vec<EcheanceDite> = echeances(&st)?.iter().filter(|e| e.due).map(Echeance::dite).collect();
+    let phrases: Vec<String> = rappels
+        .iter()
+        .map(|r| {
+            let quand = if r.quand.is_empty() { String::new() } else { format!(" Échéance : {}.", r.quand) };
+            format!("{} ({}) : {} {}{}", r.titre, r.pastille.mots, r.question, r.detail, quand).replace("  ", " ")
+        })
+        .collect();
+    Ok(Rappels {
+        phrase: format!("Rappels : {}.", rappels.len()),
+        fermer_dit: if rappels.is_empty() { "Fermer" } else { "Plus tard" },
+        rappels,
+        phrases,
+    })
 }
 
 /// `echeancier` : les memes echeances, rangees. « Ce mois-ci » : celles qui sont dues (un rappel les dit, avec leur
 /// geste) et celles qui tombent ce mois ; « a venir » : les autres, sur douze mois.
-fn echeancier(ctx: &Contexte) -> socle::echec::R<Value> {
+fn echeancier(ctx: &Contexte) -> socle::echec::R<Echeancier> {
     let st = Etat::de(ctx)?;
-    let courant = mois_de(&st.aujourdhui);
-    let fin = mois_plus(&courant, MOIS_A_VENIR);
+    let courant = st.aujourdhui.mois_civil();
+    let fin = courant.plus(MOIS_A_VENIR)?;
     let (mut ce_mois, mut a_venir) = (Vec::new(), Vec::new());
     for e in echeances(&st)? {
-        if e.due || e.tombe == courant {
+        if e.due || e.tombe == Some(courant) {
             ce_mois.push(e);
-        } else if courant < e.tombe && e.tombe <= fin {
+        } else if e.tombe.is_some_and(|t| courant < t && t <= fin) {
             a_venir.push(e);
         }
     }
-    let ordre = |etat: &str| match etat {
-        EN_RETARD => 0,
-        A_FAIRE => 1,
-        INFORMATION => 2,
-        _ => 3,
+    let ordre = |etat: EtatEcheance| match etat {
+        EnRetard => 0,
+        AFaire => 1,
+        Information => 2,
+        Fait => 3,
     };
-    ce_mois.sort_by(|a, b| (ordre(a.etat), a.date.clone().unwrap_or_else(|| a.tombe.clone())).cmp(&(ordre(b.etat), b.date.clone().unwrap_or_else(|| b.tombe.clone()))));
-    a_venir.sort_by(|a, b| (a.tombe.clone(), a.date.clone().unwrap_or_default()).cmp(&(b.tombe.clone(), b.date.clone().unwrap_or_default())));
-    let texte = |c: &str| ctx.entreprise.get(c).filter(|v| vrai(v)).map(en_texte);
-    let nom = texte("nom_affichage").or_else(|| texte("raison_sociale")).unwrap_or_default();
-    Ok(json!({
-        "aujourdhui": st.aujourdhui.iso(),
-        "date": date_en_clair(&st.aujourdhui),
-        "date_dit": format!("Nous sommes le {}", date_en_clair(&st.aujourdhui)),
-        "bienvenue": "Bienvenue sur PuppetPaie",
-        "compagnie": nom,
-        "idcc": ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null),
-        "ce_mois": ce_mois.iter().map(Echeance::json).collect::<Vec<_>>(),
-        "a_venir": a_venir.iter().map(Echeance::json).collect::<Vec<_>>(),
-        "a_faire": ce_mois.iter().filter(|x| !x.due && (x.etat == A_FAIRE || x.etat == EN_RETARD)).count(),
-    }))
+    ce_mois.sort_by_cached_key(|e| (ordre(e.etat), e.rang()));
+    a_venir.sort_by_key(|e| (e.tombe, e.date));
+    let compagnie = ctx.entreprise.nommee();
+    let a_faire = ce_mois.iter().filter(|x| !x.due && matches!(x.etat, AFaire | EnRetard)).count();
+    let ce_mois: Vec<EcheanceDite> = ce_mois.iter().map(Echeance::dite).collect();
+    let a_venir: Vec<EcheanceDite> = a_venir.iter().map(Echeance::dite).collect();
+    let ligne = |x: &EcheanceDite| format!("{} ({}{})", x.titre, x.pastille.mots, if x.quand.is_empty() { String::new() } else { format!(", {}", x.quand) });
+    let phrases: Vec<String> = ce_mois.iter().chain(&a_venir).map(ligne).collect();
+    Ok(Echeancier {
+        phrase: format!("{} : {} ce mois-ci, {} à venir.", compagnie, super::compte(ce_mois.len(), "échéance", "échéances"), a_venir.len()),
+        aujourdhui: st.aujourdhui.iso(),
+        date: date_en_clair(&st.aujourdhui),
+        date_dit: format!("Nous sommes le {}", date_en_clair(&st.aujourdhui)),
+        bienvenue: "Bienvenue sur PuppetPaie",
+        compagnie,
+        idcc: socle::ecriture::en_valeur(&ctx.entreprise.idcc),
+        ce_mois,
+        a_venir,
+        a_faire,
+        phrases,
+    })
 }
 
 /// TOUT CE QUI EST DU, ET QUAND : la seule fonction qui compose les echeances, dans l'ordre ou elles se font. D'abord
@@ -512,73 +625,68 @@ fn echeancier(ctx: &Contexte) -> socle::echec::R<Value> {
 /// AT/MP, les contributions de branche), et la DSN des douze mois qui viennent. Une echeance se tait des qu'elle est
 /// faite ; aucune ne se tait parce qu'on a clique « plus tard ».
 pub(crate) fn echeances(st: &Etat) -> R<Vec<Echeance>> {
-    let base: Value = crate::routes::mois::lire_saisie(&socle::fichiers::dossier_du_code().join("echeancier-base.json")).map_err(|e| Refus { classe: e.classe, message: e.message })?;
-    let modele = base.get("dsn").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("dsn")))?;
-    let courant = mois_de(&st.aujourdhui);
+    let base = echeancier_base()?;
     // Un rappel qui ne se calcule pas n'empeche pas les autres.
     let mut out = rappels_dpae(st).unwrap_or_default();
     out.extend(rappels_obligations(st)?);
     let reclames = mois_a_declarer(st)?;
     for m in &reclames {
-        out.push(rappel_dsn(st, m, modele)?);
+        out.push(rappel_dsn(st, *m, &base.dsn)?);
     }
     out.extend(annuelles(st, &base)?);
     // La DSN du mois passe (quand elle n'est plus reclamee) et des douze qui viennent ; rien avant la premiere embauche.
-    let premier = etat_dsn::premier_mois_du(st.ctx)?;
+    let premier = premier_mois(st.ctx)?;
     for n in -1..MOIS_A_VENIR {
-        let m = mois_plus(&courant, n);
-        if reclames.contains(&m) || premier.as_ref().is_some_and(|p| !p.is_empty() && m < *p) {
+        let m = st.aujourdhui.mois_civil().plus(n)?;
+        if reclames.contains(&m) || premier.is_some_and(|p| m < p) {
             continue;
         }
-        out.push(dsn_a_venir(st, &m, modele)?);
+        out.push(dsn_a_venir(st, m, &base.dsn)?);
     }
     Ok(out)
 }
 
+/// Le premier mois de la compagnie (`etat_dsn::premier_mois_du`), s'il y en a un.
+fn premier_mois(ctx: &Contexte) -> R<Option<Mois>> {
+    Ok(etat_dsn::premier_mois_du(ctx)?.filter(|p| !p.is_empty()).map(|p| Mois::lire(&p)).transpose()?)
+}
+
 /// La DSN d'un mois que les rappels ne reclament pas : faite, ou a venir.
-fn dsn_a_venir(st: &Etat, mois: &str, modele: &Value) -> R<Echeance> {
-    let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
-    let mut e = Echeance::nouveau(DSN, format!("dsn:{}", mois), dsn_formee(modele, "titre", &[("de_mois", de(mois)?)])?, String::new(), mois_suivant(mois));
-    e.etat = if !etat_dsn::due(st.ctx, mois, &Value::Null)? { FAIT } else if echeance.passee_au(&st.aujourdhui) { EN_RETARD } else { A_FAIRE };
+fn dsn_a_venir(st: &Etat, mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
+    let texte = mois.to_string();
+    let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, &texte)?;
+    let titre = formater(&modele.titre, &[("de_mois", socle::texte::de(&mois.libelle(Graphie::Accentuee)))])?;
+    let mut e = Echeance::nouveau(DSN, format!("dsn:{}", mois), titre, String::new(), Some(mois.suivant()));
+    e.etat = if !etat_dsn::due(st.ctx, socle::mois::Mois::lire(&texte)?, None)? { Fait } else if echeance.passee_au(&st.aujourdhui) { EnRetard } else { AFaire };
     e.due = false;
-    e.mois = Some(mois.to_string());
+    e.mois = Some(mois);
     e.detail = dsn_detail(modele, &echeance)?;
-    e.source = dsn_formee(modele, "source", &[])?;
-    e.date = Some(echeance.jour.iso());
-    e.quand = echeance_phrase(&echeance);
-    e.echeance_depot = Some(echeance.en_json());
+    e.source = formater(&modele.source, &[])?;
+    e.date = Some(echeance.jour);
+    e.quand = echeance.phrase();
+    e.echeance_depot = Some(echeance.dite());
     Ok(e)
 }
 
-fn echeance_phrase(e: &declarations::echeance_dsn::Echeance) -> String {
-    e.en_json()["phrase"].as_str().map(String::from).unwrap_or_else(|| e.jour.jj_mm_aaaa())
-}
-
-fn dsn_formee(modele: &Value, champ: &str, valeurs: &[(&str, String)]) -> R<String> {
-    formater(modele.get(champ).and_then(Value::as_str).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(champ)))?, valeurs)
-}
-
-fn dsn_detail(modele: &Value, echeance: &declarations::echeance_dsn::Echeance) -> R<String> {
-    dsn_formee(
-        modele,
-        "detail",
-        &[("jour", echeance.jour.jour.to_string()), ("mois_suivant", libelle(&echeance.jour.mois_iso())?), ("report", echeance.pourquoi().map(|p| format!(" {}", p)).unwrap_or_default())],
+fn dsn_detail(modele: &ModeleDsn, echeance: &declarations::echeance_dsn::Echeance) -> R<String> {
+    formater(
+        &modele.detail,
+        &[("jour", echeance.jour.jour.to_string()), ("mois_suivant", echeance.jour.mois_civil().libelle(Graphie::Accentuee)), ("report", echeance.pourquoi().map(|p| format!(" {}", p)).unwrap_or_default())],
     )
 }
 
 /// LES ECHEANCES ANNUELLES (`echeancier-base.json`, celles de la convention de la fiche), de l'annee en cours et de la
 /// suivante. La cloture de l'annee passee vient APRES sa DSN de decembre, et l'export compta avec elle.
-fn annuelles(st: &Etat, base: &Value) -> R<Vec<Echeance>> {
+fn annuelles(st: &Etat, base: &EcheancierBase) -> R<Vec<Echeance>> {
     let ctx = st.ctx;
-    let faites = cochees(ctx).map_err(|e| Refus { classe: e.classe, message: e.message })?;
-    let courant = mois_de(&st.aujourdhui);
-    let derniere: i32 = mois_plus(&courant, MOIS_A_VENIR)[..4].parse().unwrap_or(st.aujourdhui.an);
-    let premier = etat_dsn::premier_mois_du(ctx)?;
+    let faites = cochees(ctx)?;
+    let derniere = st.aujourdhui.mois_civil().plus(MOIS_A_VENIR)?.annee();
+    let premier = premier_mois(ctx)?;
     let mut out = Vec::new();
     for annee in st.aujourdhui.an..=derniere {
-        for e in annuelles_de(base, ctx.entreprise.get("idcc"))? {
-            if let Some(x) = annuelle(st, e, annee, &faites, &premier)? {
-                let export = x.quoi == CLOTURE && x.etat != FAIT;
+        for e in annuelles_de(base, ctx.entreprise.idcc.portee()) {
+            if let Some(x) = annuelle(st, e, annee, &faites, premier)? {
+                let export = x.quoi == CLOTURE && x.etat != Fait;
                 out.push(x);
                 if export {
                     out.extend(export_compta(st, annee - 1));
@@ -599,133 +707,212 @@ fn export_compta(st: &Etat, annee: i32) -> Option<Echeance> {
         format!("export-compta:{}", annee),
         format!("Exporter les chiffres de {} pour la comptabilité", annee),
         "Le journal de paie de l'année, pour le logiciel de compta.".into(),
-        format!("{}-01", annee + 1),
+        Mois::nouveau(annee + 1, 1).ok(),
     );
-    r.annee = Some(annee.to_string());
+    r.annee = Some(annee);
     r.detail = "Une écriture par mois, équilibrée : salaires bruts et charges au débit, organismes et net à payer au crédit.".into();
     Some(r)
 }
 
-fn mois_de_l_echeance(e: &Value, rang: Option<usize>) -> R<i64> {
-    let mois = e.get("mois").and_then(Value::as_array).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("mois")))?;
-    let x = match rang {
-        Some(i) => mois.get(i),
-        None => mois.last(),
-    };
-    x.and_then(Value::as_i64).ok_or_else(|| avec_classe("IndexError", socle::fichiers::trop_courte("les mois de l'échéance")))
-}
-
 /// Une echeance annuelle de l'annee `annee` ; `None` quand elle ne concerne pas ce dossier.
-fn annuelle(st: &Etat, e: &Value, annee: i32, faites: &serde_json::Map<String, Value>, premier: &Option<String>) -> R<Option<Echeance>> {
+fn annuelle(st: &Etat, e: &Annuelle, annee: i32, faites: &Cochees, premier: Option<Mois>) -> R<Option<Echeance>> {
     let ctx = st.ctx;
-    let cle = e.get("cle").and_then(Value::as_str).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("cle")))?;
-    let comment = e.get("fait_par").and_then(Value::as_str);
-    let precedente = (annee - 1).to_string();
+    let cle = e.cle.as_str();
+    let precedente = annee - 1;
     // La cloture d'une annee dont aucun mois n'est dans PuppetPaie (tenue ailleurs) ne concerne pas ce dossier.
-    if comment == Some("exercice_clos") && mois_de_l_annee(ctx, &precedente).is_empty() {
+    if e.fait_par == FaitPar::ExerciceClos && mois_de_l_annee(ctx, &precedente.to_string()).is_empty() {
         return Ok(None);
     }
     // Une revue des spectacles sans spectacle n'a rien a revoir.
     if cle == REVUE_SPECTACLES && ctx.spectacles.is_empty() {
         return Ok(None);
     }
-    let debut = format!("{}-{:02}", annee, mois_de_l_echeance(e, Some(0))?);
-    let dernier = format!("{}-{:02}", annee, mois_de_l_echeance(e, None)?);
+    let trop_courte = || avec_classe("IndexError", socle::fichiers::trop_courte("les mois de l'échéance"));
+    let debut = Mois::nouveau(annee, *e.mois.first().ok_or_else(trop_courte)?)?;
+    let dernier = Mois::nouveau(annee, *e.mois.last().ok_or_else(trop_courte)?)?;
     // Ce qui tombait avant l'arrivee de la compagnie ne la concerne pas -- sauf le taux AT/MP de l'annee, sans lequel
     // rien ne se calcule.
-    let arrivee_apres = premier.as_ref().is_some_and(|b| !b.is_empty() && dernier < *b);
+    let arrivee_apres = premier.is_some_and(|b| dernier < b);
     if arrivee_apres && cle != "at-mp" {
         return Ok(None);
     }
     // `{jour_dsn}` : le jour de janvier ou la DSN de decembre de l'annee d'avant est due, reporte (`echeance_dsn`).
-    let dsn_decembre = declarations::echeance_dsn::de_la_compagnie(ctx, &format!("{}-12", precedente))?;
-    let valeurs = [("annee", annee.to_string()), ("annee_precedente", precedente.clone()), ("jour_dsn", dsn_decembre.jour.jour.to_string())];
-    let courant = mois_de(&st.aujourdhui);
-    let champ = |c: &str| -> R<String> { formater(e.get(c).and_then(Value::as_str).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(c)))?, &valeurs) };
-    let mut x = Echeance::nouveau(cle, format!("{}:{}", cle, annee), champ("titre")?, String::new(), debut.clone());
-    x.detail = champ("detail")?;
-    x.source = e.get("source").and_then(Value::as_str).unwrap_or("").to_string();
-    x.cochable = comment == Some("coche");
-    x.annee = Some(annee.to_string());
-    x.etat = if comment == Some("information") {
-        INFORMATION
+    let decembre = Mois::nouveau(precedente, 12)?.to_string();
+    let dsn_decembre = declarations::echeance_dsn::de_la_compagnie(ctx, &decembre)?;
+    let valeurs = [("annee", annee.to_string()), ("annee_precedente", precedente.to_string()), ("jour_dsn", dsn_decembre.jour.jour.to_string())];
+    let courant = st.aujourdhui.mois_civil();
+    let mut x = Echeance::nouveau(cle, format!("{}:{}", cle, annee), formater(&e.titre, &valeurs)?, String::new(), Some(debut));
+    x.detail = formater(&e.detail, &valeurs)?;
+    x.source = e.source.clone();
+    x.cochable = e.fait_par == FaitPar::Coche;
+    x.annee = Some(annee);
+    x.etat = if e.fait_par == FaitPar::Information {
+        Information
     } else {
         match fait_annuel(ctx, e, annee, faites)? {
-            Some(true) => FAIT,
+            Some(true) => Fait,
             // Une compagnie arrivee apres l'echeance n'est pas « en retard » : elle a a le faire.
-            Some(false) if courant > dernier && !arrivee_apres => EN_RETARD,
-            _ => A_FAIRE,
+            Some(false) if courant > dernier && !arrivee_apres => EnRetard,
+            _ => AFaire,
         }
     };
     // Due : son premier mois est venu, et elle n'est pas faite.
-    x.due = matches!(x.etat, A_FAIRE | EN_RETARD) && debut <= courant;
+    x.due = matches!(x.etat, AFaire | EnRetard) && debut <= courant;
     if cle == CLOTURE {
-        x.annee = Some(precedente.clone());
+        x.annee = Some(precedente);
         x.cle = format!("{}:{}", CLOTURE, precedente);
         // LA CLOTURE VIENT APRES LA DSN DE DECEMBRE : tant qu'elle n'est pas partie, c'est son rappel qui parle.
-        x.quand = format!("après la DSN de décembre, due {}", echeance_phrase(&dsn_decembre));
-        let partie = etat_dsn::du_mois(ctx, &format!("{}-12", precedente), &Value::Null)?;
+        x.quand = format!("après la DSN de décembre, due {}", dsn_decembre.phrase());
+        let partie = etat_dsn::du_mois(ctx, socle::mois::Mois::lire(&decembre)?, None)?;
         x.due = x.due && (partie.partie() || partie.refusee());
-        x.etat = if x.etat == EN_RETARD && !x.due { A_FAIRE } else { x.etat };
+        x.etat = if x.etat == EnRetard && !x.due { AFaire } else { x.etat };
         if x.due {
             x.titre = format!("Clôturer l'exercice {}", precedente);
             x.question = format!("La DSN de décembre est passée. Figer l'année {} ?", precedente);
         }
     }
     if cle == REVUE_SPECTACLES && x.due {
-        x.spectacles = spectacles_a_revoir(ctx, annee)?;
+        x.spectacles = spectacles_a_revoir(ctx, annee, faites);
         x.question = format!("Lesquels de vos spectacles se jouent encore en {} ?", annee);
     }
     Ok(Some(x))
 }
 
-/// Les echeances annuelles de la convention de la fiche (`idcc`).
-pub(crate) fn annuelles_de<'a>(base: &'a Value, idcc: Option<&Value>) -> R<Vec<&'a Value>> {
-    let toutes = base.get("annuelles").and_then(Value::as_array).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("annuelles")))?;
-    let voulu = idcc.map_or("None".to_string(), en_texte);
-    Ok(toutes
-        .iter()
-        .filter(|e| match e.get("idcc") {
-            Some(l) if vrai(l) => l.as_array().is_some_and(|a| a.iter().any(|x| en_texte(x) == voulu)),
-            _ => true,
-        })
-        .collect())
+/// Les echeances annuelles de la convention de la fiche (`idcc`) : celles qui n'en nomment aucune, et celles qui la
+/// nomment.
+fn annuelles_de<'a>(base: &'a EcheancierBase, idcc: Option<&str>) -> impl Iterator<Item = &'a Annuelle> {
+    let voulu = idcc.map_or("None".to_string(), String::from);
+    base.annuelles.iter().filter(move |e| e.idcc.is_empty() || e.idcc.contains(&voulu))
 }
+
+/// Vrai, faux, ou `None` quand on ne peut pas le savoir.
+fn fait_annuel(ctx: &Contexte, e: &Annuelle, annee: i32, faites: &Cochees) -> R<Option<bool>> {
+    if e.fait_par == FaitPar::ExerciceClos {
+        return Ok(Some(exercice_clos(ctx, &(annee - 1).to_string())?.is_some()));
+    }
+    // Le taux AT/MP se saisit dans la page : pose pour l'annee (ou un taux collectif que l'annee reprend d'elle-meme,
+    // `Contexte::taux_atmp_de`), il vaut releve.
+    if e.cle == "at-mp" && matches!(ctx.taux_atmp_de(annee), Some(Ok(t)) if t.valeur.is_some()) {
+        return Ok(Some(true));
+    }
+    if e.fait_par == FaitPar::Coche {
+        return Ok(Some(faites.fait.contains_key(&format!("{}:{}", e.cle, annee))));
+    }
+    Ok(None)
+}
+
+// ------------------------------------------------------ l'echeancier livre
+
+/// L'ECHEANCIER LIVRE (`donnees/echeancier-base.json`) : les phrases de la DSN mensuelle, et les echeances de
+/// calendrier, chacune avec son texte. La seule lecture du fichier.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EcheancierBase {
+    /// Ce qu'est le fichier.
+    #[allow(dead_code)]
+    quoi: String,
+    dsn: ModeleDsn,
+    annuelles: Vec<Annuelle>,
+}
+
+/// La DSN mensuelle : son titre (`{de_mois}`), son detail (`{jour}`, `{mois_suivant}`, `{report}`), ses textes.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ModeleDsn {
+    titre: String,
+    detail: String,
+    source: String,
+}
+
+/// Une echeance de calendrier : ses mois (le premier ou elle est due, le dernier apres lequel elle est en retard), son
+/// titre et son detail (`{annee}`, `{annee_precedente}`, `{jour_dsn}`), son texte, qui la dit faite ; les conventions
+/// qu'elle concerne (aucune : toutes).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Annuelle {
+    cle: String,
+    #[serde(default)]
+    idcc: Vec<String>,
+    mois: Vec<u32>,
+    titre: String,
+    detail: String,
+    source: String,
+    fait_par: FaitPar,
+}
+
+/// Qui dit une echeance annuelle faite : la cloture de l'exercice, la compagnie qui la coche, ou personne (une
+/// information).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum FaitPar {
+    ExerciceClos,
+    Coche,
+    Information,
+}
+
+fn echeancier_base() -> socle::echec::R<EcheancierBase> {
+    let v = crate::routes::mois::lire_saisie(&socle::fichiers::dossier_du_code().join("echeancier-base.json"))?;
+    socle::forme::lire(&v, "L'échéancier livré avec le logiciel ne se lit pas : le signaler au développeur.").map_err(|m| erreur("ValueError", m))
+}
+
+// ------------------------------------------------------ ce que la compagnie a coche
 
 /// Ce que l'utilisateur a coche dans l'echeancier, sous la racine de la compagnie.
 pub(crate) const ECHEANCIER: &str = "config/echeancier.json";
 
-/// `config/echeancier.json` : ce que l'utilisateur a coche (`fait`). La seule lecture du fichier ; `ouverture::marquer_echeance` l'ecrit.
-pub(crate) fn cochees(ctx: &Contexte) -> socle::echec::R<serde_json::Map<String, Value>> {
-    let p = ctx.racine.join(ECHEANCIER);
-    if !p.exists() {
-        return Ok(serde_json::Map::new());
-    }
-    let v = crate::routes::mois::lire_saisie(&p)?;
-    let Some(o) = v.as_object() else { return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&v)))) };
-    match o.get("fait") {
-        None => Ok(serde_json::Map::new()),
-        Some(Value::Object(f)) => Ok(f.clone()),
-        Some(autre) => Err(erreur("TypeError", format!("'fait' : {}", socle::fichiers::attendu("un objet", nom_type(autre))))),
-    }
+/// `config/echeancier.json` : les echeances que la compagnie a dites faites (« quoi:AAAA »), quand et par qui.
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct Cochees {
+    quoi: String,
+    #[serde(default)]
+    fait: BTreeMap<String, Coche>,
 }
 
-/// Vrai, faux, ou `None` quand on ne peut pas le savoir.
-fn fait_annuel(ctx: &Contexte, e: &Value, annee: i32, faites: &serde_json::Map<String, Value>) -> R<Option<bool>> {
-    let comment = e.get("fait_par").and_then(Value::as_str);
-    let cle = e.get("cle").and_then(Value::as_str).unwrap_or("");
-    if comment == Some("exercice_clos") {
-        return Ok(Some(vrai_opt(exercice_clos(ctx, &(annee - 1).to_string())?.as_ref())));
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct Coche {
+    le: String,
+    qui: String,
+}
+
+/// `config/echeancier.json`, lu : rien de coche s'il n'existe pas. La seule lecture du fichier ; `marquer_echeance` est
+/// la seule ecriture.
+fn cochees(ctx: &Contexte) -> socle::echec::R<Cochees> {
+    let p = ctx.racine.join(ECHEANCIER);
+    if !p.exists() {
+        return Ok(Cochees::default());
     }
-    // Le taux AT/MP se saisit dans la page : pose pour l'annee (ou un taux collectif que l'annee reprend d'elle-meme,
-    // `Contexte::taux_atmp_de`), il vaut releve.
-    if cle == "at-mp" && matches!(ctx.taux_atmp_de(annee), Some(Ok(t)) if t.get("valeur").is_some_and(|x| !x.is_null())) {
-        return Ok(Some(true));
+    let v = crate::routes::mois::lire_saisie(&p)?;
+    socle::forme::lire(&v, "Les échéances cochées de la compagnie ne se lisent pas.").map_err(|m| erreur("ValueError", m))
+}
+
+/// Coche (ou decoche) une echeance que seule la compagnie peut dire faite : « quoi:AAAA », `quoi` une echeance annuelle
+/// cochable de l'echeancier livre.
+fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str) -> socle::echec::R<()> {
+    let (quoi, annee) = cle.split_once(':').unwrap_or((cle, ""));
+    let base = echeancier_base()?;
+    let chiffres = !annee.is_empty() && annee.chars().all(|c| c.is_ascii_digit());
+    let Some(e) = base.annuelles.iter().find(|x| x.cle == quoi).filter(|_| chiffres) else {
+        return Err(erreur("ErreurOperation", format!("Echeance inconnue : {}.", socle::fichiers::repr(cle))));
+    };
+    if e.fait_par != FaitPar::Coche {
+        let n: i64 = annee.parse().unwrap_or(0);
+        let titre = formater(&e.titre, &[("annee", annee.to_string()), ("annee_precedente", (n - 1).to_string()), ("jour_dsn", String::new())])?;
+        return Err(erreur("ErreurOperation", format!("« {} » ne se coche pas : le logiciel le voit fait quand c'est fait.", titre)));
     }
-    if comment == Some("coche") {
-        return Ok(Some(faites.contains_key(&format!("{}:{}", cle, annee))));
+    let mut c = cochees(ctx)?;
+    if fait {
+        c.fait.insert(cle.to_string(), Coche { le: ctx.aujourdhui.iso(), qui: qui.to_string() });
+    } else {
+        c.fait.remove(cle);
     }
-    Ok(None)
+    c.quoi = "Les echeances que l'utilisateur a dites faites.".to_string();
+    let p = ctx.racine.join(ECHEANCIER);
+    if let Some(parent) = p.parent() {
+        crate::routes::fiches::creer_dossier(parent)?;
+    }
+    socle::ecriture::ecrire_json(&p, &en_json(&c)?, 2).map_err(crate::routes::fiches::en_os)
 }
 
 /// `{nom}` remplace, `{{` et `}}` s'ecrivent `{` et `}`.
@@ -761,43 +948,18 @@ fn formater(modele: &str, valeurs: &[(&str, String)]) -> R<String> {
     Ok(out)
 }
 
-/// « septembre 2026 ».
-fn libelle(mois: &str) -> R<String> {
-    Ok(socle::date::libelle_du_mois(mois, socle::date::Graphie::Accentuee)?)
-}
-
-/// « de septembre 2026 », « d'août 2026 ».
-fn de(mois: &str) -> R<String> {
-    Ok(socle::texte::de(&libelle(mois)?))
-}
-
-/// `mois` decale de `n` mois.
-fn mois_plus(mois: &str, n: i32) -> String {
-    let an: i32 = mois[..4].parse().unwrap_or(0);
-    let mo: i32 = mois[5..7].parse::<i32>().unwrap_or(1) - 1 + n;
-    format!("{:04}-{:02}", an + mo.div_euclid(12), mo.rem_euclid(12) + 1)
-}
-
 /// « mercredi 23 septembre 2026 ».
 fn date_en_clair(j: &Jour) -> String {
     const JOURS: [&str; 7] = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
-    let mois = socle::date::nom_du_mois(j.mois as i64, socle::date::Graphie::Accentuee).unwrap_or_default();
+    let mois = j.mois_civil().nom(socle::mois::Graphie::Accentuee);
     format!("{} {} {} {}", JOURS[j.jour_de_la_semaine() as usize], j.jour, mois, j.an)
 }
 
 // -------------------------------------------------------------- l'exercice
 
 /// La cloture de l'annee (ou `None`).
-pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
-    let p = ctx.racine.join(crate::compagnie::exercice_ecrit::EXERCICES);
-    if !socle::fichiers::existe(&p) {
-        return Ok(None);
-    }
-    // Lu une fois tant qu'il ne change pas, le refus d'un fichier illisible inchange (`lire_json`).
-    match &*socle::fichiers::json_en_cache_ou(&p, lire_json)? {
-        Value::Object(o) => Ok(o.iter().find(|(k, _)| !k.starts_with('_') && k.as_str() == &annee[..4.min(annee.len())]).map(|(_, v)| v.clone())),
-        autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
-    }
+pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<crate::compagnie::exercice_ecrit::ExerciceNote>> {
+    Ok(crate::compagnie::exercice_ecrit::lire_exercices(&ctx.racine)?.de(annee).cloned())
 }
 
 /// Les mois de l'annee connus du dossier.
@@ -809,20 +971,19 @@ pub(crate) fn mois_de_l_annee(ctx: &Contexte, annee: &str) -> Vec<String> {
 
 /// `spectacles_a_revoir` : les spectacles actifs, tant que la revue de l'annee
 /// n'est pas faite.
-fn spectacles_a_revoir(ctx: &Contexte, annee: i32) -> R<Vec<Value>> {
-    if cochees(ctx).map_err(|e| Refus { classe: e.classe, message: e.message })?.contains_key(&format!("{}:{}", REVUE_SPECTACLES, annee)) {
-        return Ok(Vec::new());
+fn spectacles_a_revoir(ctx: &Contexte, annee: i32, faites: &Cochees) -> Vec<SpectacleARevoir> {
+    if faites.fait.contains_key(&format!("{}:{}", REVUE_SPECTACLES, annee)) {
+        return Vec::new();
     }
-    Ok(ctx
-        .spectacles
+    ctx.spectacles
         .iter()
-        .filter(|(_, s)| !archivee(s))
-        .map(|(cle, s)| {
-            let titre = s.get("titre").filter(|t| vrai(t)).cloned().unwrap_or_else(|| Value::String(cle.clone()));
-            let objet = s.get("numero_objet").filter(|t| vrai(t)).cloned().unwrap_or(Value::Null);
-            json!({ "cle": cle, "titre": titre, "numero_objet": objet })
+        .filter(|(_, s)| !s.archivee())
+        .map(|(cle, s)| SpectacleARevoir {
+            cle: cle.to_string(),
+            titre: brut_valeur(&Value::String(s.titre.remplie().unwrap_or(cle).to_string())),
+            numero_objet: brut_valeur(&s.numero_objet.remplie().map_or(Value::Null, |n| Value::String(n.to_string()))),
         })
-        .collect())
+        .collect()
 }
 
 // ------------------------------------------------------- la DSN des mois
@@ -830,17 +991,11 @@ fn spectacles_a_revoir(ctx: &Contexte, annee: i32) -> R<Vec<Value>> {
 /// Le mois le plus recent dont la DSN reelle est partie et n'a pas ete
 /// refusee -- passee, ou en attente de son bilan.
 fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
-    let mut mois = BTreeSet::new();
-    for l in lire_journal(&st.journal, DSN, true)? {
-        if vrai_opt(l.get("accepte")) && vrai_opt(l.get("mois")) {
-            mois.insert(en_texte(&l["mois"]));
-        }
-    }
+    let mois: BTreeSet<Mois> = envois::journal::filtrer(&st.journal, Some(envois::journal::Acte::Dsn), None, true).filter(|l| l.accepte() && !l.signalement()).filter_map(|l| l.mois()).collect();
     let mut passes = Vec::new();
     for m in mois {
-        let e = etat_dsn::du_mois(st.ctx, &m, &Value::Null)?;
-        if !e.a_faire() {
-            passes.push(m);
+        if !etat_dsn::du_mois(st.ctx, m, None)?.a_faire() {
+            passes.push(m.to_string());
         }
     }
     Ok(passes.into_iter().max())
@@ -850,23 +1005,22 @@ fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
 /// recent : depuis le mois qui suit la derniere DSN passee jusqu'au mois d'avant
 /// aujourd'hui. Sans aucune DSN au journal : le seul mois d'avant -- on ne va pas
 /// reclamer cinq ans d'histoire a une compagnie qui commence.
-pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
-    let courant = mois_de(&st.aujourdhui);
-    let dernier = mois_precedent(&courant);
+fn mois_a_declarer(st: &Etat) -> R<Vec<Mois>> {
+    let dernier = st.aujourdhui.mois_civil().precedent();
     let depuis = derniere_dsn_passee(st)?;
-    let mut premier = depuis.as_ref().map_or_else(|| dernier.clone(), |d| mois_suivant(d));
-    if let (Some(borne), None) = (etat_dsn::premier_mois_du(st.ctx)?, &depuis) {
+    let mut premier = match &depuis {
+        // Un signalement se date par le jour de son evenement (`AAAA-MM-JJ`) : son mois en est le debut.
+        Some(d) => Mois::lire(d.get(..7).unwrap_or(d))?.suivant(),
+        None => dernier,
+    };
+    if let (Some(borne), None) = (premier_mois(st.ctx)?, &depuis) {
         premier = premier.max(borne);
     }
-    if premier > dernier {
-        return Ok(Vec::new());
-    }
-    let (mut out, mut m) = (Vec::new(), premier);
-    while m <= dernier {
-        if etat_dsn::due(st.ctx, &m, &Value::Null)? {
-            out.push(m.clone());
+    let mut out = Vec::new();
+    for m in premier.jusqu_a(dernier) {
+        if etat_dsn::due(st.ctx, m, None)? {
+            out.push(m);
         }
-        m = mois_suivant(&m);
     }
     Ok(out)
 }
@@ -874,10 +1028,10 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
 /// LES MOIS QUI ONT QUELQUE CHOSE A FAIRE au jour `aujourdhui`, du plus ancien au plus recent : ceux que la saisie
 /// touche (`stock::mois_saisis`), et ceux dont la DSN est reclamee sans engagement (`mois_a_declarer` : une DSN sans
 /// individu, cahier technique DSN 2026.1, § 2.4). Le mois a ouvrir et l'horloge de la compagnie fictive les parcourent.
-pub(crate) fn mois_a_parcourir(ctx: &Contexte, aujourdhui: Jour) -> socle::echec::R<Vec<String>> {
+pub(crate) fn mois_a_parcourir(ctx: &Contexte, aujourdhui: Jour) -> socle::echec::R<Vec<Mois>> {
     let mut mois = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
     let st = Etat { ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine)?.lignes };
-    mois.extend(mois_a_declarer(&st).map_err(|r| Echec { classe: r.classe, message: r.message })?);
+    mois.extend(mois_a_declarer(&st)?);
     mois.sort();
     mois.dedup();
     Ok(mois)
@@ -897,7 +1051,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
         .filter(|(nom, c)| c.is_file() && Path::new(nom).extension().map_or(false, |e| e.to_string_lossy().to_lowercase() == "dsn"))
         // LA MENSUELLE, PAS UN SIGNALEMENT : un signalement d'arret ou de fin ecrit apres la DSN du mois, dans
         // le meme dossier, devenait « la DSN a deposer » du rappel.
-        .filter(|(_, c)| std::fs::read(c).map(|o| !envois::depot::lire(&o).est_signalement()).unwrap_or(false))
+        .filter(|(nom, c)| std::fs::read(c).is_ok_and(|o| declarations::dsn_lue::lire(&o, nom).is_ok_and(|d| !d.est_signalement())))
         .collect();
     fichiers.sort_by_cached_key(|(nom, c)| crate::routes::etapes::ordre_de_depot(nom, c));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))
@@ -919,25 +1073,27 @@ fn engagements_valides(ctx: &Contexte, mois: &str) -> (i64, i64) {
     (valides.len() as i64, valides.iter().filter(|v| **v).count() as i64)
 }
 
-fn rappel_dsn(st: &Etat, mois: &str, modele: &Value) -> R<Echeance> {
-    let lib = socle::date::libelle_du_mois(mois, socle::date::Graphie::Accentuee).map_err(Refus::from)?;
+fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
+    let mois = le_mois.to_string();
+    let mois = mois.as_str();
+    let lib = le_mois.libelle(Graphie::Accentuee);
     let mut r = Echeance::nouveau(
         DSN,
         format!("dsn:{}", mois),
         format!("Il est temps d'envoyer la DSN {}", socle::texte::de(&lib)),
         format!("Avez-vous bien fini les paies {} ?", socle::texte::de(&lib)),
-        mois_suivant(mois),
+        Some(le_mois.suivant()),
     );
-    r.mois = Some(mois.to_string());
+    r.mois = Some(le_mois);
     // L'echeance : `echeance_dsn`, le 5 ou le 15 du mois suivant selon l'effectif, reporte au jour ouvre suivant un
     // samedi, un dimanche ou un jour ferie (R. 133-14, I), a midi. Passee, ce n'est plus un rappel, c'est un retard --
     // et on le dit.
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
-    r.etat = if echeance.passee_au(&st.aujourdhui) { EN_RETARD } else { A_FAIRE };
-    r.date = Some(echeance.jour.iso());
-    r.quand = echeance_phrase(&echeance);
-    r.source = dsn_formee(modele, "source", &[])?;
-    r.echeance_depot = Some(echeance.en_json());
+    r.etat = if echeance.passee_au(&st.aujourdhui) { EnRetard } else { AFaire };
+    r.date = Some(echeance.jour);
+    r.quand = echeance.phrase();
+    r.source = formater(&modele.source, &[])?;
+    r.echeance_depot = Some(echeance.dite());
 
     let (engagements, validees) = engagements_valides(st.ctx, mois);
     if !engagement::stock::a_une_saisie(&st.ctx.racine, mois).unwrap_or(false) {
@@ -951,10 +1107,10 @@ fn rappel_dsn(st: &Etat, mois: &str, modele: &Value) -> R<Echeance> {
     r.engagements = engagements;
     r.validees = validees;
 
-    let etat = etat_dsn::du_mois(st.ctx, mois, &Value::Null)?;
+    let etat = etat_dsn::du_mois(st.ctx, socle::mois::Mois::lire(mois)?, None)?;
     if etat.refusee() {
         r.etape = A_CORRIGER.into();
-        let anomalies: Vec<String> = etat.0.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();
+        let anomalies = etat.anomalies.clone().unwrap_or_default();
         r.detail = format!(
             "La DSN de {} a été REFUSÉE : {}. À corriger et à renvoyer.",
             lib,
@@ -997,11 +1153,11 @@ fn rappel_dsn(st: &Etat, mois: &str, modele: &Value) -> R<Echeance> {
 /// Ce que la DSN de `mois` declare en plus pour les mois dont l'ancien logiciel a depose la DSN, dit comme la page Paie
 /// le dit (`import::mois::dsn_de_l_ancien_logiciel`).
 fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Echeance) -> R<()> {
-    for m in engagement::stock::mois_saisis(st.racine()).unwrap_or_default().into_iter().filter(|m| m.as_str() < mois) {
+    for m in engagement::stock::mois_saisis(st.racine()).unwrap_or_default().into_iter().map(String::from).filter(|m| m.as_str() < mois) {
         let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
-        if d["porteur"] == json!(mois) && d["engagements"].as_u64().is_some_and(|n| n > 0) {
-            let lib = socle::date::libelle_du_mois(&m, socle::date::Graphie::Accentuee).map_err(Refus::from)?;
-            r.detail.push_str(&format!(" {} : {}", socle::texte::capitaliser(&lib), en_texte(&d["phrase"])));
+        if d.porteur == mois && d.engagements > 0 {
+            let lib = socle::mois::Mois::lire(&m).map(|m| m.libelle(socle::mois::Graphie::Accentuee)).map_err(Refus::from)?;
+            r.detail.push_str(&format!(" {} : {}", socle::texte::capitaliser(&lib), d.phrase));
         }
     }
     Ok(())
@@ -1027,31 +1183,32 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
     // LES FINS DE CONTRAT : celles du mois passe et du mois en cours, deja finies (`crate::routes::imprevus::fins_a_signaler`, la
     // meme liste que la colonne du mois), et celles d'avant dont le signalement est en retard (`fins_en_retard_avant`). Un CDD
     // d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
-    let mois = mois_de(&st.aujourdhui);
-    let mut fins = crate::routes::imprevus::fins_en_retard_avant(st.ctx, &mois_precedent(&mois), st.aujourdhui)?;
-    for m in [mois_precedent(&mois), mois.clone()] {
+    let mois = st.aujourdhui.mois_civil().to_string();
+    let precedent = st.aujourdhui.mois_civil().precedent().to_string();
+    let mut fins = crate::routes::imprevus::fins_en_retard_avant(st.ctx, &precedent, st.aujourdhui)?;
+    for m in [precedent, mois.clone()] {
         fins.extend(crate::routes::imprevus::fins_a_signaler(st.ctx, &m, st.aujourdhui)?);
     }
     for f in fins {
-        let m = en_texte(&f["mois"]);
-        let fin = Jour::lire(&en_texte(&f["fin"]))?;
+        let m = Mois::lire(&f.mois)?;
+        let fin = Jour::lire(&en_texte(&f.fin))?;
         if fin > st.aujourdhui {
             continue; // il n'a pas encore pris fin
         }
-        let o = &f["obligation"];
+        let o = &f.obligation;
         if !du(o) {
             continue;
         }
-        let salarie = en_texte(&f["salarie"]);
-        let a_saisir: Vec<String> = f["a_saisir"].as_array().map(|l| l.iter().map(crate::routes::imprevus::phrase_du_manque).collect()).unwrap_or_default();
+        let salarie = en_texte(&f.salarie);
+        let a_saisir: Vec<String> = f.a_saisir.iter().map(crate::routes::imprevus::phrase_du_manque).collect();
         let mut r = rappel_d_obligation(
             o,
-            format!("fin-contrat:{}:{}", salarie, en_texte(&f["fin"])),
+            format!("fin-contrat:{}:{}", salarie, en_texte(&f.fin)),
             format!("Signaler la fin du contrat de {}", salarie),
-            format!("Le contrat {} s'est terminé le {}.", texte(f.get("numero")), fin.jj_mm_aaaa()),
-            f.clone(),
+            format!("Le contrat {} s'est terminé le {}.", texte(Some(&f.numero)), fin.jj_mm_aaaa()),
+            en_json(&f)?,
         );
-        r.mois = Some(m.clone());
+        r.mois = Some(m);
         r.salarie = Some(salarie.clone());
         r.etape = if a_saisir.is_empty() { A_PRODUIRE } else { A_SAISIR }.into();
         if !a_saisir.is_empty() {
@@ -1065,7 +1222,7 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
     // obligations comptees par `obligations::de_l_arret` au jour du rappel.
     let arrets = crate::routes::imprevus::tous_les_arrets(st.ctx)?;
     if !arrets.is_empty() {
-        let n = crate::routes::imprevus::nomenclatures(st.ctx)?;
+        let n = crate::routes::imprevus::nomenclatures()?;
         let suivi = crate::obligations::Suivi::lire(st.ctx)?;
         for a in &arrets {
             let obligations = crate::obligations::de_l_arret(st.ctx, a, &suivi, st.aujourdhui)?;
@@ -1073,17 +1230,18 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
                 continue;
             }
             let mut resume = crate::routes::imprevus::resume(st.ctx, &n, a)?;
-            resume["obligations"] = Value::Array(obligations.clone());
+            resume.poser_obligations(obligations.clone());
+            let resume = en_json(&resume)?;
             let salarie = st.ctx.nomme(&en_texte(&a["salarie"]));
             for o in obligations.iter().filter(|o| du(o)) {
                 let mut r = rappel_d_obligation(
                     o,
-                    format!("{}:{}:{}", en_texte(&o["cle"]), en_texte(&a["salarie"]), en_texte(&a["dernier_jour_travaille"])),
-                    format!("{} — {}", en_texte(&o["libelle"]), salarie),
+                    format!("{}:{}:{}", o.cle, en_texte(&a["salarie"]), en_texte(&a["dernier_jour_travaille"])),
+                    format!("{} — {}", o.libelle, salarie),
                     format!("{}, {}.", arret_en_clair(&resume), periode_de_l_arret(&resume)),
                     resume.clone(),
                 );
-                r.mois = Some(en_texte(&a["dernier_jour_travaille"]).chars().take(7).collect());
+                r.mois = Some(Jour::lire(&en_texte(&a["dernier_jour_travaille"]))?.mois_civil());
                 r.salarie = Some(en_texte(&a["salarie"]));
                 out.push(r);
             }
@@ -1092,28 +1250,27 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
 
     // Le plus presse d'abord : ce qui est en retard, puis par date butoir (le tri est stable : a butoir egale, l'ordre
     // de lecture reste).
-    out.sort_by_key(|r| (r.etat != EN_RETARD, r.date.clone().unwrap_or_default()));
+    out.sort_by_key(|r| (r.etat != EnRetard, r.date));
     Ok(out)
 }
 
 /// Une obligation due : a faire, ou en retard.
-fn du(o: &Value) -> bool {
-    matches!(o.get("etat").and_then(Value::as_str), Some(crate::obligations::A_FAIRE) | Some(crate::obligations::EN_RETARD))
+fn du(o: &crate::obligations::Obligation) -> bool {
+    o.etat == crate::obligations::A_FAIRE || o.etat == crate::obligations::EN_RETARD
 }
 
 /// Le rappel d'une obligation : son titre, sa question, et ce que le moteur en a calcule -- la date butoir (`jour`), le
 /// retard, la phrase -- ; `objet` : ce sur quoi elle porte, que la page repasse au geste qui la fait.
-fn rappel_d_obligation(o: &Value, cle: String, titre: String, question: String, objet: Value) -> Echeance {
-    let butoir = o.get("butoir").and_then(Value::as_str).map(str::to_string);
-    let mut r = Echeance::nouveau(OBLIGATION, cle, titre, question, butoir.as_deref().map(|b| b.chars().take(7).collect()).unwrap_or_default());
-    r.etat = if o.get("etat").and_then(Value::as_str) == Some(crate::obligations::EN_RETARD) { EN_RETARD } else { A_FAIRE };
-    r.etape = en_texte(&o["etat"]);
-    if let Some(j) = butoir.as_deref().and_then(|b| Jour::lire(b).ok()) {
+fn rappel_d_obligation(o: &crate::obligations::Obligation, cle: String, titre: String, question: String, objet: Value) -> Echeance {
+    let tombe = o.butoir.as_deref().and_then(|b| Mois::lire(b.get(..7)?).ok());
+    let mut r = Echeance::nouveau(OBLIGATION, cle, titre, question, tombe);
+    r.etat = if o.etat == crate::obligations::EN_RETARD { EnRetard } else { AFaire };
+    r.etape = o.etat.to_string();
+    if let Some(j) = o.butoir.as_deref().and_then(|b| Jour::lire(b).ok()) {
         r.le(&j);
     }
-    let delai = o.get("delai").and_then(Value::as_str).unwrap_or("");
-    let phrase = o.get("phrase").and_then(Value::as_str).unwrap_or("");
-    r.detail = if delai.is_empty() { phrase.to_string() } else { format!("Délai : {}. {}", delai, phrase) };
+    let delai = o.delai.as_deref().unwrap_or("");
+    r.detail = if delai.is_empty() { o.phrase.clone() } else { format!("Délai : {}. {}", delai, o.phrase) };
     r.obligation = Some(o.clone());
     r.objet = Some(objet);
     r
@@ -1143,17 +1300,17 @@ fn periode_de_l_arret(resume: &Value) -> String {
 /// des que la DPAE reelle est au journal.
 fn rappels_dpae(st: &Etat) -> R<Vec<Echeance>> {
     let aujourdhui = st.aujourdhui;
-    let mut jours: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
-    let a_faire = crate::routes::etapes::Moteur::nouveau(st.ctx).embauches_a_declarer(None)?;
-    for e in a_faire.as_array().into_iter().flatten() {
-        jours.entry((texte_ou_vide(e, "mois"), texte_ou_vide(e, "debut"))).or_default().push(e.clone());
+    let mut jours: BTreeMap<(Mois, String), Vec<crate::routes::etapes::DpaeDue>> = BTreeMap::new();
+    for e in crate::routes::etapes::Moteur::nouveau(st.ctx).embauches_a_declarer(None)? {
+        jours.entry((e.mois, e.debut.clone())).or_default().push(e);
     }
 
     let mut out = Vec::new();
     for ((mois, debut), groupe) in jours {
         let jour = Jour::lire(&debut)?;
         let retard = jour < aujourdhui;
-        let noms = groupe.iter().map(|e| format!("{} ({})", texte_ou_vide(e, "nom"), texte_ou_vide(e, "spectacle"))).collect::<Vec<_>>().join(", ");
+        let spectacle = |v: &Value| if vrai(v) { en_texte(v) } else { String::new() };
+        let noms = groupe.iter().map(|e| format!("{} ({})", e.nom, spectacle(&e.spectacle))).collect::<Vec<_>>().join(", ");
         let quand = if retard {
             format!("L'embauche a commencé le {} : la DPAE est EN RETARD, à envoyer tout de suite.", jj_mm_aaaa(&debut))
         } else if jour == aujourdhui {
@@ -1171,13 +1328,13 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Echeance>> {
             format!("dpae:{}", debut),
             format!("DPAE à envoyer — embauche du {}", jj_mm_aaaa(&debut)),
             format!("Pas de trace d'envoi pour : {}.", noms),
-            mois_de(&jour),
+            Some(jour.mois_civil()),
         );
         r.mois = Some(mois);
         r.le(&jour);
         r.quand = format!("avant la première heure de travail, le {}", jour.jj_mm_aaaa());
         r.detail = quand;
-        r.etat = if retard { EN_RETARD } else { A_FAIRE };
+        r.etat = if retard { EnRetard } else { AFaire };
         r.engagements = groupe.len() as i64;
         out.push(r);
     }
@@ -1189,8 +1346,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Echeance>> {
 /// est un choix. « Pour demarrer » propose ceux qui ne sont pas poses, avec ce qu'ils permettent (`sinon` : ce qui se
 /// fait sans eux) ; une compagnie dont rien ne part (envois simules, ou la demo : `bridage::branchement`) n'en propose
 /// aucun et le dit, une fois.
-fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)> {
-    const OU: &str = "Configuration › Mots de passe";
+fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<AccesPropose>, Option<AccesSansObjet>)> {
     use envois::branchement::Branchement;
     let (texte, mots) = match crate::compagnie::bridage::branchement(&ctx.racine) {
         Branchement::Monde => ("", ""),
@@ -1198,10 +1354,8 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
         Branchement::Message(_) => ("Dans la démo, rien ne part de cette compagnie : ses mots de passe et ses comptes ne se demandent pas.", "démo"),
     };
     if !mots.is_empty() {
-        return Ok((Vec::new(), Some(json!({
-            "cle": "acces", "libelle": "Les accès aux organismes", "ou": OU, "onglet": "coffre", "champ": null, "texte": texte,
-            "pastille": super::pastille("information", mots),
-        }))));
+        let sans_objet = AccesSansObjet { cle: "acces", libelle: "Les accès aux organismes", ou: OU_DES_ACCES, onglet: "coffre", champ: None, texte, pastille: Pastille::de("information", mots) };
+        return Ok((Vec::new(), Some(sans_objet)));
     }
     let etat = super::coffre::coffre_etat_de(&ctx.racine, &ctx.entreprise)?;
     let mut out = Vec::new();
@@ -1211,21 +1365,47 @@ fn acces_proposes(ctx: &Contexte) -> socle::echec::R<(Vec<Value>, Option<Value>)
         if pose && compte_dit {
             continue;
         }
-        out.push(json!({
-            "cle": format!("acces.{}", s["service"].as_str().unwrap_or("")),
-            "libelle": s["libelle"].as_str().unwrap_or(""),
-            "utile": format!("{} depuis le logiciel", s["sert_a"].as_str().unwrap_or("")),
-            "sinon": "vous le faites vous-même, hors du logiciel",
-            "ou": OU, "onglet": "coffre", "champ": null, "trouver": "",
-        }));
+        let dit = |k: &str| s[k].as_str().unwrap_or("").to_string();
+        out.push(AccesPropose::nouveau(format!("acces.{}", dit("service")), dit("libelle"), format!("{} depuis le logiciel", dit("sert_a")), "vous le faites vous-même, hors du logiciel"));
     }
     // Le Drive de la sauvegarde : se lie au meme endroit (« Lier le Drive »), sans reseau pour le savoir.
     if super::coffre::compte_autorise(&ctx.racine).is_none() {
-        out.push(json!({
-            "cle": "acces.google", "libelle": "Google Drive", "utile": "sauvegarder la compagnie dans votre Drive",
-            "sinon": "rien ne se sauvegarde hors de ce poste",
-            "ou": OU, "onglet": "coffre", "champ": null, "trouver": "",
-        }));
+        out.push(AccesPropose::nouveau("acces.google".into(), "Google Drive".into(), "sauvegarder la compagnie dans votre Drive".into(), "rien ne se sauvegarde hors de ce poste"));
     }
     Ok((out, None))
+}
+
+const OU_DES_ACCES: &str = "Configuration › Mots de passe";
+
+/// UN ACCES PROPOSE, une ligne de « Pour demarrer » (`declarations::demarrage::route`, qui y ajoute sa phrase) : ce qu'il
+/// permet (`utile`), ce qui se fait sans lui (`sinon`), ou il se pose.
+#[derive(Debug, Serialize)]
+struct AccesPropose {
+    cle: String,
+    libelle: String,
+    utile: String,
+    sinon: &'static str,
+    ou: &'static str,
+    onglet: &'static str,
+    /// Aucune case : l'onglet du coffre.
+    champ: Option<&'static str>,
+    trouver: &'static str,
+}
+
+impl AccesPropose {
+    fn nouveau(cle: String, libelle: String, utile: String, sinon: &'static str) -> AccesPropose {
+        AccesPropose { cle, libelle, utile, sinon, ou: OU_DES_ACCES, onglet: "coffre", champ: None, trouver: "" }
+    }
+}
+
+/// Une compagnie dont rien ne part : les acces ne se demandent pas, ce que « Pour demarrer » dit en information.
+#[derive(Debug, Serialize)]
+struct AccesSansObjet {
+    cle: &'static str,
+    libelle: &'static str,
+    ou: &'static str,
+    onglet: &'static str,
+    champ: Option<&'static str>,
+    texte: &'static str,
+    pastille: Pastille,
 }

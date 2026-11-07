@@ -5,9 +5,10 @@
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::fichiers::{lire_json, repr, repr_valeur, vrai};
+use socle::fichiers::repr;
+use documents::valeur::{dec_avec_echelle, en_texte, flottant, lire_json, nom_type, repr_valeur, vrai};
 use socle::texte::{euros, virgule};
-use socle::num::{add, dec_f64, dec_avec_echelle, eur2, mul, sub, Decimal, Resultat};
+use socle::num::{add, dec_f64, eur2, mul, sub, Decimal, Resultat};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -130,7 +131,7 @@ fn dec(v: &Value, nom: &str, millesime: i32) -> Resultat<Decimal> {
         return Err(socle::echec::a_la_cle(&format!("La déclaration OETH de {} porte un chiffre illisible.", millesime), nom, repr_valeur(v)));
     };
     if x.is_sign_negative() && !x.is_zero() {
-        return Err(socle::echec::a_la_cle(&format!("La déclaration OETH de {} porte un chiffre négatif.", millesime), nom, socle::date::en_texte(v)));
+        return Err(socle::echec::a_la_cle(&format!("La déclaration OETH de {} porte un chiffre négatif.", millesime), nom, en_texte(v)));
     }
     Ok(x)
 }
@@ -187,7 +188,7 @@ Rien n'est ecrit.",
         externes: vec![],
         accord: None,
         non_realisees: zero2(),
-        source: socle::date::en_texte(&donnees["source"]),
+        source: en_texte(&donnees["source"]),
     };
 
     let mut externes = vec![];
@@ -196,7 +197,7 @@ Rien n'est ecrit.",
             for x in l {
                 let t = match x.get("type") {
                     None => String::new(),
-                    Some(v) => socle::date::en_texte(v),
+                    Some(v) => en_texte(v),
                 };
                 if !TYPES_EXTERNES.contains(&t.as_str()) {
                     return Err(format!(
@@ -213,13 +214,13 @@ Rien n'est ecrit.",
                 }
             }
         }
-        Some(v) if vrai(v) => return Err(socle::echec::a_la_cle(&format!("{} ne se lit pas : une liste est attendue.", ou), "boeth_externes", socle::valeur::nom_type(v))),
+        Some(v) if vrai(v) => return Err(socle::echec::a_la_cle(&format!("{} ne se lit pas : une liste est attendue.", ou), "boeth_externes", nom_type(v))),
         _ => {}
     }
     d.externes = externes;
 
     let accord = match donnees.get("accord") {
-        Some(v) if vrai(v) => socle::date::en_texte(v).trim().to_string(),
+        Some(v) if vrai(v) => en_texte(v).trim().to_string(),
         _ => String::new(),
     };
     if !accord.is_empty() {
@@ -245,7 +246,7 @@ Rien n'est ecrit.",
 inferieur (D5212-2) en donne {}. L'un des deux est mal recopie -- ou une regle que le moteur ne \
 connait pas s'applique. Rien n'est ecrit.",
                     ou,
-                    socle::date::en_texte(dus),
+                    en_texte(dus),
                     eff,
                     d.obligation
                 ));
@@ -270,7 +271,7 @@ connait pas s'applique. Rien n'est ecrit.",
         _ => &vide,
     };
     let Some(dep_obj) = depenses.as_object() else {
-        return Err(format!("'depenses' : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(depenses))));
+        return Err(format!("'depenses' : {}", socle::fichiers::attendu("un objet", nom_type(depenses))));
     };
     let mut inconnues: Vec<&str> =
         dep_obj.keys().map(String::as_str).filter(|k| !DEPENSES.iter().any(|(c, _)| c == k)).collect();
@@ -363,7 +364,7 @@ l'Urssaf transmet avant le 15 mars : \"{}\": {{\"effectif_assujettissement\": ..
     };
     if donnees.get("assujetti") == Some(&Value::Bool(false)) {
         let pourquoi = match donnees.get("pourquoi") {
-            Some(v) if vrai(v) => socle::date::en_texte(v),
+            Some(v) if vrai(v) => en_texte(v),
             _ => String::new(),
         };
         if pourquoi.trim().is_empty() {
@@ -391,23 +392,20 @@ ans d'une entreprise creee a vingt salaries, L5212-4 ; seuil pas encore franchi,
 /// lu dans le socle livre ; une annee sans socle se lit chez la compagnie.
 pub fn smic_au_31_decembre(ctx: &Contexte, millesime: i32) -> Resultat<Decimal> {
     let jour = Jour::nouveau(millesime, 12, 31).ok_or_else(|| format!("annee hors limites : {}", millesime))?;
-    let socle = ctx.socle_livre(millesime)?;
-    let liste = match socle.as_ref().and_then(|s| s.get("smic_horaire")) {
-        Some(l) if vrai(l) => l,
+    let socle = droit::contexte::socle_livre_lu(millesime)?;
+    let liste = match socle.as_ref().map(|s| &s.smic_horaire) {
+        Some(l) if !l.is_empty() => l,
         _ => return dec_f64(ctx.smic(&jour)?),
     };
-    let mut entrees: Vec<&Value> = liste.as_array().map(|a| a.iter().collect()).unwrap_or_default();
-    entrees.sort_by_key(|e| socle::date::en_texte(&e["depuis"]));
+    let mut entrees: Vec<&droit::forme_bareme::Datee> = liste.iter().collect();
+    entrees.sort_by_key(|e| e.depuis.clone().unwrap_or_default());
     let mut val = None;
     for e in entrees {
-        if Jour::lire(&socle::date::en_texte(&e["depuis"]))? <= jour {
-            val = Some(&e["valeur"]);
+        if Jour::lire(e.depuis.as_deref().unwrap_or(""))? <= jour {
+            val = Some(e.valeur);
         }
     }
-    match val {
-        Some(v) => dec_avec_echelle(v),
-        None => Err(format!("Aucun SMIC au {} dans le socle {}.", jour.iso(), millesime)),
-    }
+    val.ok_or_else(|| format!("Aucun SMIC au {} dans le socle {}.", jour.iso(), millesime))
 }
 
 /// L'effectif dit-il l'entreprise assujettie pour ce millesime ? Le code A04 du
@@ -422,7 +420,7 @@ fn assujetti_selon_l_effectif(ctx: &Contexte, millesime: i32) -> Resultat<bool> 
         .and_then(|a| a.get("valeur"))
         .filter(|v| !v.is_null());
     if let Some(v) = a04 {
-        if socle::num::flottant(v)? < SEUIL as f64 {
+        if flottant(v)? < SEUIL as f64 {
             return Ok(false);
         }
     }

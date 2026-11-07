@@ -81,7 +81,7 @@ pub const MARQUE_FICTIVE: &str = "compagnie fictive";
 /// Une COMPAGNIE FICTIVE : son marqueur le dit (ses envois sont joues, rien n'en part).
 pub fn est_fictive(racine: &Path) -> bool {
     lire(&racine.join(MARQUEUR))
-        .and_then(|i| i.get("copie_de").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte))
+        .and_then(|i| i.get("copie_de").filter(|v| documents::valeur::vrai(v)).map(documents::valeur::valeur_en_texte))
         .is_some_and(|c| c.starts_with(MARQUE_FICTIVE))
 }
 
@@ -97,7 +97,7 @@ pub const CLE_AJOUTEE: &str = "ajoutee";
 /// UN DOSSIER DE `fictives/` SANS MARQUEUR DE FICTIVE (un marqueur retire ou illisible) se lit aussi comme ajoute : l'accueil
 /// le propose parmi les fictives, rien ne doit en partir, et rien n'en est joue.
 pub fn est_ajoutee(racine: &Path) -> bool {
-    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| socle::fichiers::vrai(&v));
+    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| documents::valeur::vrai(&v));
     marque || (racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) && !est_fictive(racine))
 }
 
@@ -115,9 +115,9 @@ pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
 /// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
 /// la compagnie, ouverte, dit pourquoi).
 fn fiche(racine: &Path) -> Value {
-    lire(&racine.join(droit::contexte::ENTREPRISE))
-        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), droit::contexte::ENTREPRISE).ok())
-        .unwrap_or_else(|| json!({}))
+    droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&racine.join(droit::contexte::ENTREPRISE), droit::contexte::ENTREPRISE)
+        .map(|f| socle::ecriture::en_valeur(&f.au(&droit::contexte::jour_reel())))
+        .unwrap_or_else(|_| json!({}))
 }
 
 fn texte(v: &Value) -> String {
@@ -388,15 +388,17 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
     crate::routes::fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
-    // Toute la configuration est datee (`contexte::fiche_au`) : la premiere valeur vaut de tout temps.
+    // Toute la configuration est datee (`droit::fiche::dater`) : la premiere valeur vaut de tout temps.
     // Le jour d'ajout : le plus tot des deux jours (Paris, et celui du moteur, en UTC).
     let creation = socle::temps::jour_de_paris().min(droit::contexte::jour_reel());
-    ecrire(&cfg.join("entreprise.json"), &Value::Object(droit::contexte::fiche_datee(&ent)))?;
+    let plate: droit::fiche::ChampsEntreprise = droit::fiche::lire_saisie(&ent, droit::contexte::ENTREPRISE)?;
+    let fiche = socle::ecriture::en_valeur(&<droit::fiche::FicheEntrepriseDatee as droit::fiche::FicheDatee>::neuve(&plate));
+    ecrire(&cfg.join("entreprise.json"), &fiche)?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(
         &cfg.join(FICHIER_CREATION),
-        &json!({"le": creation.iso(), "venue": venue.mot(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."}),
+        &json!({"le": creation.iso(), "venue": venue.mot(), "quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."}),
     )?;
     // Le code risque et le taux AT/MP de l'annee : le risque par defaut du socle et le taux de l'arrete, dits a l'ecran et
     // modifiables (`routes::atmp`).
@@ -417,7 +419,7 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
             "copie_de": format!("{} ajoutee sur ce poste", MARQUE_FICTIVE),
             CLE_AJOUTEE: true,
             "quand": socle::paris::maintenant(),
-            "_quoi": "Une compagnie fictive ajoutee sur ce poste, le logiciel etant bride : tout s'y fait, rien n'en part vers un organisme ni vers une personne.",
+            "quoi": "Une compagnie fictive ajoutee sur ce poste, le logiciel etant bride : tout s'y fait, rien n'en part vers un organisme ni vers une personne.",
         }),
     )?;
     Ok(entree(format!("fictive:{}", nom_dossier(&dossier)), &dossier, false))

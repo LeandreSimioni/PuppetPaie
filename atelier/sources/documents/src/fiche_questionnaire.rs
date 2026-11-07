@@ -372,7 +372,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
             illisible.push(format!("numéro de sécurité sociale : « {} »", reponse("nir")));
         }
     }
-    if !reponse("sexe").is_empty() && !d.get("nir").is_some_and(socle::fichiers::vrai) {
+    if !reponse("sexe").is_empty() && !d.get("nir").is_some_and(crate::valeur::vrai) {
         let s = sans_accents(reponse("sexe"));
         match s.chars().next() {
             Some('f') => {
@@ -462,7 +462,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
 /// signes ; 99 pour une naissance a l'etranger). Deux cas se taisent : la Corse d'avant 1976 (« 20 ») et un NIR
 /// incomplet.
 fn naissance_depuis_nir(nir: Option<&Value>) -> Vec<(&'static str, String)> {
-    let nir = nir.filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let nir = nir.filter(|v| crate::valeur::vrai(v)).map(crate::valeur::valeur_en_texte).unwrap_or_default();
     let c: Vec<char> = strip(&nir).chars().collect();
     if c.len() != 13 || !c.iter().all(|x| chiffre(*x)) || !matches!(c[0], '1' | '2') {
         return Vec::new();

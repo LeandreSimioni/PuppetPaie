@@ -2,8 +2,11 @@
 
 Copies des avenants publiés par le SMA
 (https://www.sma-syndicat.org/docs-conventions/garanties-collectives-pour-les-intermittents-accord-interbranche-spectacle-et-avenants/),
-relevées le 25/09/2026 (journal §137). Scans (sauf l'avenant 6) : les
-passages utiles sont transcrits ici.
+relevées le 25/09/2026 (journal §137). Scans (sauf l'avenant 6) ; les avenants 5 et 7
+sont transcrits en entier, d'après les images des pages, le 04/11/2026
+(`accord-interbranche-prevoyance-avenant5-20121218.md`,
+`accord-interbranche-prevoyance-avenant7-20210906.md`, sans les noms des signataires) ;
+c'est là que le vérificateur des sources lit leurs citations.
 
 Ils tranchent l'**article 45 du titre II de la CCN 3097** (production
 cinématographique), qui portait la prévoyance des techniciens intermittents
@@ -50,6 +53,9 @@ le cinéma.
 - `logiciel/donnees/baremes/2026.json` : la prévoyance des intermittents (non cadres : 0,34 + 0,12 et le fonds collectif
   0,77, avenants 7 et 8 ; cadres : `par_categorie.cadre`, 0,88 + 0,12 et 0,81). Le barème 2027 prendra les taux de
   l'avenant 9 (ticket #287 du privé).
+- Le même barème, `par_convention.3097` : sa `source` (avenant 5, préambule ; avenant 7, II.2.2 et article 2, avec
+  l'article 45 de la 3097 et les Paramètres Audiens 2026) dit pourquoi la production cinématographique n'a aucun taux
+  de prévoyance propre à la branche.
 
 ## Brochure Audiens « L'essentiel : le régime prévoyance/santé des artistes et techniciens intermittents » (25/04/2022)
 

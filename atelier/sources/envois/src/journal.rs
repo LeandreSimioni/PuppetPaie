@@ -1,44 +1,36 @@
 //! LE JOURNAL DE CE QUI EST PARTI : `journal/depots.jsonl`, qu'on relit filtre (`lire`), l'empreinte d'un fichier, et ce
 //! qui est parti de chaque engagement, sur quelle version (`lu` : une lecture, d'ou `departs`, que `moteur` passe a
-//! l'engagement). Les etats du mois, les resumes et le rattachement des retours sont dans `etats`.
+//! l'engagement). Les etats du mois, les resumes et le rattachement des retours sont dans `etats` ; la forme d'une ligne,
+//! dans `ligne`.
 //!
-//! SA FORME : un enregistrement JSON par ligne, et l'on n'ecrit qu'en ajoutant des lignes a la fin ; ce qui est ecrit
-//! ne se reecrit jamais. Trois enregistrements :
-//! - un envoi, `{"id", "ligne"}` (`noter`) : `ligne` est ce que le journal lu en montre, `id` l'empreinte de son texte ;
-//! - un retour, `{"a", "retour"}` (`rattacher`, `ranger`) : il s'ajoute aux `retours` de l'envoi `a` ;
-//! - un complement, `{"a", "nature", "publication", "complete"}` (`ranger`) : ses champs s'ecrivent dans le retour de
-//!   l'envoi `a` qui porte cette nature et cette publication (le verdict d'un bilan arrive apres son annonce).
+//! SA FORME : un enregistrement JSON par ligne (`Enregistrement`), et l'on n'ecrit qu'en ajoutant des lignes a la fin ;
+//! ce qui est ecrit ne se reecrit jamais. Trois enregistrements :
+//! - un envoi, `{"id", "ligne"}` (`noter`) : `ligne` est ce que le journal lu en montre (`ligne::Ligne`), `id`
+//!   l'empreinte de son texte ;
+//! - un retour, `{"a", "retour"}` (`rattacher`, `ranger`) : il s'ajoute aux `retours` de l'envoi `a`, dans la forme de
+//!   sa sorte (`ligne::RetourOrganisme`, `RetourContrat`, `RetourFiche`) ;
+//! - un complement, `{"a", "nature", "publication", "complete"}` (`ranger`) : le verdict (`ligne::Verdict`) s'ecrit dans
+//!   le retour de l'envoi `a` qui porte cette nature et cette publication (le verdict d'un bilan arrive apres son annonce).
 //! `lu` replie ces enregistrements dans l'ordre en `lignes` ; un processus ne relit que ce qui s'est ajoute depuis sa
-//! derniere lecture.
+//! derniere lecture. Un enregistrement qui ne se lit pas strictement (une cle inconnue, une valeur d'une autre forme)
+//! arrete la lecture, sa ligne et sa cle nommees.
 //!
 //! DEUX JOURNAUX EN CONFLIT (deux postes, une sauvegarde) SE REUNISSENT EN METTANT LEURS LIGNES BOUT A BOUT, dans
 //! n'importe quel ordre qui garde celui de chacun : un envoi deja lu (le meme `id`) et un retour deja range
-//! (la meme nature et la meme publication, ou le meme texte, sur le meme envoi) ne comptent qu'une fois. Rien ne se
+//! (la meme nature et la meme publication, ou le meme retour, sur le meme envoi) ne comptent qu'une fois. Rien ne se
 //! perd, rien ne compte double (regle 9 b).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use serde_json::{json, Map, Value};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use socle::fichiers::{repr, vrai};
+use socle::mois::Mois;
 use socle::num::Resultat;
 
-/// Les actes que l'on note ; un autre est refuse.
-pub const ACTES: [&str; 8] = [
-    "dsn",
-    "dpae",
-    "documents",
-    "contrat-signature",
-    "contrat-contresigne",
-    "regularisation-casc",
-    "dossier-salarie",
-    "fiche-demande",
-];
-
-pub const REEL: &str = "reel";
+pub use crate::ligne::*;
 
 /// Le dossier du journal d'une compagnie, sous sa racine : ce qui est parti, les incidents, les messages.
 pub const JOURNAL: &str = "journal";
@@ -62,13 +54,34 @@ pub fn empreinte_fichier(chemin: &Path) -> Resultat<String> {
     std::fs::read(chemin).map(|b| empreinte(&b)).map_err(|e| socle::echec::du_disque(&chemin, &e))
 }
 
+/// UN ENREGISTREMENT DU FICHIER : un envoi (`id`, `ligne`), un retour (`a`, `retour`) ou un complement (`a`, `nature`,
+/// `publication`, `complete`). Le retour se lit dans la forme de la sorte de son envoi (`Tenu::replier`).
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Enregistrement {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    ligne: Option<Ligne>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    a: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    retour: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    nature: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    publication: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    complete: Option<Verdict>,
+}
+
 /// LE JOURNAL LU : ses lignes (ce qui est parti et ce qui en est revenu : bilans, contrats signes, anomalies), et ce qui
 /// est parti de chaque engagement, sur quelle version (`departs`), la part que le moteur passe a l'engagement. Le
 /// processus le tient replie (`Tenu`) : une lecture ne replie que les enregistrements ajoutes depuis la precedente, et
 /// ce que le processus ajoute lui-meme se replie sans relire le fichier.
 #[derive(Debug, Clone, Default)]
 pub struct Journal {
-    pub lignes: Arc<Vec<Value>>,
+    pub lignes: Arc<Vec<Ligne>>,
     pub departs: engagement::departs::Departs,
     /// L'`id` de chaque ligne, dans le meme ordre.
     ids: Arc<Vec<String>>,
@@ -93,71 +106,75 @@ fn tenus() -> std::sync::MutexGuard<'static, HashMap<PathBuf, Tenu>> {
 
 /// Une ligne de journal qui compte pour ce qui est parti malgre ses retours : un envoi au salarie (documents,
 /// contrat) ne depend pas de ses retours ; une declaration refusee au bilan n'est pas partie.
-fn depend_de_ses_retours(l: &Value) -> Option<bool> {
-    matches!(l.get("quoi").and_then(Value::as_str), Some("dsn") | Some("dpae")).then(|| crate::etats::refuse_par_un_retour(l).unwrap_or(false))
+fn depend_de_ses_retours(l: &Ligne) -> Option<bool> {
+    matches!(l.acte(), Acte::Dsn | Acte::Dpae).then(|| crate::etats::refuse_par_un_retour(l))
+}
+
+/// La phrase d'un journal qui ne se lit pas, sa ligne nommee.
+fn abime(p: &Path, n: usize) -> String {
+    format!("Le journal des envois de la compagnie ne se lit pas : sa ligne {} est abîmée ({}).", n, p.display())
+}
+
+/// Le retour `r` lu dans la forme `T` de la sorte de son envoi.
+fn retour_de<T: serde::de::DeserializeOwned>(r: &serde_json::Value, p: &Path, n: usize) -> Resultat<T> {
+    socle::forme::lire(r, &abime(p, n))
 }
 
 impl Tenu {
     /// Replie un enregistrement (`n` : sa ligne dans le fichier, pour le dire s'il ne se lit pas).
-    fn replier(&mut self, e: &Value, n: usize, p: &Path) -> Resultat<()> {
-        let illisible = |quoi: &str| format!("{}, ligne {} : {}", p.display(), n, quoi);
-        if let Some(ligne) = e.get("ligne") {
-            let id = e.get("id").and_then(Value::as_str).ok_or_else(|| illisible("un envoi sans `id`"))?;
-            if self.index.contains_key(id) {
-                // Le meme envoi (son `id` est l'empreinte du texte qu'il a note), lu dans deux journaux reunis, ne compte
-                // qu'une fois ; ce qui lui est revenu sur chaque poste s'est range a la suite.
-                return Ok(());
-            }
-            noter_ligne(&mut self.journal.departs, ligne);
-            self.index.insert(id.to_string(), self.journal.lignes.len());
-            Arc::make_mut(&mut self.journal.ids).push(id.to_string());
-            Arc::make_mut(&mut self.journal.lignes).push(ligne.clone());
-            return Ok(());
-        }
-        let a = e.get("a").and_then(Value::as_str).ok_or_else(|| illisible("ni un envoi, ni ce qui lui revient"))?;
-        let i = *self.index.get(a).ok_or_else(|| illisible("ce qui revient d'un envoi que le journal ne porte pas"))?;
-        let lignes = Arc::make_mut(&mut self.journal.lignes);
-        let avant = depend_de_ses_retours(&lignes[i]);
-        let Value::Object(l) = &mut lignes[i] else { return Err(illisible("un envoi qui n'est pas un objet")) };
-        let retours = l.entry("retours").or_insert_with(|| json!([]));
-        if retours.is_null() {
-            *retours = json!([]);
-        }
-        let Value::Array(retours) = retours else { return Err(illisible("un envoi dont les retours ne sont pas une liste")) };
-        if let Some(r) = e.get("retour") {
-            // LE MEME RETOUR, RANGE SUR DEUX POSTES, NE COMPTE QU'UNE FOIS. Un compte rendu d'organisme se reconnait a sa
-            // nature et a sa publication (`etats::rattacher_retours` n'en range qu'un par envoi) : ce que l'autre poste en
-            // savait de plus (un verdict) le complete ; ce qui revient d'un envoi au salarie, a son texte.
-            let meme = |x: &Value| match r.get("nature") {
-                Some(n) => x.get("nature").is_some_and(|m| socle::valeur::valeurs_egales(m, n)) && socle::valeur::valeurs_egales(x.get("publication").unwrap_or(&Value::Null), r.get("publication").unwrap_or(&Value::Null)),
-                None => x == r,
-            };
-            match (retours.iter_mut().find(|x| meme(x)), r) {
-                (Some(Value::Object(x)), Value::Object(r)) => {
-                    for (k, v) in r {
-                        x.entry(k.clone()).or_insert_with(|| v.clone());
-                    }
+    fn replier(&mut self, e: Enregistrement, n: usize, p: &Path) -> Resultat<()> {
+        let illisible = |quoi: &str| format!("{} : {}.", abime(p, n), quoi);
+        match e {
+            Enregistrement { id: Some(id), ligne: Some(ligne), a: None, retour: None, nature: None, publication: None, complete: None } => {
+                if self.index.contains_key(&id) {
+                    // Le meme envoi (son `id` est l'empreinte du texte qu'il a note), lu dans deux journaux reunis, ne compte
+                    // qu'une fois ; ce qui lui est revenu sur chaque poste s'est range a la suite.
+                    return Ok(());
                 }
-                (Some(_), _) => {}
-                (None, _) => retours.push(r.clone()),
+                noter_ligne(&mut self.journal.departs, &ligne);
+                self.index.insert(id.clone(), self.journal.lignes.len());
+                Arc::make_mut(&mut self.journal.ids).push(id);
+                Arc::make_mut(&mut self.journal.lignes).push(ligne);
+                Ok(())
             }
-        } else if let Some(Value::Object(champs)) = e.get("complete") {
-            let (nature, publication) = (e.get("nature").unwrap_or(&Value::Null), e.get("publication").unwrap_or(&Value::Null));
-            let r = retours
-                .iter_mut()
-                .find(|r| r.get("nature").unwrap_or(&Value::Null) == nature && r.get("publication").unwrap_or(&Value::Null) == publication)
-                .and_then(Value::as_object_mut)
-                .ok_or_else(|| illisible("un complement d'un retour que l'envoi ne porte pas"))?;
-            for (k, x) in champs {
-                r.insert(k.clone(), x.clone());
+            Enregistrement { id: None, ligne: None, a: Some(a), retour, nature, publication, complete } => {
+                let i = *self.index.get(&a).ok_or_else(|| illisible("ce qui revient d'un envoi que le journal ne porte pas"))?;
+                let lignes = Arc::make_mut(&mut self.journal.lignes);
+                let avant = depend_de_ses_retours(&lignes[i]);
+                match (retour, complete) {
+                    (Some(r), None) if nature.is_none() && publication.is_none() => match &mut lignes[i] {
+                        // LE MEME RETOUR, RANGE SUR DEUX POSTES, NE COMPTE QU'UNE FOIS. Un compte rendu d'organisme se
+                        // reconnait a sa nature et a sa publication (`etats::rattacher_retours` n'en range qu'un par envoi) :
+                        // ce que l'autre poste en savait de plus (un verdict) le complete ; ce qui revient d'un envoi au
+                        // salarie, a lui-meme.
+                        Ligne::Dsn(l) => ranger_organisme(&mut l.retours, retour_de(&r, p, n)?),
+                        Ligne::Dpae(l) => ranger_organisme(&mut l.retours, retour_de(&r, p, n)?),
+                        Ligne::ContratSignature(l) => ranger_une_fois(&mut l.retours, retour_de(&r, p, n)?),
+                        Ligne::FicheDemande(l) => ranger_une_fois(&mut l.retours, retour_de(&r, p, n)?),
+                        _ => return Err(illisible("un retour sur un envoi dont rien ne revient")),
+                    },
+                    (None, Some(v)) => {
+                        let retours = match &mut lignes[i] {
+                            Ligne::Dsn(l) => &mut l.retours,
+                            Ligne::Dpae(l) => &mut l.retours,
+                            _ => return Err(illisible("le complement d'un retour sur un envoi dont rien ne revient")),
+                        };
+                        let nature = nature.unwrap_or_default();
+                        let r = retours
+                            .iter_mut()
+                            .find(|r| r.nature == nature && r.publication == publication)
+                            .ok_or_else(|| illisible("un complement d'un retour que l'envoi ne porte pas"))?;
+                        r.poser(v);
+                    }
+                    _ => return Err(illisible("ce qui revient d'un envoi, sans `retour` ni `complete`")),
+                }
+                if depend_de_ses_retours(&lignes[i]) != avant {
+                    self.journal.departs = departs_des_lignes(lignes);
+                }
+                Ok(())
             }
-        } else {
-            return Err(illisible("ce qui revient d'un envoi, sans `retour` ni `complete`"));
+            _ => Err(illisible("ni un envoi (`id`, `ligne`), ni ce qui lui revient (`a`)")),
         }
-        if depend_de_ses_retours(&lignes[i]) != avant {
-            self.journal.departs = departs_des_lignes(lignes);
-        }
-        Ok(())
     }
 
     /// Replie les lignes completes de `octets` (le texte qui suit `self.octets`) ; une ligne que rien ne termine encore
@@ -170,11 +187,32 @@ impl Tenu {
             if texte.iter().all(u8::is_ascii_whitespace) {
                 continue;
             }
-            let e: Value = serde_json::from_slice(texte).map_err(|x| socle::echec::avec("Le journal des envois de la compagnie ne se lit pas : il est abîmé.", serde_json::json!({"chemin": p.to_string_lossy(), "ligne": n, "detail": x.to_string()})))?;
-            self.replier(&e, n, p)?;
+            let e = lire_enregistrement(texte, p, n)?;
+            self.replier(e, n, p)?;
         }
         self.octets.extend_from_slice(&octets[..=fin]);
         Ok(())
+    }
+}
+
+/// L'enregistrement de la ligne `n` du fichier `p`, lu strictement.
+fn lire_enregistrement(texte: &[u8], p: &Path, n: usize) -> Resultat<Enregistrement> {
+    let texte = std::str::from_utf8(texte).map_err(|e| format!("{} : {}.", abime(p, n), e))?;
+    socle::forme::lire_texte(texte, &abime(p, n))
+}
+
+/// Un compte rendu d'organisme de plus, ou ce qu'il apporte au meme (sa nature, sa publication) deja range.
+fn ranger_organisme(retours: &mut Vec<RetourOrganisme>, r: RetourOrganisme) {
+    match retours.iter_mut().find(|x| x.meme(&r)) {
+        Some(x) => x.completer(&r),
+        None => retours.push(r),
+    }
+}
+
+/// Un retour de plus, s'il n'est pas deja range.
+fn ranger_une_fois<T: PartialEq>(retours: &mut Vec<T>, r: T) {
+    if !retours.contains(&r) {
+        retours.push(r);
     }
 }
 
@@ -218,7 +256,7 @@ pub fn lu(racine: &Path) -> Resultat<Journal> {
 
 /// LE SEUL ENDROIT QUI ECRIT LE JOURNAL : les enregistrements que `faire` tire du journal a jour s'ajoutent a la fin du
 /// fichier, d'une seule ecriture, et se replient tels qu'ils se reliront.
-fn ajouter(racine: &Path, faire: impl FnOnce(&Journal, &HashMap<String, usize>) -> Resultat<Vec<Value>>) -> Resultat<()> {
+fn ajouter(racine: &Path, faire: impl FnOnce(&Journal, &HashMap<String, usize>) -> Resultat<Vec<Enregistrement>>) -> Resultat<()> {
     let p = chemin(racine);
     let mut tenus = tenus();
     let vide = Tenu::default();
@@ -256,7 +294,7 @@ fn ajouter(racine: &Path, faire: impl FnOnce(&Journal, &HashMap<String, usize>) 
 
 /// Ne garde du journal de `racine` que les envois que `garder` retient, et ce qui leur est revenu : le journal d'une
 /// compagnie montee depuis une autre (`moteur::compagnie::essai`). Le fichier se remplace d'un coup.
-pub fn ne_garder_que(racine: &Path, garder: impl Fn(&Value) -> bool) -> Resultat<()> {
+pub fn ne_garder_que(racine: &Path, garder: impl Fn(&Ligne) -> bool) -> Resultat<()> {
     let p = chemin(racine);
     let Ok(octets) = std::fs::read(&p) else { return Ok(()) };
     let mut gardes: std::collections::HashSet<String> = Default::default();
@@ -265,9 +303,9 @@ pub fn ne_garder_que(racine: &Path, garder: impl Fn(&Value) -> bool) -> Resultat
         if l.iter().all(u8::is_ascii_whitespace) {
             continue;
         }
-        let e: Value = serde_json::from_slice(l).map_err(|x| socle::echec::avec("Le journal des envois de la compagnie ne se lit pas : il est abîmé.", serde_json::json!({"chemin": p.to_string_lossy(), "ligne": n + 1, "detail": x.to_string()})))?;
-        let garde = match (e.get("ligne"), e.get("id").and_then(Value::as_str), e.get("a").and_then(Value::as_str)) {
-            (Some(ligne), Some(id), _) => garder(ligne) && gardes.insert(id.to_string()),
+        let e = lire_enregistrement(l, &p, n + 1)?;
+        let garde = match (&e.ligne, &e.id, &e.a) {
+            (Some(ligne), Some(id), _) => garder(ligne) && gardes.insert(id.clone()),
             (_, _, Some(a)) => gardes.contains(a),
             _ => false,
         };
@@ -297,104 +335,125 @@ pub fn dater_pendant<T>(quand: &str, origine: &str, f: impl FnOnce() -> T) -> T 
     r
 }
 
-/// Les lignes, les plus recentes en dernier. Un filtre vide
-/// ne filtre pas.
-pub fn lire(racine: &Path, quoi: Option<&str>, mois: Option<&str>, reel_seulement: bool) -> Resultat<Vec<Value>> {
-    let mut lignes = (*lu(racine)?.lignes).clone();
-    let egal = |l: &Value, c: &str, v: &str| l.get(c).and_then(Value::as_str) == Some(v);
-    if let Some(q) = quoi.filter(|q| !q.is_empty()) {
-        lignes.retain(|l| egal(l, "quoi", q));
-    }
-    if let Some(m) = mois.filter(|m| !m.is_empty()) {
-        lignes.retain(|l| egal(l, "mois", m));
-    }
-    if reel_seulement {
-        lignes.retain(|l| egal(l, "mode", REEL));
-    }
-    Ok(lignes)
+/// Les lignes de `lignes` d'une sorte (`quoi`), d'un mois, reelles seulement ; un filtre absent ne filtre pas.
+pub fn filtrer<'a>(lignes: &'a [Ligne], quoi: Option<Acte>, mois: Option<Mois>, reel_seulement: bool) -> impl DoubleEndedIterator<Item = &'a Ligne> {
+    lignes
+        .iter()
+        .filter(move |l| quoi.is_none_or(|q| l.acte() == q) && mois.is_none_or(|m| l.mois() == Some(m)) && (!reel_seulement || l.reel()))
 }
 
-/// Les arguments de `journal.noter`.
-pub struct Note<'a> {
-    pub quoi: &'a str,
-    pub mois: Option<&'a str>,
-    pub fichier: Option<&'a str>,
-    pub mode: &'a str,
-    pub qui: &'a str,
-    pub accepte: bool,
-    pub destinataire: &'a str,
-    pub flux: &'a str,
-    pub reponse: &'a str,
-    pub trace: Option<&'a str>,
-    pub detail: Option<&'a Value>,
-    /// Pour une ligne d'envoi : la version de chaque engagement qu'elle couvre (`versions_du_mois`).
-    pub versions: Option<&'a Value>,
-    /// L'heure de la ligne (ISO, a la seconde) ; `origine` doit alors la justifier.
-    pub quand: &'a str,
-    pub origine: &'a str,
+/// Les lignes du journal de `racine`, les plus recentes en dernier (`filtrer`).
+pub fn lire(racine: &Path, quoi: Option<Acte>, mois: Option<Mois>, reel_seulement: bool) -> Resultat<Vec<Ligne>> {
+    Ok(filtrer(&lu(racine)?.lignes, quoi, mois, reel_seulement).cloned().collect())
 }
 
-/// Ajoute une ligne a la fin du fichier et la rend. `quand`
-/// est l'heure locale que l'appelant donne (le moteur ne connait pas le
-/// fuseau) ; vide, elle est lue dans `maintenant`.
-pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
-    if !ACTES.contains(&n.quoi) {
-        return Err(format!(
-            "acte inconnu : {} (attendu {})",
-            repr(n.quoi),
-            ACTES.join(", ")
-        ));
+impl<D, R> Envoi<D, R> {
+    /// L'envoi que `qui` fait maintenant, dans `mode` : `noter` le date, et y lit le nom et l'empreinte du fichier.
+    pub fn nouveau(mode: Mode, qui: &str, accepte: bool, destinataire: &str, reponse: &str, detail: D) -> Envoi<D, R> {
+        Envoi {
+            quand: String::new(),
+            origine: String::new(),
+            mois: None,
+            fichier: None,
+            empreinte: None,
+            mode,
+            qui: qui.to_string(),
+            accepte,
+            destinataire: destinataire.to_string(),
+            flux: String::new(),
+            retours: Vec::new(),
+            reponse: reponse.to_string(),
+            trace: None,
+            detail,
+            versions: None,
+        }
     }
-    if !n.quand.is_empty() && n.origine.is_empty() {
+}
+
+/// AJOUTE LA LIGNE `ligne` A LA FIN DU FICHIER ET LA REND, telle qu'elle se relira. Son heure est celle qu'elle porte
+/// (une reprise : `origine` doit alors la justifier), celle de `dater_pendant`, sinon `maintenant` (l'heure locale que
+/// l'appelant donne : le moteur ne connait pas le fuseau). `fichier` : le fichier parti, dont la ligne garde le nom et
+/// l'empreinte (s'il existe).
+pub fn noter(racine: &Path, mut ligne: Ligne, fichier: Option<&Path>, maintenant: &str) -> Resultat<Ligne> {
+    let (quand, origine) = commun_mut(&mut ligne);
+    if !quand.is_empty() && origine.is_empty() {
         return Err(socle::echec::cle("Une ligne datée du journal doit dire d'où vient sa date : sans cela, rien ne distingue une reprise d'une ligne fabriquée.", "origine"));
     }
-    let fichier = n.fichier.filter(|f| !f.is_empty());
-    let nom = fichier.map(|f| Path::new(f).file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
-    let empreinte = match fichier {
-        Some(f) if Path::new(f).exists() => Some(empreinte_fichier(Path::new(f))?),
-        _ => None,
-    };
-    let mut l = Map::new();
-    l.insert("quoi".into(), json!(n.quoi));
-    let (quand, origine) = DATE.with(|d| d.borrow().clone()).unwrap_or_else(|| ((if n.quand.is_empty() { maintenant } else { n.quand }).to_string(), n.origine.to_string()));
-    l.insert("quand".into(), json!(quand));
-    l.insert("origine".into(), json!(origine));
-    l.insert("mois".into(), json!(n.mois));
-    l.insert("fichier".into(), json!(nom));
-    l.insert("empreinte".into(), json!(empreinte));
-    l.insert("mode".into(), json!(n.mode));
-    l.insert("qui".into(), json!(n.qui));
-    l.insert("accepte".into(), json!(n.accepte));
-    l.insert("destinataire".into(), json!(n.destinataire));
-    l.insert("flux".into(), json!(n.flux));
-    l.insert("retours".into(), json!([]));
-    l.insert("reponse".into(), json!(n.reponse));
-    l.insert("trace".into(), json!(n.trace.filter(|t| !t.is_empty())));
-    l.insert("detail".into(), match n.detail {
-        Some(d) if vrai(d) => d.clone(),
-        _ => json!({}),
-    });
-    if let Some(v) = n.versions {
-        l.insert("versions".into(), v.clone());
+    let (q, o) = DATE.with(|d| d.borrow().clone()).unwrap_or_else(|| ((if quand.is_empty() { maintenant.to_string() } else { quand.clone() }), origine.clone()));
+    *quand = q;
+    *origine = o;
+    if let Some(f) = fichier.filter(|f| !f.as_os_str().is_empty()) {
+        let nom = f.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+        let e = if f.exists() { Some(empreinte_fichier(f)?) } else { None };
+        poser_fichier(&mut ligne, nom, e);
     }
-    let ligne = Value::Object(l);
+    let ecrite = ligne.clone();
     ajouter(racine, |_, index| {
         // L'empreinte du texte de la ligne ; deux lignes au meme texte se distinguent par leur rang.
         let base = self::empreinte(serde_json::to_string(&ligne).map_err(|x| x.to_string())?.as_bytes());
         let id = std::iter::once(base.clone()).chain((2..).map(|k| format!("{}-{}", base, k))).find(|id| !index.contains_key(id)).unwrap_or(base);
-        Ok(vec![json!({"id": id, "ligne": ligne})])
+        Ok(vec![Enregistrement { id: Some(id), ligne: Some(ligne), ..Default::default() }])
     })?;
-    Ok(ligne)
+    Ok(ecrite)
 }
 
-/// CE QUI REVIENT D'UN ENVOI (un contrat signe, la mention retiree) : `retour` se range dans les `retours` de la derniere
-/// ligne que `envoi` reconnait, et la rend. `None` : aucune ligne ne la porte, rien n'est ecrit.
-pub fn rattacher(racine: &Path, envoi: impl Fn(&Value) -> bool, retour: Value) -> Resultat<Option<Value>> {
+/// L'heure et l'origine de la ligne, a poser.
+fn commun_mut(l: &mut Ligne) -> (&mut String, &mut String) {
+    match l {
+        Ligne::Dsn(e) => (&mut e.quand, &mut e.origine),
+        Ligne::Dpae(e) => (&mut e.quand, &mut e.origine),
+        Ligne::Documents(e) => (&mut e.quand, &mut e.origine),
+        Ligne::ContratSignature(e) => (&mut e.quand, &mut e.origine),
+        Ligne::ContratContresigne(e) => (&mut e.quand, &mut e.origine),
+        Ligne::RegularisationCasc(e) => (&mut e.quand, &mut e.origine),
+        Ligne::DossierSalarie(e) => (&mut e.quand, &mut e.origine),
+        Ligne::FicheDemande(e) => (&mut e.quand, &mut e.origine),
+    }
+}
+
+fn poser_fichier(l: &mut Ligne, nom: String, e: Option<String>) {
+    macro_rules! poser {
+        ($x:ident) => {{
+            $x.fichier = Some(nom);
+            $x.empreinte = e;
+        }};
+    }
+    match l {
+        Ligne::Dsn(x) => poser!(x),
+        Ligne::Dpae(x) => poser!(x),
+        Ligne::Documents(x) => poser!(x),
+        Ligne::ContratSignature(x) => poser!(x),
+        Ligne::ContratContresigne(x) => poser!(x),
+        Ligne::RegularisationCasc(x) => poser!(x),
+        Ligne::DossierSalarie(x) => poser!(x),
+        Ligne::FicheDemande(x) => poser!(x),
+    }
+}
+
+/// Ce qui revient d'un envoi au salarie : un contrat signe (ou la mention retiree), une fiche recue (ou la demande
+/// abandonnee).
+pub enum Revenu {
+    Contrat(RetourContrat),
+    Fiche(RetourFiche),
+}
+
+/// CE QUI REVIENT D'UN ENVOI (un contrat signe, la mention retiree, une fiche) : `retour` se range dans les `retours` de
+/// la derniere ligne que `envoi` reconnait, et la rend. `None` : aucune ligne ne la porte, rien n'est ecrit.
+pub fn rattacher(racine: &Path, envoi: impl Fn(&Ligne) -> bool, retour: Revenu) -> Resultat<Option<Ligne>> {
     let mut trouvee = None;
     ajouter(racine, |j, _| {
         let Some(i) = j.lignes.iter().rposition(|l| envoi(l)) else { return Ok(Vec::new()) };
+        let sien = matches!((&j.lignes[i], &retour), (Ligne::ContratSignature(_), Revenu::Contrat(_)) | (Ligne::FicheDemande(_), Revenu::Fiche(_)));
+        if !sien {
+            return Err(format!("journal : ce retour ne revient pas d'un envoi {}", j.lignes[i].acte().nom()));
+        }
         trouvee = Some(i);
-        Ok(vec![json!({"a": j.ids[i], "retour": retour})])
+        let r = match &retour {
+            Revenu::Contrat(r) => serde_json::to_value(r),
+            Revenu::Fiche(r) => serde_json::to_value(r),
+        }
+        .map_err(|x| x.to_string())?;
+        Ok(vec![Enregistrement { a: Some(j.ids[i].clone()), retour: Some(r), ..Default::default() }])
     })?;
     Ok(match trouvee {
         Some(i) => lu(racine)?.lignes.get(i).cloned(),
@@ -402,12 +461,12 @@ pub fn rattacher(racine: &Path, envoi: impl Fn(&Value) -> bool, retour: Value) -
     })
 }
 
-/// Ce qui se range sur une ligne du journal (`ranger`).
+/// Ce qui se range sur la ligne d'une DSN ou d'une DPAE (`ranger`).
 pub enum Rangement {
-    /// Un retour de plus.
-    Retour(Value),
-    /// Les champs qui completent le retour de cette nature et de cette publication.
-    Complement { nature: Value, publication: Value, champs: Map<String, Value> },
+    /// Un compte rendu de plus.
+    Retour(RetourOrganisme),
+    /// Le verdict du compte rendu de cette nature et de cette publication.
+    Complement { nature: String, publication: Option<String>, verdict: Verdict },
 }
 
 /// RANGE CE QUI REVIENT des envois : chaque `(i, rangement)` sur la `i`-ieme ligne du journal lu (`lu`), dans l'ordre.
@@ -416,10 +475,10 @@ pub fn ranger(racine: &Path, rangements: Vec<(usize, Rangement)>) -> Resultat<()
         rangements
             .into_iter()
             .map(|(i, r)| {
-                let a = j.ids.get(i).ok_or_else(|| format!("journal : aucune ligne {}", i))?;
+                let a = Some(j.ids.get(i).ok_or_else(|| format!("journal : aucune ligne {}", i))?.clone());
                 Ok(match r {
-                    Rangement::Retour(retour) => json!({"a": a, "retour": retour}),
-                    Rangement::Complement { nature, publication, champs } => json!({"a": a, "nature": nature, "publication": publication, "complete": champs}),
+                    Rangement::Retour(retour) => Enregistrement { a, retour: Some(serde_json::to_value(retour).map_err(|x| x.to_string())?), ..Default::default() },
+                    Rangement::Complement { nature, publication, verdict } => Enregistrement { a, nature: Some(nature), publication, complete: Some(verdict), ..Default::default() },
                 })
             })
             .collect()
@@ -428,7 +487,7 @@ pub fn ranger(racine: &Path, rangements: Vec<(usize, Rangement)>) -> Resultat<()
 
 /// Ce que les lignes `lignes` du journal disent de ce qui est parti (`departs`) : les lignes qui precedent un envoi
 /// disent ce qui etait parti avant lui.
-pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
+pub fn departs_des_lignes(lignes: &[Ligne]) -> engagement::departs::Departs {
     let mut d = engagement::departs::Departs::default();
     for l in lignes {
         noter_ligne(&mut d, l);
@@ -437,112 +496,81 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
 }
 
 /// Ce que la ligne `l` dit de ce qui est parti, a la suite de `d`.
-fn noter_ligne(d: &mut engagement::departs::Departs, l: &Value) {
+fn noter_ligne(d: &mut engagement::departs::Departs, l: &Ligne) {
     use engagement::departs::{Depart, Envoi};
-    {
-        let envoi = match l.get("quoi").and_then(Value::as_str) {
-            Some("contrat-signature") => Envoi::Contrat,
-            Some("dpae") => Envoi::Dpae,
-            Some("documents") => Envoi::Documents,
-            Some("dsn") if l.get("detail").and_then(|d| d.get("nature")).and_then(Value::as_str).is_some_and(|n| declarations::norme::SIGNALEMENTS.contains(&n)) => {
-                Envoi::Signalement
-            }
-            Some("dsn") => Envoi::Dsn,
-            _ => return,
+    let envoi = match l.acte() {
+        Acte::ContratSignature => Envoi::Contrat,
+        Acte::Dpae => Envoi::Dpae,
+        Acte::Documents => Envoi::Documents,
+        Acte::Dsn if l.signalement() => Envoi::Signalement,
+        Acte::Dsn => Envoi::Dsn,
+        _ => return,
+    };
+    if !l.reel() {
+        return;
+    }
+    // Une declaration refusee au depot ou au bilan n'a rien depose (`etats::refuse_par_un_retour`). Un courriel coupe en
+    // route a servi ceux qui l'ont recu : la ligne ne porte que leurs versions (`ligne_d_envoi::noter_echec_d_envoi`),
+    // et ce qui a atteint le salarie est parti.
+    let au_salarie = matches!(envoi, Envoi::Documents | Envoi::Contrat);
+    if !au_salarie && (!l.accepte() || crate::etats::refuse_par_un_retour(l)) {
+        return;
+    }
+    let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.mois().map(|m| m.to_string())).flatten();
+    let le = l.quand().to_string();
+    for v in l.versions().unwrap_or_default() {
+        // La correction d'un mois passe que la DSN porte : sa version est celle de l'engagement du mois corrige.
+        let corrige = (envoi == Envoi::Dsn).then(|| v.mois.map(|m| m.to_string())).flatten().filter(|m| Some(m) != mois.as_ref());
+        let (m, par) = match corrige {
+            Some(c) => (Some(c), mois.clone()),
+            None => (mois.clone(), None),
         };
-        if l.get("mode").and_then(Value::as_str) != Some(REEL) {
-            return;
-        }
-        // Une declaration refusee au depot ou au bilan n'a rien depose (`etats::refuse_par_un_retour`). Un courriel coupe en
-        // route a servi ceux qui l'ont recu : la ligne ne porte que leurs versions (`ligne_d_envoi::noter_echec_d_envoi`),
-        // et ce qui a atteint le salarie est parti.
-        let au_salarie = matches!(envoi, Envoi::Documents | Envoi::Contrat);
-        if !au_salarie && (l.get("accepte") == Some(&Value::Bool(false)) || crate::etats::refuse_par_un_retour(l).unwrap_or(false)) {
-            return;
-        }
-        let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
-        let le = l.get("quand").and_then(Value::as_str).unwrap_or_default().to_string();
-        // Un contrat parti sans que sa ligne dise sur quelle version (une ligne qui ne porte pas `versions`) est parti sur
-        // la premiere : une validation qui ne dit pas sa version s'ecrit en version 1 (`engagement::etats`). Il se range par
-        // le numero que la ligne nomme, comme les autres.
-        let sans_versions: Vec<Value> = match (envoi, l.get("versions")) {
-            (Envoi::Contrat, None) => l
-                .pointer("/detail/contrats")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .map(|c| json!({"salarie": c.get("salarie"), "numero": c.get("numero").map(socle::valeur::valeur_en_texte), "version": 1}))
-                .collect(),
-            _ => Vec::new(),
-        };
-        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten().chain(&sans_versions) {
-            let (Some(cle), Some(numero), Some(version)) =
-                (v.get("salarie").and_then(Value::as_str), v.get("numero").and_then(Value::as_str), v.get("version").and_then(Value::as_u64))
-            else {
-                continue;
-            };
-            // La correction d'un mois passe que la DSN porte : sa version est celle de l'engagement du mois corrige.
-            let corrige = (envoi == Envoi::Dsn).then(|| v.get("mois").and_then(Value::as_str).map(String::from)).flatten().filter(|m| Some(m) != mois.as_ref());
-            let (m, par) = match corrige {
-                Some(c) => (Some(c), mois.clone()),
-                None => (mois.clone(), None),
-            };
-            // Un avenant : la ligne du journal le dit (`acte`), et son contrat porte son numero.
-            let avenant = (envoi == Envoi::Contrat && l.pointer("/detail/acte").and_then(Value::as_str) == Some("avenant"))
-                .then(|| {
-                    l.pointer("/detail/contrats")
-                        .and_then(Value::as_array)
-                        .into_iter()
-                        .flatten()
-                        .find(|c| c.get("salarie").and_then(Value::as_str) == Some(cle) && c.get("numero").and_then(Value::as_str) == Some(numero))
-                        .and_then(|c| c.get("avenant"))
-                        .map(socle::valeur::valeur_en_texte)
-                })
-                .flatten();
-            d.noter(cle, numero, Depart { envoi, mois: m, par, avenant, version, le: le.clone() });
-        }
+        // Un avenant : la ligne du journal le dit (`acte`), et son contrat porte son numero.
+        let avenant = l
+            .signature()
+            .filter(|s| s.detail.acte.as_deref() == Some("avenant"))
+            .and_then(|s| s.detail.contrats.iter().find(|c| c.salarie == v.salarie && c.numero.as_ref() == Some(&v.numero)))
+            .and_then(|c| c.avenant)
+            .map(|a| a.to_string());
+        d.noter(&v.salarie, &v.numero, Depart { envoi, mois: m, par, avenant, version: v.version, le: le.clone() });
     }
 }
 
 /// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
-/// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi
-/// porte : elles se lisent AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
-pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &engagement::departs::Departs, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
+/// salarie, le numero du contrat, l'engagement), sa version. Ce que la ligne du journal de l'envoi porte : elles se lisent
+/// AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
+pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &engagement::departs::Departs, garder: impl Fn(&str, &str, &engagement::stock::Ecrit) -> bool) -> Resultat<Vec<Version>> {
     let mut out = Vec::new();
     for e in engagement::etats::du_mois(ctx, mois, departs)? {
         let Some(v) = e.valide() else { continue };
         let brut = &*v.objet().brut;
-        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
-        if garder(&cle, numero, &brut) {
+        let (Some(cle), Some(numero)) = (&brut.saisie.carte.salarie, brut.saisie.carte.numero.as_deref()) else { continue };
+        if garder(cle, numero, brut) {
             if let Some(phrase) = v.a_revalider(ctx) {
                 return Err(phrase);
             }
             let version = v.version().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "version"))?;
-            out.push(json!({"salarie": cle, "numero": numero, "version": version}));
+            out.push(Version { salarie: cle.clone(), numero: engagement::numeros::NumeroContrat::lire(numero)?, version, mois: None });
         }
     }
-    Ok(Value::Array(out))
+    Ok(out)
 }
 
-/// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).
-pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value], departs: &engagement::departs::Departs) -> Resultat<Value> {
-    let mut mois: Vec<String> = contrats.iter().filter_map(|c| c.get("mois").and_then(Value::as_str).map(String::from)).collect();
+/// `versions_du_mois` des contrats qui partent, chacun lu dans le mois qu'il nomme.
+pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[ContratParti], departs: &engagement::departs::Departs) -> Resultat<Vec<Version>> {
+    let mut mois: Vec<Mois> = contrats.iter().map(|c| c.mois).collect();
     mois.sort();
     mois.dedup();
-    let mut out = Vec::new();
+    let mut out: Vec<Version> = Vec::new();
     for m in mois {
-        let siens = |cle: &str, n: &str, _: &Value| {
-            contrats.iter().any(|c| c["mois"].as_str() == Some(m.as_str()) && c["salarie"].as_str() == Some(cle) && c["numero"].as_str() == Some(n))
-        };
-        if let Value::Array(v) = versions_du_mois(ctx, &m, departs, siens)? {
-            for x in v {
-                if !out.contains(&x) {
-                    out.push(x);
-                }
+        let siens = |cle: &str, n: &str, _: &engagement::stock::Ecrit| contrats.iter().any(|c| c.mois == m && c.salarie.as_str() == cle && c.numero_dit() == n);
+        for x in versions_du_mois(ctx, &m.to_string(), departs, siens)? {
+            if !out.contains(&x) {
+                out.push(x);
             }
         }
     }
-    Ok(Value::Array(out))
+    Ok(out)
 }
 
 /// Le plus grand numero d'ordre (`S20.G00.05.004`) des signalements REELS deja envoyes par la compagnie, tous
@@ -552,37 +580,29 @@ pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]
 /// qu'il soit unique quel que soit le mois d'emission » ; p. 14 : un second signalement normal au meme SIRET et
 /// au meme numero d'ordre n'est pas accepte. Le numero se LIT de ce qui est parti (`detail.ordre` des lignes
 /// `dsn` reelles du journal), il ne se devine pas : une ligne reelle acceptee qui ne dit pas son ordre refuse.
-/// Un signalement se reconnait a `detail.nature` (04, 05, 07, 08) ; une ligne plus ancienne qui ne la porte pas,
-/// a son `mois` : une mensuelle se date `AAAA-MM`, un signalement par son evenement (`AAAA-MM-JJ`). Une ligne
-/// non acceptee (le point de depot n'a rien recu) ne consomme pas de numero.
+/// Un signalement se reconnait a `detail.nature` (04, 05, 07, 08) ; une ligne reprise des retours, qui ne la porte pas,
+/// a son mois : le bilan d'une mensuelle le dit, celui d'un signalement non. Une ligne non acceptee (le point de depot
+/// n'a rien recu) ne consomme pas de numero.
 pub fn dernier_ordre_des_signalements(racine: &Path) -> Resultat<i64> {
     let mut dernier = 0;
-    for l in lire(racine, Some("dsn"), None, true)? {
-        let detail = l.get("detail").cloned().unwrap_or(Value::Null);
-        let signalement = match detail.get("nature").and_then(Value::as_str).filter(|n| !n.is_empty()) {
+    for l in lire(racine, Some(Acte::Dsn), None, true)? {
+        let Some(e) = l.dsn() else { continue };
+        let signalement = match e.detail.nature.as_deref().filter(|n| !n.is_empty()) {
             Some(n) => declarations::norme::SIGNALEMENTS.contains(&n),
-            None => {
-                let m: Vec<char> = l.get("mois").and_then(Value::as_str).unwrap_or("").chars().collect();
-                !(m.len() == 7 && m[4] == '-' && m.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit()))
-            }
+            None => e.mois.is_none(),
         };
         if !signalement {
             continue;
         }
-        let ordre = match detail.get("ordre") {
-            Some(Value::Number(n)) => n.as_i64(),
-            Some(Value::String(s)) => s.trim().parse::<i64>().ok(),
-            _ => None,
-        };
-        match ordre {
+        match e.detail.ordre.as_deref().and_then(|o| o.trim().parse::<i64>().ok()) {
             Some(o) => dernier = dernier.max(o),
-            None if l.get("accepte").map(vrai).unwrap_or(false) => {
+            None if e.accepte => {
                 return Err(socle::echec::avec(
                     format!(
                         "Le journal des envois note le signalement reel du {} sans son numero d'ordre, lu en S20.G00.05.004 du fichier envoye. Le numero d'ordre d'un signalement ne se remet jamais a zero (cahier technique DSN, p. 136) : sans lui, le suivant ne se numerote pas. Le signaler au developpeur. Rien n'est ecrit.",
-                        l.get("quand").and_then(Value::as_str).unwrap_or("?"),
+                        e.quand,
                     ),
-                    json!({"chemin": chemin(racine).to_string_lossy(), "fichier": l.get("fichier").and_then(Value::as_str).unwrap_or("?"), "cle": "detail.ordre"}),
+                    serde_json::json!({"chemin": chemin(racine).to_string_lossy(), "fichier": e.fichier.as_deref().unwrap_or("?"), "cle": "detail.ordre"}),
                 ))
             }
             None => {}
@@ -590,7 +610,6 @@ pub fn dernier_ordre_des_signalements(racine: &Path) -> Resultat<i64> {
     }
     Ok(dernier)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -600,21 +619,26 @@ mod tests {
     /// la DSN suivante. Rien n'a ete recu (cahier technique DSN, § 4.2, `norme-dsn/texte/chapitre-4-controles.txt`).
     #[test]
     fn une_declaration_refusee_au_bilan_n_est_pas_partie() {
-        let ligne = |quoi: &str, salarie: &str, retours: Value, detail: Value| {
-            json!({"quoi": quoi, "mode": REEL, "accepte": true, "mois": "2026-06", "quand": "2026-07-05T10:00:00", "detail": detail,
-                   "retours": retours, "versions": [{"salarie": salarie, "numero": "N1", "version": 1}]})
-        };
-        let ko = json!([{"nature": "10", "verdict": "OK"}, {"nature": "11", "verdict": "KO"}]);
+        let retour = |nature: &str, verdict: &str| RetourOrganisme { nature: nature.into(), verdict: Some(verdict.into()), anomalies: None, dpae: None, libelle: String::new(), statut: None, publication: None };
+        fn envoi<D>(salarie: &str, retours: Vec<RetourOrganisme>, detail: D) -> Envoi<D, RetourOrganisme> {
+            let mut e = Envoi::nouveau(Mode::Reel, "t", true, "", "", detail);
+            e.mois = Some(Mois::lire("2026-06").unwrap());
+            e.quand = "2026-07-05T10:00:00".into();
+            e.retours = retours;
+            e.versions = Some(vec![Version { salarie: droit::contexte::IdSalarie::lire(salarie).unwrap(), numero: engagement::numeros::NumeroContrat::lire("DE1.26.01").unwrap(), version: 1, mois: None }]);
+            e
+        }
+        let ko = vec![retour("10", "OK"), retour("11", "KO")];
         let lignes = vec![
-            ligne("dsn", "ALPHA", ko.clone(), json!({})),
-            ligne("dsn", "BETA", json!([]), json!({"reconstruit": true, "etat_declaration": "KO"})),
-            ligne("dpae", "GAMMA", ko, json!({})),
-            ligne("dsn", "DELTA", json!([{"nature": "11", "verdict": "OK"}]), json!({})),
+            Ligne::Dsn(envoi("ALPHA", ko.clone(), DetailDsn::default())),
+            Ligne::Dsn(envoi("BETA", vec![], DetailDsn { reconstruit: true, etat_declaration: Some("KO".into()), ..Default::default() })),
+            Ligne::Dpae(envoi("GAMMA", ko, DetailDpae::default())),
+            Ligne::Dsn(envoi("DELTA", vec![retour("11", "OK")], DetailDsn::default())),
         ];
         let d = departs_des_lignes(&lignes);
         for refusee in ["ALPHA", "BETA", "GAMMA"] {
-            assert!(d.de(refusee, "N1").is_empty(), "{refusee}");
+            assert!(d.de(refusee, "DE1.26.01").is_empty(), "{refusee}");
         }
-        assert_eq!(d.de("DELTA", "N1").len(), 1);
+        assert_eq!(d.de("DELTA", "DE1.26.01").len(), 1);
     }
 }

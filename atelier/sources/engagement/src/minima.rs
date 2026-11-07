@@ -6,21 +6,31 @@
 
 use std::collections::BTreeSet;
 
+use droit::fiche::Lue;
+
 use rust_decimal::RoundingStrategy;
-use serde_json::Value;
 
 use crate::calcul::{LigneBrut, Paie};
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
-use socle::date::{en_texte, repr_texte, Jour};
+use socle::date::{repr_texte, Jour};
 use droit::emplois;
 use crate::{Avis, Engagement};
-use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, signataire, table, vaut, Minimum, Par, Plancher};
-use socle::fichiers::vrai;
+use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, signataire, table, case_lue, CaseLue, Conditions, Convention, Grille, Minimum, Par, Plancher, SpectacleDuContrat, Table};
 use socle::texte::{euros, virgule};
-use socle::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
+use socle::num::{add, dec_f64, div, mul, sub, Decimal, Resultat};
+/// L'IDCC d'un contrat (`droit::minima::idcc_du_contrat`) : celui de la compagnie, sauf pour l'emission de television du
+/// spectacle `sp` (un contrat paye au mois n'en a pas).
+pub fn idcc_du_contrat(idcc: &str, sp: Option<&droit::fiche::Spectacle>, sal: &droit::fiche::ChampsSalarie) -> Resultat<String> {
+    let Some(sp) = sp.filter(|s| s.emission_tv_1734.dite() == Some(&true)) else { return Ok(idcc.to_string()) };
+    droit::minima::idcc_du_contrat(idcc, &SpectacleDuContrat { emission_tv_1734: true, cle: &sp.cle }, sal)
+}
 
-static NUL: Value = Value::Null;
+/// La case `cle` du spectacle de la paie lue pour une condition (`droit::minima::case_lue`) ; `None` : la paie n'a pas de
+/// spectacle.
+fn case_du_spectacle(sp: Option<&droit::fiche::Spectacle>, cle: &str) -> Resultat<Option<CaseLue>> {
+    Ok(sp.map(|s| case_lue(&s.champs, cle)).transpose()?.flatten())
+}
 
 fn cachet(c: &str) -> bool {
     c == "cachet"
@@ -38,34 +48,6 @@ fn mensuel(c: &str) -> bool {
 
 // ------------------------------------------------------------- les petits outils
 
-/// `x.get(k)` ; `Null` si absent. `Null.get(..)` reste vide : c'est le `or {}`.
-fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&NUL)
-}
-
-/// `x[k]` : un `KeyError` si absent.
-fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
-}
-
-/// Une valeur en texte, vide si elle manque ou est vide.
-fn txt(v: &Value) -> String {
-    if vrai(v) {
-        en_texte(v)
-    } else {
-        String::new()
-    }
-}
-
-fn texte_de(v: &Value, k: &str) -> String {
-    txt(g(v, k))
-}
-
-/// Une valeur en texte, rien si elle est vide.
-fn ou_rien(v: &Value) -> Option<String> {
-    vrai(v).then(|| en_texte(v))
-}
-
 /// Au centime, vers zéro.
 fn bas(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::ToZero)
@@ -78,7 +60,11 @@ fn pair(x: Decimal) -> Decimal {
 
 /// Un flottant arrondi a deux decimales, par son texte.
 fn arrondi2(x: f64) -> f64 {
-    format!("{:.2}", x).parse().unwrap_or(x)
+    // Un flottant ecrit par Rust se relit toujours (`NaN` et `inf` compris).
+    match format!("{:.2}", x).parse() {
+        Ok(a) => a,
+        Err(e) => unreachable!("un flottant écrit par Rust se relit : {} ({})", x, e),
+    }
 }
 
 
@@ -97,37 +83,72 @@ fn premier_jour(paie: &Paie) -> Option<String> {
     paie.engagement.dates_travail.iter().map(|j| j.iso()).min()
 }
 
-fn permanent(paie: &Paie) -> bool {
-    paie.engagement.nat().map_or(false, |n| n.mensuelle())
+fn permanent(paie: &Paie) -> Resultat<bool> {
+    Ok(paie.engagement.nat()?.mensuelle())
 }
 
 // ------------------------------------------------------------------ les planchers
 
-/// `ne["texte"].split(",")[0]`.
-fn premiere_partie(v: &Value) -> Resultat<String> {
-    Ok(en_texte(cle(v, "texte")?).split(',').next().unwrap_or("").to_string())
+/// La premiere partie du texte d'une grille (`texte`, jusqu'a la premiere virgule).
+fn premiere_partie(c: &Convention) -> Resultat<String> {
+    let texte = c.texte.as_deref().ok_or_else(|| manque("texte"))?;
+    Ok(match texte.split_once(',') {
+        Some((tete, _)) => tete,
+        None => texte,
+    }
+    .to_string())
+}
+
+/// Ce qui manque a la table livree, nomme par sa cle.
+fn manque(cle: &str) -> String {
+    socle::echec::livree("minima-conventionnels.json", cle)
 }
 
 /// Les donnees d'une ligne et de la paie qu'un plancher lit.
 struct Cx<'a> {
-    t: &'a Value,
+    t: &'a Table,
     idcc: &'a str,
     /// La grille de la convention qui lie la compagnie au premier jour travaille (`droit::minima::grille_au`), et le
     /// jour depuis lequel elle la lie quand c'est celle d'un accord qui suit la grille de la convention.
-    grille: &'a Value,
+    grille: &'a Convention,
     lie_depuis: Option<String>,
-    m: &'a Value,
-    sal: &'a Value,
+    m: &'a emplois::Metier,
+    fiche: &'a droit::fiche::SalarieDuContrat,
     paie: &'a Paie,
-    ent: &'a Value,
+    ent: &'a droit::fiche::ChampsEntreprise,
     annexe: Option<String>,
     organisation: Option<String>,
     nb_cachets: i64,
 }
 
 impl<'a> Cx<'a> {
-    fn refs(&self) -> &'a Value {
-        g(g(self.m, "minima"), "3090")
+    /// Les lignes de minima du metier dans la 3090, annexe par annexe (hors catalogue : aucune).
+    fn refs(&self) -> &'a std::collections::BTreeMap<String, String> {
+        static AUCUNE: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
+        match self.m.au_catalogue().and_then(|f| f.minima.ccn_3090.as_ref()) {
+            Some(lignes) => lignes,
+            None => &AUCUNE,
+        }
+    }
+
+    /// La ligne de minima du metier dans une convention qui n'en a qu'une (1285, 2642, 3097), ou rien.
+    fn ligne_de_minima(&self, idcc: &str) -> Option<&'a str> {
+        self.m.au_catalogue().and_then(|f| f.minima.ligne(idcc))
+    }
+
+    /// Le statut du metier, `artiste` ou `technicien`.
+    fn statut(&self) -> &'static str {
+        self.m.statut().as_str()
+    }
+
+    /// La convention 3090 de la table.
+    fn c3090(&self) -> Resultat<&'a Convention> {
+        self.t.convention("3090").ok_or_else(|| manque("3090"))
+    }
+
+    /// L'annexe `a` de la 3090, que la table doit porter.
+    fn annexe_3090(&self, a: &str) -> Resultat<&'a droit::minima::Annexe> {
+        self.c3090()?.annexes.as_ref().and_then(|m| m.get(a)).ok_or_else(|| manque(&format!("3090.annexes.{}", a)))
     }
 
     /// Les annexes de la 3090 ou ce metier a une ligne, restreintes a celle de
@@ -135,14 +156,14 @@ impl<'a> Cx<'a> {
     fn annexes_candidates(&self) -> Resultat<Vec<String>> {
         let refs = self.refs();
         if let Some(a) = &self.annexe {
-            if refs.get(a).is_some() {
+            if refs.contains_key(a) {
                 return Ok(vec![a.clone()]);
             }
-            if cle(cle(self.t, "3090")?, "annexes")?.get(a).is_some() {
+            if self.c3090()?.annexes.as_ref().is_some_and(|m| m.contains_key(a)) {
                 return Ok(vec![]);
             }
         }
-        Ok(refs.as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default())
+        Ok(refs.keys().cloned().collect())
     }
 
     /// Les annexes candidates, ou a defaut celle de l'entreprise si la table la connait.
@@ -151,21 +172,20 @@ impl<'a> Cx<'a> {
         if !c.is_empty() {
             return Ok(c);
         }
-        let annexes = cle(cle(self.t, "3090")?, "annexes")?;
+        let annexes = &self.c3090()?.annexes;
         Ok(match &self.annexe {
-            Some(a) if annexes.get(a).is_some() => vec![a.clone()],
+            Some(a) if annexes.as_ref().is_some_and(|m| m.contains_key(a)) => vec![a.clone()],
             _ => vec![],
         })
     }
 
     fn plancher_cachet_3090(&self) -> Resultat<Option<Plancher>> {
-        let t3090 = cle(self.t, "3090")?;
         let refs = self.refs();
-        let mut meilleurs: Vec<(Decimal, String, &Value)> = Vec::new();
+        let mut meilleurs: Vec<(Decimal, String, &droit::minima::GrilleDeCachets)> = Vec::new();
         for annexe in self.annexes_candidates()? {
-            let ligne = cle(refs, &annexe)?;
-            let grille = cle(cle(cle(cle(t3090, "annexes")?, &annexe)?, "cachets")?, ligne.as_str().ok_or_else(|| en_texte(ligne))?)?;
-            if let Some(montant) = palier(cle(grille, "paliers")?, self.nb_cachets)? {
+            let ligne = refs.get(&annexe).ok_or_else(|| socle::fichiers::absent(&annexe))?;
+            let grille = self.annexe_3090(&annexe)?.cachets.as_ref().and_then(|c| c.get(ligne)).ok_or_else(|| manque(&format!("3090.annexes.{}.cachets.{}", annexe, ligne)))?;
+            if let Some(montant) = palier(&grille.paliers, self.nb_cachets) {
                 meilleurs.push((montant, annexe, grille));
             }
         }
@@ -176,8 +196,8 @@ impl<'a> Cx<'a> {
         let mut noms: Vec<String> = meilleurs.iter().map(|x| x.1.clone()).collect();
         noms.sort();
         let (montant, annexe, grille) = plus_bas(meilleurs, |x| x.0).unwrap();
-        let mut quoi = format!("CCN 3090, annexe {}, {}", annexe, en_texte(cle(grille, "libelle")?));
-        if vrai(g(grille, "jauge")) {
+        let mut quoi = format!("CCN 3090, annexe {}, {}", annexe, grille.libelle);
+        if grille.jauge.as_deref().is_some_and(|j| !j.is_empty()) {
             quoi += " (plus petite jauge retenue)";
         }
         if self.annexe.is_none() && toutes {
@@ -199,34 +219,29 @@ impl<'a> Cx<'a> {
     }
 
     fn plancher_cachet_1285(&self) -> Resultat<Option<Plancher>> {
-        let r = g(g(self.m, "minima"), "1285");
-        if !vrai(r) {
+        let Some(r) = self.ligne_de_minima("1285").filter(|r| !r.is_empty()) else {
             return Ok(None);
-        }
-        let grille = cle(cle(self.grille, "cachets")?, &en_texte(r))?;
-        let Some(montant) = palier(cle(grille, "paliers")?, self.nb_cachets)? else { return Ok(None) };
-        Ok(plancher(montant, format!("CCNEAC (1285), {}", en_texte(cle(grille, "libelle")?))))
+        };
+        let grille = self.grille.cachets.as_ref().and_then(|c| c.get(r)).ok_or_else(|| manque(&format!("1285.cachets.{}", r)))?;
+        let Some(montant) = palier(&grille.paliers, self.nb_cachets) else { return Ok(None) };
+        Ok(plancher(montant, format!("CCNEAC (1285), {}", grille.libelle)))
     }
 
     fn plancher_repetition(&self) -> Resultat<Option<Plancher>> {
         match self.idcc {
             "1285" => {
-                let r = cle(self.grille, "repetition")?;
-                let reference = texte_de(g(self.m, "minima"), "1285");
-                let propre = g(g(r, "par_categorie"), &reference);
-                if vrai(propre) {
-                    return Ok(plancher(dec(cle(propre, "service")?)?, format!("CCNEAC (1285), {}", en_texte(cle(propre, "libelle")?))));
+                let r = self.grille.repetition.as_ref().ok_or_else(|| manque("1285.repetition"))?;
+                if let Some(propre) = self.ligne_de_minima("1285").and_then(|reference| r.par_categorie.as_ref().and_then(|m| m.get(reference))) {
+                    return Ok(plancher(propre.service, format!("CCNEAC (1285), {}", propre.libelle)));
                 }
-                Ok(plancher(dec(cle(r, "service")?)?, format!("CCNEAC (1285), {}", en_texte(cle(r, "service_libelle")?))))
+                Ok(plancher(r.service, format!("CCNEAC (1285), {}", r.service_libelle)))
             }
             "3090" => {
                 // Une heure n'est pas un cachet : seul un taux horaire de repetition se compare.
-                let t3090 = cle(self.t, "3090")?;
                 let mut candidats = Vec::new();
                 for annexe in self.annexes_ou_la_sienne()? {
-                    let r = g(cle(cle(t3090, "annexes")?, &annexe)?, "repetition");
-                    if let Some(h) = r.get("heure") {
-                        candidats.push((dec(h)?, annexe));
+                    if let Some(h) = self.annexe_3090(&annexe)?.repetition.as_ref().and_then(|r| r.heure).map(|n| n.0) {
+                        candidats.push((h, annexe));
                     }
                 }
                 Ok(plus_bas(candidats, |x| x.0).map(|(montant, annexe)| Plancher {
@@ -241,39 +256,32 @@ impl<'a> Cx<'a> {
 
     /// L'echelon de la CCNEAC : celui de la fiche (1 a 12), ou le premier.
     fn echelon_ccneac(&self) -> (usize, String) {
-        let v = texte_de(self.sal, "echelon_ccneac");
+        let v = self.fiche.echelon_ccneac.texte().to_string();
         let v = v.trim();
-        if !v.is_empty() && v.bytes().all(|c| c.is_ascii_digit()) {
-            if let Ok(n) = v.parse::<usize>() {
-                if (1..=12).contains(&n) {
-                    return (n, format!("échelon {} de la fiche", v));
-                }
-            }
+        if let Some(n) = socle::num::entier_de_chiffres(v).filter(|n| (1..=12).contains(n)) {
+            return (n as usize, format!("échelon {} de la fiche", v));
         }
         (1, "échelon 1, la fiche ne disant pas le sien (`echelon_ccneac`)".into())
     }
 
     /// Le taux horaire minimum d'un emploi autre qu'artistique de la CCNEAC.
     fn plancher_horaire_1285(&self) -> Resultat<Option<Plancher>> {
-        let groupe = texte_de(g(self.m, "classification_1285"), "groupe");
-        let grille = g(self.grille, "emplois_autres_qu_artistiques");
-        if groupe.is_empty() || g(grille, "groupes").get(&groupe).is_none() {
-            return Ok(None);
-        }
+        let Some(c1285) = self.m.au_catalogue().and_then(|f| f.classification_1285.as_ref()) else { return Ok(None) };
+        let Some(groupe) = c1285.groupe.map(|g| g.to_string()).filter(|g| !g.is_empty()) else { return Ok(None) };
+        let Some(grille) = self.grille.emplois_autres_qu_artistiques.as_ref() else { return Ok(None) };
+        let Some(echelons) = grille.groupes.get(&groupe) else { return Ok(None) };
         let (echelon, d_ou) = self.echelon_ccneac();
-        let mensuel = cle(g(grille, "groupes"), &groupe)?
+        let mensuel = *echelons
             .get(echelon - 1)
-            .ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du groupe {}", echelon, groupe)))?
-            .as_f64()
-            .ok_or("nombre attendu")?;
-        let heures = cle(grille, "heures_mensuelles")?.as_f64().ok_or("nombre attendu")?;
+            .ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du groupe {}", echelon, groupe)))?;
+        let heures = grille.heures_mensuelles;
         let horaire = arrondi2(mensuel / heures);
         Ok(plancher(
             dec_f64(horaire)?,
             format!(
                 "CCNEAC (1285), groupe {} ({}), {} : {} pour 151 h 40, ramenés à l'heure",
                 groupe,
-                texte_de(g(self.m, "classification_1285"), "emploi_xi3"),
+                c1285.emploi_xi3.as_str(),
                 d_ou,
                 euros(dec_f64(mensuel)?)
             ),
@@ -282,23 +290,29 @@ impl<'a> Cx<'a> {
 
     /// La fonction d'un metier dans la grille de la 2642 ou de la 3097 : celle de
     /// la fiche quand la grille la connait, sinon celle du catalogue.
-    fn fonction(&self, idcc: &str, fonctions: &[&Value]) -> Option<String> {
-        let propre = texte_de(self.sal, "classement_conventionnel");
+    fn fonction(&self, idcc: &str, connue: impl Fn(&str) -> bool) -> Option<String> {
+        let propre = self.fiche.classement_conventionnel.texte().to_string();
         let propre = propre.trim();
-        if !propre.is_empty() && fonctions.iter().any(|f| f.get(propre).is_some()) {
+        if !propre.is_empty() && connue(propre) {
             return Some(propre.to_string());
         }
-        ou_rien(g(g(self.m, &format!("classification_{}", idcc)), "fonction"))
+        let f = self.m.au_catalogue()?;
+        let du_catalogue = match idcc {
+            "2642" => f.classification_2642.as_ref().map(|c| c.fonction.as_str()),
+            "3097" => f.classification_3097.as_ref().map(|c| c.fonction.as_str()),
+            _ => None,
+        };
+        du_catalogue.filter(|c| !c.is_empty()).map(str::to_string)
     }
 
     fn plancher_2642(&self) -> Resultat<Option<Plancher>> {
-        let c = cle(self.t, "2642")?;
-        let (cddu, permanents) = (g(c, "cddu_semaine_35h"), g(c, "permanents_mensuel_35h"));
-        let Some(fonction) = self.fonction("2642", &[cddu, permanents]) else { return Ok(None) };
-        let d = |s: &str| dec(&Value::String(s.into()));
-        if permanent(self.paie) {
-            let Some(mensuel) = permanents.get(&fonction) else { return Ok(None) };
-            let m = dec(mensuel)?;
+        let c = self.t.convention("2642").ok_or_else(|| manque("2642"))?;
+        let (cddu, permanents) = (c.cddu_semaine_35h.as_ref(), c.permanents_mensuel_35h.as_ref());
+        let Some(fonction) = self.fonction("2642", |f| cddu.is_some_and(|m| m.contains_key(f)) || permanents.is_some_and(|m| m.contains_key(f))) else { return Ok(None) };
+        let d = socle::num::dec_texte;
+        if permanent(self.paie)? {
+            let Some(mensuel) = permanents.and_then(|m| m.get(&fonction)) else { return Ok(None) };
+            let m = mensuel.0;
             let h = bas(div(m, d("151.67")?));
             return Ok(plancher(
                 h,
@@ -309,20 +323,14 @@ impl<'a> Cx<'a> {
                 ),
             ));
         }
-        let grille = g(cddu, &fonction);
-        let presents: Vec<&str> = ["fiction", "flux", "autre"].into_iter().filter(|x| grille.get(*x).is_some()).collect();
-        if presents.is_empty() {
+        let Some(presents) = cddu.and_then(|m| m.get(&fonction)).map(|f| f.genres()).filter(|p| !p.is_empty()) else {
             return Ok(None);
-        }
-        let genre = texte_de(&self.paie.spectacle, "genre_audiovisuel");
-        let (semaine, dit) = if presents.contains(&genre.as_str()) {
-            (dec(cle(grille, &genre)?)?, format!("programme de {}", genre))
+        };
+        let genre = case_du_spectacle(self.paie.spectacle.as_ref(), "genre_audiovisuel")?.map(|c| c.texte);
+        let (semaine, dit) = if let Some((g, s)) = presents.iter().find(|(g, _)| genre.as_deref() == Some(*g)) {
+            (*s, format!("programme de {}", g))
         } else {
-            let mut valeurs = Vec::new();
-            for x in &presents {
-                valeurs.push((*x, dec(cle(grille, x)?)?));
-            }
-            let (g, s) = plus_bas(valeurs, |x| x.1).unwrap();
+            let (g, s) = plus_bas(presents, |x| x.1).unwrap();
             (s, format!("genre {}, le plus bas des genres de cette fonction -- la fiche du spectacle ne dit pas le sien (`genre_audiovisuel`)", g))
         };
         let jours = jours_du_contrat(&self.paie.engagement);
@@ -350,84 +358,80 @@ impl<'a> Cx<'a> {
     }
 
     fn plancher_3097(&self, ligne: &LigneBrut) -> Resultat<Option<Plancher>> {
-        let c = cle(self.t, "3097")?;
-        let d = |s: &str| dec(&Value::String(s.into()));
-        let spec = &self.paie.spectacle;
-        let statut = texte_de(self.m, "statut");
-        let a_fonction = vrai(g(g(self.m, "classification_3097"), "fonction"));
+        let c = self.t.convention("3097").ok_or_else(|| manque("3097"))?;
+        let d = socle::num::dec_texte;
+        let spec = self.paie.spectacle.as_ref();
+        let statut = self.statut();
+        let c3097 = self.m.au_catalogue().and_then(|f| f.classification_3097.as_ref());
+        let a_fonction = c3097.is_some_and(|c| !c.fonction.is_empty());
         let heures = !ligne.heures_annexes.is_zero();
         if (statut == "technicien" || a_fonction) && (horaire(&ligne.code) || mensuel(&ligne.code)) && heures {
-            if permanent(self.paie) {
-                let emploi = g(g(self.m, "classification_3097"), "titre_iv");
-                let pm = cle(c, "permanents_mensuel")?;
-                let niveau = if vrai(emploi) { g(cle(pm, "emplois_reperes")?, &en_texte(emploi)) } else { &NUL };
-                if niveau.is_null() {
+            if permanent(self.paie)? {
+                let emploi = c3097.and_then(|c| c.titre_iv.as_deref()).filter(|e| !e.is_empty());
+                let pm = c.permanents_mensuel.as_ref().ok_or_else(|| manque("3097.permanents_mensuel"))?;
+                let Some((emploi, niveau)) = emploi.and_then(|e| pm.emplois_reperes.get(e).map(|n| (e, n))) else {
                     return Ok(None);
-                }
-                let niveau = en_texte(niveau);
-                let mensuel = dec(cle(cle(pm, "niveaux")?, &niveau)?)?;
+                };
+                let mensuel = pm.niveaux.get(niveau).ok_or_else(|| manque(&format!("3097.permanents_mensuel.niveaux.{}", niveau)))?.0;
                 return Ok(plancher(
                     bas(div(mensuel, d("151.67")?)),
                     format!(
                         "CCN 3097, titre IV, {} ({}) : {} par mois, salaire de base sans les compléments, ramené à l'heure sur 151,67 h",
-                        en_texte(emploi),
+                        emploi,
                         niveau.replace('_', " "),
                         euros(mensuel)
                     ),
                 ));
             }
-            let techniciens = cle(c, "techniciens_semaine_39h")?;
-            let Some(fonction) = self.fonction("3097", &[techniciens]) else { return Ok(None) };
-            let Some(semaine) = techniciens.get(&fonction) else { return Ok(None) };
-            let mut semaine = semaine;
+            let techniciens = c.techniciens_semaine_39h.as_ref();
+            let Some(fonction) = self.fonction("3097", |f| techniciens.is_some_and(|m| m.contains_key(f))) else { return Ok(None) };
+            let Some(semaine) = techniciens.and_then(|m| m.get(&fonction)) else { return Ok(None) };
+            let mut semaine = semaine.0;
             let debut = self.paie.engagement.debut.iso();
-            let avant = g(g(c, "_avant_2026_05"), "montants");
             if debut.as_str() < "2026-05-01" {
-                if let Some(a) = avant.get(&fonction) {
-                    semaine = a;
+                if let Some(a) = c.avant_2026_05.as_ref().and_then(|a| a.montants.get(&fonction)) {
+                    semaine = a.0;
                 }
             }
-            let mut semaine = dec(semaine)?;
             let mut dit = format!("{} la semaine de 39 h (annexe I du titre II)", euros(semaine));
-            if vrai(g(spec, "derogation_annexe_iii_3097")) {
-                let a = cle(c, "annexe_iii")?;
-                let socle = dec(cle(a, "socle")?)?;
-                if semaine > socle {
-                    semaine = add(socle, div(mul(sub(semaine, socle), dec(cle(a, "part_au_dela")?)?), Decimal::ONE_HUNDRED));
+            if case_du_spectacle(spec, "derogation_annexe_iii_3097")?.is_some_and(|c| c.vraie) {
+                let a = c.annexe_iii.as_ref().ok_or_else(|| manque("3097.annexe_iii"))?;
+                if semaine > a.socle {
+                    semaine = add(a.socle, div(mul(sub(semaine, a.socle), a.part_au_dela), Decimal::ONE_HUNDRED));
                 }
                 dit = format!("film sous dérogation de l'annexe III : {} la semaine de 39 h", euros(bas(semaine)));
             }
-            let h = bas(div(semaine, dec(cle(c, "_heures_payees_de_la_semaine")?)?));
+            let h = bas(div(semaine, c.heures_payees_de_la_semaine.ok_or_else(|| manque("3097.heures_payees_de_la_semaine"))?.0));
             return Ok(plancher(h, format!("CCN 3097, {} : {}, soit 40 h au taux de base (35 h + 4 h à 125 %)", fonction, dit)));
         }
         if statut == "artiste" && cachet(&ligne.code) {
-            let r = g(g(self.m, "minima"), "3097");
-            if !vrai(r) {
+            let Some(reference) = self.ligne_de_minima("3097").filter(|r| !r.is_empty()) else {
                 return Ok(None);
-            }
-            let reference = en_texte(r);
-            let fmt = texte_de(spec, "format_cinema");
+            };
+            let fmt = case_du_spectacle(spec, "format_cinema")?.map(|c| c.texte);
+            let fmt = fmt.as_deref();
             let (grille, quoi) = if reference == "acteur" {
-                let cl = if fmt == "long" { "long" } else { "court" };
-                let sous = if fmt == "long" || fmt == "court" {
+                let cl = if fmt == Some("long") { "long" } else { "court" };
+                let sous = if fmt == Some("long") || fmt == Some("court") {
                     String::new()
                 } else {
                     " (le plus bas : la fiche du spectacle ne dit pas le format, `format_cinema`)".into()
                 };
-                (cle(cle(c, "artistes")?, cl)?, format!("artiste-interprète, {}-métrage{}", cl, sous))
+                let artistes = c.artistes.as_ref().ok_or_else(|| manque("3097.artistes"))?;
+                (if cl == "long" { &artistes.long } else { &artistes.court }, format!("artiste-interprète, {}-métrage{}", cl, sous))
             } else {
-                let complement = cle(c, "complement")?;
-                if fmt != "long" || complement.get(&reference).is_none() {
+                let complement = c.complement.as_ref().ok_or_else(|| manque("3097.complement"))?;
+                let Some(role) = complement.du_role(reference).filter(|_| fmt == Some("long")) else {
                     return Ok(None);
-                }
-                (cle(complement, &reference)?, format!("acteur de complément ({}), long-métrage", reference.replace('_', " ")))
+                };
+                (role, format!("acteur de complément ({}), long-métrage", reference.replace('_', " ")))
             };
             let (montant, regle) = if self.nb_cachets >= 5 {
-                let s5 = div(dec(cle(grille, "semaine_5j")?)?, Decimal::from(5));
-                let s6 = div(dec(cle(grille, "semaine_6j")?)?, Decimal::from(6));
+                let s5 = div(grille.semaine_5j, Decimal::from(5));
+                let s6 = div(grille.semaine_6j, Decimal::from(6));
                 (bas(if s6 < s5 { s6 } else { s5 }), "engagement à la semaine, rapporté au cachet")
             } else {
-                (dec(cle(grille, "journee")?)?, "engagement à la journée")
+                (grille.journee, "engagement à la journée")
             };
             return Ok(plancher(montant, format!("CCN 3097, titre III, {}, {}", quoi, regle)));
         }
@@ -435,43 +439,49 @@ impl<'a> Cx<'a> {
     }
 
     fn a_grilles(&self) -> bool {
-        vrai(g(self.grille, "grilles"))
+        self.grille.grilles.as_ref().is_some_and(|g| !g.is_empty())
     }
 
-    fn conditions(&self, c: &Value) -> Resultat<bool> {
-        let m = self.m;
-        if let Some(cats) = c.get("categories") {
-            let ref_ = texte_de(g(m, "minima"), self.idcc);
-            if !cats.as_array().into_iter().flatten().any(|x| x.as_str() == Some(ref_.as_str())) {
+    fn conditions(&self, c: Conditions) -> Resultat<bool> {
+        if let Some(cats) = c.categories {
+            let ref_ = self.ligne_de_minima(self.idcc);
+            if !cats.iter().any(|x| Some(x.as_str()) == ref_ || (x.is_empty() && ref_.is_none())) {
                 return Ok(false);
             }
         }
-        if let Some(codes) = c.get("codes") {
-            let code = g(m, "code");
-            if !codes.as_array().into_iter().flatten().any(|x| x == code) {
+        if let Some(codes) = c.codes {
+            if !codes.iter().any(|x| *x == self.m.code) {
                 return Ok(false);
             }
         }
-        for (k, source) in [("si_spectacle", &self.paie.spectacle), ("si_entreprise", self.ent), ("si_salarie", self.sal)] {
-            for (cl, v) in g(c, k).as_object().into_iter().flatten() {
-                if !vaut(v, g(source, cl)) {
-                    return Ok(false);
-                }
+        // Les conditions nomment les cases du spectacle, de la fiche entreprise et de celle du salarie.
+        for (cl, attendu) in c.si_spectacle.into_iter().flatten() {
+            // Une paie sans spectacle ne remplit aucune condition sur lui.
+            if !case_du_spectacle(self.paie.spectacle.as_ref(), cl)?.is_some_and(|lu| attendu.vaut(&lu)) {
+                return Ok(false);
             }
         }
-        let a = g(c, "anciennete");
-        if vrai(a) {
-            let champ = en_texte(cle(a, "champ")?);
-            let ans = ans_revolus(g(self.sal, &champ), jour_de_paie(self.paie).as_deref());
-            match ans {
-                Some(n) if (n as f64) >= cle(a, "ans")?.as_f64().ok_or("nombre attendu")? => {}
+        // Une case qui ne dit rien ne remplit aucune condition.
+        for (cl, attendu) in c.si_entreprise.into_iter().flatten() {
+            if !case_lue(self.ent, cl)?.is_some_and(|lu| attendu.vaut(&lu)) {
+                return Ok(false);
+            }
+        }
+        for (cl, attendu) in c.si_salarie.into_iter().flatten() {
+            if !case_lue(&self.fiche.champs, cl)?.is_some_and(|lu| attendu.vaut(&lu)) {
+                return Ok(false);
+            }
+        }
+        if let Some(a) = c.anciennete {
+            let Some(depuis) = case_lue(&self.fiche.champs, &a.champ)? else { return Ok(false) };
+            match ans_revolus(&depuis.texte, jour_de_paie(self.paie).as_deref()) {
+                Some(n) if n >= a.ans => {}
                 _ => return Ok(false),
             }
         }
-        let max = g(c, "duree_contrat_max_jours");
-        if !max.is_null() {
+        if let Some(max) = c.duree_contrat_max_jours {
             match jours_du_contrat(&self.paie.engagement) {
-                Some(j) if (j as f64) <= max.as_f64().ok_or("nombre attendu")? => {}
+                Some(j) if j <= max => {}
                 _ => return Ok(false),
             }
         }
@@ -479,66 +489,53 @@ impl<'a> Cx<'a> {
     }
 
     /// Les grilles de cette convention qui visent cette ligne.
-    fn grilles_de(&self, ligne: &LigneBrut, cl: &str) -> Resultat<Vec<&'a Value>> {
-        let population = if permanent(self.paie) { "permanent" } else { "intermittent" };
-        let statut = texte_de(self.m, "statut");
+    fn grilles_de(&self, ligne: &LigneBrut, grilles: &'a [Grille]) -> Resultat<Vec<&'a Grille>> {
+        let population = if permanent(self.paie)? { "permanent" } else { "intermittent" };
+        let statut = self.statut();
         let est_cachet = cachet(&ligne.code);
         let heures = !ligne.heures_annexes.is_zero();
-        let mut out: Vec<&'a Value> = Vec::new();
-        for gr in g(self.grille, cl).as_array().into_iter().flatten() {
-            let pop = gr.get("population").map_or("tous".to_string(), en_texte);
-            if pop != "tous" && pop != population {
+        let mut out: Vec<&'a Grille> = Vec::new();
+        for gr in grilles {
+            // Une grille qui ne dit pas sa population ou son statut les vise tous.
+            if !gr.population.as_deref().is_none_or(|pop| pop == "tous" || pop == population) {
                 continue;
             }
-            let st = gr.get("statut").map_or("tous".to_string(), en_texte);
-            if st != "tous" && st != statut {
+            if !gr.statut.as_deref().is_none_or(|st| st == "tous" || st == statut) {
                 continue;
             }
-            let unite = en_texte(cle(gr, "unite")?);
-            if est_cachet != (unite == "cachet") {
+            if est_cachet != (gr.unite == "cachet") {
                 continue;
             }
             if !est_cachet {
-                if vrai(g(gr, "heures")) {
+                if a_l_heure(gr) {
                     if !(heures && (horaire(&ligne.code) || mensuel(&ligne.code))) {
                         continue;
                     }
-                } else if ligne_de_l_unite(&unite) != Some(ligne.code.as_str()) {
+                } else if ligne_de_l_unite(&gr.unite) != Some(ligne.code.as_str()) {
                     continue;
                 }
             }
-            if !self.conditions(gr)? {
+            if !self.conditions(gr.conditions())? {
                 continue;
             }
             out.push(gr);
         }
         // Une grille en remplace une autre (`remplace`) quand elle s'applique.
-        let remplacees: BTreeSet<String> =
-            out.iter().flat_map(|gr| g(gr, "remplace").as_array().into_iter().flatten().map(en_texte)).collect();
-        let mut gardees = Vec::new();
-        for gr in out {
-            if !remplacees.contains(&en_texte(cle(gr, "nom")?)) {
-                gardees.push(gr);
-            }
-        }
-        Ok(gardees)
+        let remplacees: BTreeSet<&str> = out.iter().flat_map(|gr| gr.remplace.iter().flatten().map(String::as_str)).collect();
+        Ok(out.into_iter().filter(|gr| !remplacees.contains(gr.nom.as_str())).collect())
     }
 
     /// Les lignes d'une grille, majorations comprises, et ce qui les a majorees.
-    fn valeurs(&self, gr: &Value) -> Resultat<(Vec<(String, Decimal)>, Vec<String>)> {
-        let mut valeurs = Vec::new();
-        for (k, v) in cle(gr, "valeurs")?.as_object().into_iter().flatten() {
-            if !k.starts_with('_') {
-                valeurs.push((k.clone(), dec(v)?));
-            }
-        }
+    fn valeurs(&self, gr: &Grille) -> Resultat<(Vec<(String, Decimal)>, Vec<String>)> {
+        let mut valeurs: Vec<(String, Decimal)> = gr.valeurs.iter().map(|(k, v)| (k.clone(), v.0)).collect();
         // Dans un meme groupe, seule la derniere majoration qui s'applique compte.
-        let mut retenues: Vec<(String, &Value)> = Vec::new();
-        for maj in g(gr, "majorations").as_array().into_iter().flatten() {
-            if self.conditions(maj)? {
-                let groupe = match g(maj, "groupe") {
-                    v if vrai(v) => en_texte(v),
-                    _ => en_texte(cle(maj, "nom")?),
+        let mut retenues: Vec<(String, &droit::minima::Majoration)> = Vec::new();
+        for maj in gr.majorations.iter().flatten() {
+            if self.conditions(maj.conditions())? {
+                // Une majoration sans groupe est seule dans le sien.
+                let groupe = match maj.groupe.clone().filter(|g| !g.is_empty()) {
+                    Some(g) => g,
+                    None => maj.nom.clone(),
                 };
                 match retenues.iter_mut().find(|r| r.0 == groupe) {
                     Some(r) => r.1 = maj,
@@ -547,15 +544,15 @@ impl<'a> Cx<'a> {
             }
         }
         for (_, maj) in &retenues {
-            for (k, plus) in cle(maj, "par_cle")?.as_object().into_iter().flatten() {
+            for (k, plus) in &maj.par_cle {
                 if let Some(v) = valeurs.iter_mut().find(|v| &v.0 == k) {
-                    v.1 = add(v.1, dec(plus)?);
+                    v.1 = add(v.1, plus.0);
                 }
             }
         }
         let mut noms = Vec::new();
         for (_, maj) in &retenues {
-            noms.push(en_texte(cle(maj, "nom")?));
+            noms.push(maj.nom.clone());
         }
         Ok((valeurs, noms))
     }
@@ -563,29 +560,27 @@ impl<'a> Cx<'a> {
     /// Le plancher d'une ligne dans une convention a grilles : le montant du
     /// cachet, un taux horaire (la ligne de grille sur les heures qu'elle
     /// couvre, au centime inferieur), ou le montant d'une unite.
-    fn plancher_grilles(&self, ligne: &LigneBrut, cl: &str) -> Resultat<Option<Plancher>> {
-        let mut grilles = self.grilles_de(ligne, cl)?;
+    fn plancher_grilles(&self, ligne: &LigneBrut, grilles: Option<&'a [Grille]>) -> Resultat<Option<Plancher>> {
+        let Some(grilles) = grilles else { return Ok(None) };
+        let mut grilles = self.grilles_de(ligne, grilles)?;
         if grilles.is_empty() {
             return Ok(None);
         }
         let idcc = self.idcc;
         let classement = {
-            let c = texte_de(self.sal, "classement_conventionnel");
+            let c = self.fiche.classement_conventionnel.texte().to_string();
             let c = c.trim().to_string();
-            if c.is_empty() { texte_de(g(self.m, "classement"), idcc) } else { c }
+            // Le classement de la fiche, sinon celui que le catalogue donne au metier dans cette convention.
+            if c.is_empty() { self.m.au_catalogue().and_then(|f| f.classement.as_ref()).and_then(|c| c.get(idcc)).cloned().into_iter().collect() } else { c }
         };
         // Une grille a l'unite prime : elle prix la ligne telle qu'elle est payee.
-        let unitaires: Vec<&Value> = grilles
-            .iter()
-            .copied()
-            .filter(|gr| g(gr, "unite").as_str() != Some("cachet") && !vrai(g(gr, "heures")))
-            .collect();
+        let unitaires: Vec<&Grille> = grilles.iter().copied().filter(|gr| gr.unite != "cachet" && !a_l_heure(gr)).collect();
         if !unitaires.is_empty() {
             grilles = unitaires;
         }
         // Un classement connu d'une grille ne se noie pas dans les autres.
-        let connues: Vec<&Value> =
-            grilles.iter().copied().filter(|gr| !classement.is_empty() && g(gr, "valeurs").get(&classement).is_some()).collect();
+        let connues: Vec<&Grille> =
+            grilles.iter().copied().filter(|gr| !classement.is_empty() && gr.valeurs.iter().any(|(k, _)| *k == classement)).collect();
         let cherchees = if connues.is_empty() { grilles } else { connues };
         let mut trouves: Vec<Plancher> = Vec::new();
         for gr in cherchees {
@@ -608,26 +603,25 @@ impl<'a> Cx<'a> {
                 dit += &format!(" ; {}", majorees.join(", "));
             }
             let mut montant = valeurs.iter().find(|v| v.0 == k).unwrap().1;
-            if vrai(g(gr, "abattement_max")) {
-                let ab = dec(cle(gr, "abattement_max")?)?;
+            if let Some(ab) = gr.abattement_max.map(|n| n.0).filter(|a| !a.is_zero()) {
                 montant = bas(div(mul(montant, sub(Decimal::ONE_HUNDRED, ab)), Decimal::ONE_HUNDRED));
-                let ab_txt = en_texte(cle(gr, "abattement_max")?).replace('.', ",");
-                let pourquoi = match g(gr, "_abattement") {
-                    v if v.is_string() => en_texte(v),
-                    _ => "ensemble".into(),
+                let ab_txt = ab.to_string().replace('.', ",");
+                let pourquoi = match gr.abattement_motif.as_deref() {
+                    Some(m) => m,
+                    None => "ensemble",
                 };
                 dit += &format!(" ; abattu de {} % au plus ({})", ab_txt, pourquoi);
             }
-            let nom = texte_de(gr, "nom");
-            let unite = en_texte(cle(gr, "unite")?);
+            let nom = &gr.nom;
+            let unite = gr.unite.as_str();
             if unite == "cachet" {
                 trouves.push(Plancher {
                     montant,
                     quoi: format!("CCN {}, {}, {} : {} le cachet", idcc, nom, dit, euros(montant)),
                     unite: false,
                 });
-            } else if !vrai(g(gr, "heures")) {
-                let par = match unite.as_str() {
+            } else if !a_l_heure(gr) {
+                let par = match unite {
                     "mois" => "par mois",
                     "semaine" => "la semaine",
                     "jour" => "la journée",
@@ -639,20 +633,18 @@ impl<'a> Cx<'a> {
                     unite: true,
                 });
             } else {
-                let heures = dec(cle(gr, "heures")?)?;
+                let heures = gr.heures.ok_or_else(|| manque("heures"))?.0;
                 let mut h = bas(div(montant, heures));
-                if vrai(g(gr, "facteur")) {
+                if let Some(facteur) = gr.facteur.map(|n| n.0).filter(|f| !f.is_zero()) {
                     // Un taux horaire qui ne vaut pas pour toutes les heures : le plus bas taux effectif.
-                    h = bas(mul(h, dec(cle(gr, "facteur")?)?));
-                    dit += &format!(
-                        " ; {}",
-                        match g(gr, "_facteur") {
-                            v if vrai(v) => en_texte(v),
-                            _ => "taux effectif le plus bas".into(),
-                        }
-                    );
+                    h = bas(mul(h, facteur));
+                    let motif = match gr.facteur_motif.as_deref().filter(|m| !m.is_empty()) {
+                        Some(m) => m,
+                        None => "taux effectif le plus bas",
+                    };
+                    dit += &format!(" ; {}", motif);
                 }
-                let par = match unite.as_str() {
+                let par = match unite {
                     "mois" => "par mois",
                     "semaine" => "la semaine",
                     "jour" => "la journée",
@@ -672,13 +664,11 @@ impl<'a> Cx<'a> {
     /// L'echelon de la grille administrative de la 3090 : 1 sous 5 ans dans la
     /// fonction, puis un de plus par tranche de 5 ans passee, jusqu'au 5e.
     fn echelon_3090(&self) -> Resultat<(usize, String)> {
-        let depuis: String = texte_de(self.sal, "poste_depuis").chars().take(10).collect();
-        let jour = jour_de_paie(self.paie);
-        let Some(jour) = jour.filter(|_| !depuis.is_empty()) else {
+        let (Some(depuis), Some(jour)) = (self.fiche.poste_depuis.dite().map(|j| j.iso()), jour_de_paie(self.paie)) else {
             return Ok((1, "échelon 1, la fiche ne disant pas depuis quand (`poste_depuis`)".into()));
         };
         let veille = iso(&jour).ok_or("date illisible")?.plus_jours(-1)?.iso();
-        let Some(ans) = ans_revolus(&Value::String(depuis.clone()), Some(&veille)) else {
+        let Some(ans) = ans_revolus(&depuis, Some(&veille)) else {
             return Ok((1, "échelon 1, `poste_depuis` illisible".into()));
         };
         let e = (ans.div_euclid(5) + 1).clamp(1, 5) as usize;
@@ -694,24 +684,20 @@ impl<'a> Cx<'a> {
         if self.idcc != "3090" {
             return Ok(None);
         }
-        let classement = g(self.m, "classification_3090");
-        let niveau = g(classement, "niveau");
-        if !vrai(niveau) {
+        let Some(classement) = self.m.classification_3090().filter(|c| !c.niveau.is_empty()) else {
             return Ok(None);
-        }
-        let niveau = en_texte(niveau);
-        let t3090 = cle(self.t, "3090")?;
-        let communes_cl = cle(t3090, "clauses_communes")?;
-        if g(classement, "grille").as_str() == Some("administratif") {
+        };
+        let niveau = classement.niveau.clone();
+        let t3090 = self.c3090()?;
+        let communes_cl = t3090.clauses_communes.as_ref().ok_or_else(|| manque("3090.clauses_communes"))?;
+        if classement.grille == "administratif" {
             // Grille mensuelle pour un temps plein, ramenee a l'heure sur 151,67 h.
-            let grille = cle(communes_cl, "administratifs_mensuel_echelons")?;
-            let Some(valeurs) = grille.get(&niveau) else { return Ok(None) };
-            let valeurs = valeurs.as_array().ok_or("liste attendue")?;
+            let Some(valeurs) = communes_cl.administratifs_mensuel_echelons.du_niveau(&niveau) else { return Ok(None) };
             let (echelon, mut d_ou) = self.echelon_3090()?;
             if valeurs.is_empty() {
                 return Err(socle::fichiers::trop_courte(&format!("les échelons du niveau {}", niveau)));
             }
-            let montant = valeurs.get(echelon.min(valeurs.len()) - 1).ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du niveau {}", echelon, niveau)))?.as_f64().ok_or("nombre attendu")?;
+            let montant = *valeurs.get(echelon.min(valeurs.len()) - 1).ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du niveau {}", echelon, niveau)))?;
             if valeurs.len() == 1 {
                 d_ou = "sans échelon".into();
             }
@@ -726,18 +712,15 @@ impl<'a> Cx<'a> {
                 ),
             ));
         }
-        let communes = cle(communes_cl, "techniciens")?;
+        let communes = &communes_cl.techniciens;
         let (mut grille, mut ou) = (communes, "clauses communes".to_string());
-        if let Some(a) = self.annexe.as_deref().filter(|a| cle(t3090, "annexes").map_or(false, |x| x.get(*a).is_some())) {
-            grille = cle(cle(cle(t3090, "annexes")?, a)?, "techniciens")?;
+        if let Some(a) = self.annexe.as_deref().filter(|a| t3090.annexes.as_ref().is_some_and(|m| m.contains_key(*a))) {
+            grille = self.annexe_3090(a)?.techniciens.as_ref().ok_or_else(|| manque(&format!("3090.annexes.{}.techniciens", a)))?;
             ou = format!("annexe {}", a);
             // Un salaire mensuel : le plus bas de la grille des clauses communes et de celle de l'annexe.
             if mensuel {
-                if let Some(c) = communes.get(&niveau) {
-                    let en_dessous = match grille.get(&niveau) {
-                        None => true,
-                        Some(x) => c.as_f64() < x.as_f64(),
-                    };
+                if let Some(c) = communes.du_niveau(&niveau) {
+                    let en_dessous = grille.du_niveau(&niveau).is_none_or(|x| c.0 < x.0);
                     if en_dessous {
                         grille = communes;
                         ou = "clauses communes".into();
@@ -745,9 +728,9 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let Some(montant) = grille.get(&niveau) else { return Ok(None) };
+        let Some(montant) = grille.du_niveau(&niveau) else { return Ok(None) };
         Ok(plancher(
-            dec(montant)?,
+            montant.0,
             format!(
                 "CCN 3090, {}, taux horaire {}{}",
                 ou,
@@ -759,7 +742,7 @@ impl<'a> Cx<'a> {
 
     /// Le plancher d'une ligne, ou rien.
     fn plancher_de(&self, ligne: &LigneBrut) -> Resultat<Option<Plancher>> {
-        let statut = texte_de(self.m, "statut");
+        let statut = self.statut();
         let heures = !ligne.heures_annexes.is_zero();
         let code = ligne.code.as_str();
         if self.idcc == "2642" {
@@ -768,16 +751,16 @@ impl<'a> Cx<'a> {
                     return Ok(Some(p));
                 }
             }
-            return self.plancher_grilles(ligne, "grilles_complementaires");
+            return self.plancher_grilles(ligne, self.grille.grilles_complementaires.as_deref());
         }
         if self.idcc == "3097" {
             if let Some(p) = self.plancher_3097(ligne)? {
                 return Ok(Some(p));
             }
-            return self.plancher_grilles(ligne, "grilles_complementaires");
+            return self.plancher_grilles(ligne, self.grille.grilles_complementaires.as_deref());
         }
         if self.a_grilles() {
-            return self.plancher_grilles(ligne, "grilles");
+            return self.plancher_grilles(ligne, self.grille.grilles.as_deref());
         }
         if cachet(code) && statut == "artiste" {
             return if self.idcc == "3090" { self.plancher_cachet_3090() } else { self.plancher_cachet_1285() };
@@ -794,7 +777,7 @@ impl<'a> Cx<'a> {
         }
         // Les mensuels des artistes de la CCNEAC : par grille, ramenes a l'heure.
         if mensuel(code) && statut == "artiste" && self.idcc == "1285" && heures {
-            return self.plancher_grilles(ligne, "grilles_complementaires");
+            return self.plancher_grilles(ligne, self.grille.grilles_complementaires.as_deref());
         }
         // Un salaire mensuel de la CCNEAC : le minimum de l'echelon pour 151 h 40, ramene a l'heure.
         if mensuel(code) && statut == "technicien" && self.idcc == "1285" && heures {
@@ -806,21 +789,19 @@ impl<'a> Cx<'a> {
     /// Le minimum d'une ligne « Service de repetition » dans la 3090 :
     /// (montant, d'ou il vient, a l'heure), ou rien.
     fn plancher_service_3090(&self, par_jour: Option<Decimal>) -> Resultat<Option<(Decimal, String, bool)>> {
-        let t3090 = cle(self.t, "3090")?;
         let refs = self.refs();
         // (montant, annexe, a l'heure, libelle)
         let mut trouves: Vec<(Decimal, String, bool, &str)> = Vec::new();
         for annexe in self.annexes_ou_la_sienne()? {
-            let r = g(cle(cle(t3090, "annexes")?, &annexe)?, "repetition");
-            let sorte = texte_de(refs, &annexe);
-            let sorte = sorte.split('.').next().unwrap_or("");
-            let musicien = sorte == "musicien" || sorte == "chef_orchestre";
-            if musicien && r.get("service_musicien").is_some() {
-                trouves.push((dec(&r["service_musicien"])?, annexe, false, "service de répétition d'un musicien"));
-            } else if !musicien && r.get("heure").is_some() {
-                trouves.push((dec(&r["heure"])?, annexe, true, "services de répétition (taux horaire)"));
-            } else if r.get("service_isole").is_some() && par_jour.map_or(false, |p| p <= Decimal::ONE) {
-                trouves.push((dec(&r["service_isole"])?, annexe, false, "service isolé de répétition"));
+            let r = self.annexe_3090(&annexe)?.repetition.as_ref();
+            let (service_musicien, heure, service_isole) = (r.and_then(|r| r.service_musicien).map(|n| n.0), r.and_then(|r| r.heure).map(|n| n.0), r.and_then(|r| r.service_isole).map(|n| n.0));
+            let musicien = musicien_dans(refs, &annexe);
+            if let (true, Some(m)) = (musicien, service_musicien) {
+                trouves.push((m, annexe, false, "service de répétition d'un musicien"));
+            } else if let (false, Some(h)) = (musicien, heure) {
+                trouves.push((h, annexe, true, "services de répétition (taux horaire)"));
+            } else if let Some(s) = service_isole.filter(|_| par_jour.is_some_and(|p| p <= Decimal::ONE)) {
+                trouves.push((s, annexe, false, "service isolé de répétition"));
             } else {
                 return Ok(None); // une annexe candidate sans minimum : on se tait
             }
@@ -831,6 +812,17 @@ impl<'a> Cx<'a> {
         let (montant, annexe, heure, lib) = plus_bas(trouves, |x| x.0).unwrap();
         Ok(Some((montant, format!("CCN 3090, annexe {}, {}", annexe, lib), heure)))
     }
+}
+
+/// La ligne de minima `refs` de l'annexe `annexe` (la 3090) est-elle celle d'un musicien ou d'un chef d'orchestre (sa
+/// sorte, avant le point) ?
+fn musicien_dans(refs: &std::collections::BTreeMap<String, String>, annexe: &str) -> bool {
+    refs.get(annexe).is_some_and(|s| matches!(s.split('.').next(), Some("musicien" | "chef_orchestre")))
+}
+
+/// Une grille qui se ramene a l'heure : elle dit les heures que sa valeur paie.
+fn a_l_heure(gr: &Grille) -> bool {
+    gr.heures.is_some_and(|h| !h.0.is_zero())
 }
 
 fn ligne_de_l_unite(unite: &str) -> Option<&'static str> {
@@ -845,9 +837,9 @@ fn ligne_de_l_unite(unite: &str) -> Option<&'static str> {
 // ------------------------------------------------------------------ les deux lectures
 
 /// Une lecture, pas un verdict : la phrase renvoie au texte pour qu'on verifie.
-fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
-    let lien = g(g(t, idcc), "lien");
-    let lien = if vrai(lien) { format!(" : {}", en_texte(lien)) } else { String::new() };
+fn a_verifier(t: &Table, idcc: &str, phrase: String) -> Avis {
+    let lien = t.convention(idcc).and_then(|c| c.lien.as_deref()).filter(|l| !l.is_empty());
+    let lien: String = lien.map(|l| format!(" : {}", l)).into_iter().collect();
     Avis {
         info: true,
         texte: format!(
@@ -862,14 +854,13 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = droit::minima::idcc_du_contrat(ent, &paie.spectacle, &paie.salarie)?;
+    let idcc = idcc_du_contrat(ent.idcc.texte(), paie.spectacle.as_ref(), &paie.salarie)?;
     let tab = table()?;
-    let t: &Value = &tab;
-    if t.get(&idcc).is_none() {
+    let t: &Table = &tab;
+    if t.convention(&idcc).is_none() {
         return Ok(None);
     }
-    let sal = &paie.salarie;
-    let Some(m) = emplois::metier(&texte_de(sal, "code_emploi_ft"))? else { return Ok(None) };
+    let Some(m) = emplois::metier(paie.salarie.code_emploi_ft.texte())? else { return Ok(None) };
     let nb_cachets = paie
         .remuneration
         .iter()
@@ -879,7 +870,7 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
         .to_string()
         .parse::<i64>()
         .map_err(|e| e.to_string())?;
-    let organisation = ou_rien(g(ent, "organisation_patronale"));
+    let organisation = ent.organisation_patronale.dite().filter(|o| !o.is_empty()).cloned();
     let Some((grille, lie_depuis)) = grille_au(t, &idcc, organisation.as_deref(), premier_jour(paie).as_deref()) else { return Ok(None) };
     let cx = Cx {
         t,
@@ -887,10 +878,10 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
         grille,
         lie_depuis,
         m: &m,
-        sal,
+        fiche: &paie.salarie,
         paie,
         ent,
-        annexe: ou_rien(g(ent, "annexe_convention")),
+        annexe: ent.annexe_convention.dite().map(|a| a.as_str().to_string()),
         organisation,
         nb_cachets,
     };
@@ -898,12 +889,12 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
 }
 
 /// Le minimum d'une ligne de remuneration (`saisie` : la ligne telle que saisie, pour ses dates), ou rien.
-fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: &Value) -> Resultat<Option<Minimum>> {
-    let statut = texte_de(cx.m, "statut");
+fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: Option<&crate::LignePaie>) -> Resultat<Option<Minimum>> {
+    let statut = cx.statut();
     // Le service de repetition de la 3090 : un minimum par service ou par heure selon
     // l'annexe, jamais le cachet de la journee.
     if repetition(&l.code) && cx.idcc == "3090" && statut == "artiste" {
-        let dates: BTreeSet<String> = g(saisie, "dates").as_array().into_iter().flatten().map(en_texte).collect();
+        let dates: BTreeSet<String> = saisie.iter().flat_map(|s| s.dates().iter()).map(|d| d.jour().to_string()).collect();
         let par_jour = (!dates.is_empty()).then(|| div(l.quantite, Decimal::from(dates.len())));
         return Ok(cx.plancher_service_3090(par_jour)?.map(|(montant, quoi, heure)| Minimum {
             montant,
@@ -926,12 +917,12 @@ fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: &Value) -> Resultat<Option<Minim
 }
 
 /// Les lignes saisies de cette paie, une par ligne de remuneration ; `Null` quand elles ne se correspondent pas.
-pub(crate) fn saisies_de(paie: &Paie) -> Vec<&Value> {
+pub(crate) fn saisies_de(paie: &Paie) -> Vec<Option<&crate::LignePaie>> {
     let lignes = &paie.remuneration;
     if paie.engagement.lignes.len() == lignes.len() {
-        paie.engagement.lignes.iter().collect()
+        paie.engagement.lignes.iter().map(Some).collect()
     } else {
-        vec![&NUL; lignes.len()]
+        vec![None; lignes.len()]
     }
 }
 
@@ -958,21 +949,18 @@ pub(crate) fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resu
 #[cfg(feature = "ecran")]
 pub(crate) fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Minimum>> {
     avec_cx(ctx, paie, |cx| {
-        if cx.idcc != "3090" || texte_de(cx.m, "statut") != "artiste" {
+        if cx.idcc != "3090" || cx.statut() != "artiste" {
             return Ok(None);
         }
-        let annexes = cle(cle(cx.t, "3090")?, "annexes")?;
         let refs = cx.refs();
         let mut trouves: Vec<(Decimal, String, String)> = Vec::new();
         for annexe in cx.annexes_ou_la_sienne()? {
-            let sorte = texte_de(refs, &annexe);
-            let sorte = sorte.split('.').next().unwrap_or("");
-            if annexe == "1" && (sorte == "musicien" || sorte == "chef_orchestre") {
+            if annexe == "1" && musicien_dans(refs, &annexe) {
                 return Ok(None);
             }
-            let r = g(cle(annexes, &annexe)?, "repetition");
-            let Some(c) = r.get("cachet") else { return Ok(None) };
-            trouves.push((dec(c)?, annexe, texte_de(r, "cachet_libelle")));
+            let r = cx.annexe_3090(&annexe)?.repetition.as_ref();
+            let Some(c) = r.and_then(|r| r.cachet).map(|n| n.0) else { return Ok(None) };
+            trouves.push((c, annexe, r.and_then(|r| r.cachet_libelle.clone()).into_iter().collect()));
         }
         Ok(trouves.into_iter().max_by(|a, b| a.0.cmp(&b.0)).map(|(montant, annexe, libelle)| Minimum {
             montant,
@@ -989,7 +977,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
     let avis = avec_cx(ctx, paie, |cx| {
         let t = cx.t;
         let idcc = cx.idcc;
-        let qui = socle::texte::salarie_nomme(cx.sal).unwrap_or_default();
+        let qui = crate::qui_de(cx.fiche)?;
         let texte_source = cx.texte_de_la_grille()?;
         let mut avis = Vec::new();
         for (l, saisie) in paie.remuneration.iter().zip(saisies_de(paie)) {
@@ -1061,7 +1049,8 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
         }
         Ok(Some(avis))
     })?;
-    Ok(avis.unwrap_or_default())
+    // Sans convention ni metier au catalogue, rien a dire.
+    Ok(avis.into_iter().flatten().collect())
 }
 
 /// Les lignes de cette paie payees sous le SMIC horaire. Le SMIC est la loi :
@@ -1069,7 +1058,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
 /// Les lignes visees portent des heures reellement faites (pas un forfait) ;
 /// la comparaison porte sur le total, pas sur un taux reconstitue.
 pub(crate) fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
-    let qui = socle::texte::salarie_nomme(&paie.salarie).unwrap_or_default();
+    let qui = crate::qui_de(&paie.salarie)?;
     let jour = paie.engagement.fin_periode()?;
     let smic = dec_f64(ctx.smic(&jour)?)?;
     let mut avis = Vec::new();

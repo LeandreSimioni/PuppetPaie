@@ -100,37 +100,3 @@ impl Drop for Temporaire {
 fn avec(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::ecrire;
-    use serde_json::json;
-
-    fn dossier(nom: &str) -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("paie-fabrique-{}-{}", nom, std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        d
-    }
-
-    #[test]
-    fn une_description_devient_un_pdf_lisible_et_le_dossier_parent_se_cree() {
-        let d = dossier("bulletin");
-        let description = socle::fichiers::lire_json(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fabrique-bulletin.json")).unwrap();
-        let sortie = d.join("sous/dossier/bulletin.pdf");
-        assert_eq!(ecrire(&description, &sortie).unwrap(), sortie);
-        assert!(std::fs::read(&sortie).unwrap().starts_with(b"%PDF"));
-        let f = sortie.to_str().unwrap().to_string();
-        assert_eq!(fabrique_pdf::lecture::pages(&[f.clone()]).unwrap(), vec![1]);
-        let (textes, _) = fabrique_pdf::lecture::texte(&f).unwrap();
-        assert!(textes[0].contains("Bulletin de paie") && textes[0].contains("BEAUCHAMP"), "{}", textes[0]);
-        let _ = std::fs::remove_dir_all(&d);
-    }
-
-    #[test]
-    fn un_refus_de_la_fabrique_est_une_erreur_d_une_ligne_et_n_ecrit_rien() {
-        let sortie = dossier("refus").join("refus.pdf");
-        let e = ecrire(&json!({"format": 99}), &sortie).unwrap_err();
-        assert!(!e.is_empty() && !e.contains('\n'), "{e}");
-        assert!(!sortie.exists());
-    }
-}

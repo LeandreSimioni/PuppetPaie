@@ -166,7 +166,7 @@ fn frais_de(lignes: &[(String, String)], quoi: &str) -> Result<Decimal, String> 
 /// (`dsn::versement_ecrit`) : ses rubriques (bloc 50 a part, sans le bloc 52), les affiliations du contrat, et ses
 /// montants, ceux de la paie. Refus : une rubrique que l'annulation ne sait pas reprendre, un montant net social absent.
 pub fn de_la_paie(ctx: &Contexte, p: &Paie, mois: &str) -> Result<VersementDeclare, String> {
-    let numero = p.engagement.numero.clone().unwrap_or_default();
+    let numero = p.engagement.numero.as_deref().unwrap_or_default().to_string();
     let quoi = format!("la paie declaree de {}", mois);
     let ecrit = crate::dsn::versement_ecrit(ctx, p, mois)?;
     let (entete, lignes): (Vec<(String, String)>, Vec<(String, String)>) =
@@ -239,7 +239,7 @@ pub fn dernier_declare(
         etat.net_social = origine_58;
         etat.rappels_net_social = rappels;
     }
-    etat.taux_pas = origine.paie.pas.as_ref().map(|p| socle::valeur::valeur_en_texte(&p.taux)).filter(|t| !t.is_empty());
+    etat.taux_pas = origine.paie.pas.as_ref().and_then(|p| p.taux.as_ref().map(droit::fiche::Montant::ecrit)).filter(|t| !t.is_empty());
     if let Some(d) = engagement::etats::debut_declare(ctx, o, departs, mois_courant)? {
         etat.debut_contrat = Some(socle::date::Jour::lire(&d)?.jjmmaaaa());
     }

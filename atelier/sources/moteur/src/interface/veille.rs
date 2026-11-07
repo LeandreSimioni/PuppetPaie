@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 
 use super::api::route;
 use crate::etat_garde::FileDesEtats;
+use crate::routes::catalogue::Route;
 
 pub struct Veille {
     racine: PathBuf,
@@ -60,7 +61,7 @@ impl Veille {
     }
 
     pub fn etat(&self) -> Value {
-        let coffre = route(&self.racine, "coffre-etat", &json!({})).unwrap_or_else(|_| json!({}));
+        let coffre = route(&self.racine, Route::CoffreEtat, &json!({})).unwrap_or_else(|_| json!({}));
         let dernier = self.dernier.lock().ok().and_then(|d| d.clone()).unwrap_or_else(|| self.derniere());
         let prochain = self.prochain_dans();
         let fictive = crate::compagnie::bridage::branchement(&self.racine).joue();
@@ -101,7 +102,7 @@ impl Veille {
         let base = json!({"jours": self.jours, "veille": veille, "incidents_editeur": true});
         let mut charge = base.clone();
         charge["sauvegarder"] = Value::Bool(false);
-        match route(&self.racine, "ouverture", &charge) {
+        match route(&self.racine, Route::Ouverture, &charge) {
             Ok(rep) => {
                 *self.dernier.lock().unwrap_or_else(|p| p.into_inner()) = Some(self.derniere());
                 self.en_cours.store(false, Ordering::SeqCst);
@@ -111,7 +112,7 @@ impl Veille {
                     s["sauvegarder"] = Value::Bool(true);
                     s["sauvegarde_seule"] = Value::Bool(true);
                     s["incidents_editeur"] = Value::Bool(false);
-                    if let Err(r) = route(&self.racine, "ouverture", &s) {
+                    if let Err(r) = route(&self.racine, Route::Ouverture, &s) {
                         *self.erreur.lock().unwrap_or_else(|p| p.into_inner()) = r.message;
                     }
                 }

@@ -1,11 +1,9 @@
-//! Lire les fichiers JSON livres avec le code (`json_en_cache`) et dire
-//! ou est le code.
+//! Lire les fichiers livres avec le code (`forme_en_cache`) et dire ou est le code.
 //!
 //! Le cache est cle par chemin ET par signature (date de modification,
 //! taille) : un fichier reecrit se relit.
 
 use crate::num::Resultat;
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
@@ -36,7 +34,7 @@ static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::
 /// La cle des caches qui ne notent pas : le numero du registre ouvert SUR CE FIL, 0 sans registre. Un calcul suivi ne
 /// sert ainsi que ce qu'il a compose lui-meme (tout ce qu'il lit se note), meme si un autre fil compose en meme temps.
 pub fn generation() -> u64 {
-    REGISTRE.with(|r| r.borrow().last().map_or(0, |g| g.numero))
+    REGISTRE.with(|r| r.borrow().last().into_iter().map(|g| g.numero).sum())
 }
 
 thread_local! {
@@ -64,7 +62,7 @@ pub const CACHE_MAX: usize = 512;
 /// Range `v` sous `cle` dans un cache du processus. La fenetre garde le moteur charge : chaque calcul
 /// suivi ajoute ses cles (`generation`), et un cache plein se vide plutot que de grossir tant que la fenetre tourne.
 pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, v: V) {
-    let mut c = cache.lock().unwrap_or_else(|p| p.into_inner());
+    let mut c = crate::memoire::tenu(cache);
     if c.len() >= CACHE_MAX {
         c.clear();
     }
@@ -85,7 +83,7 @@ pub struct Notee<V> {
 pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: String, composer: impl FnOnce() -> Result<V, E>) -> Result<V, E> {
     let base = REGISTRE.with(|r| r.borrow().last().map(|g| (g.racine.clone(), g.code.clone())));
     let servie = {
-        let c = cache.lock().unwrap_or_else(|p| p.into_inner());
+        let c = crate::memoire::tenu(cache);
         c.get(&cle).and_then(|n| match (&base, &n.lu) {
             (None, _) => Some((n.valeur.clone(), None)),
             (Some((r, k)), Some((r2, k2, entrees))) if r == r2 && k == k2 => Some((n.valeur.clone(), Some(entrees.clone()))),
@@ -122,7 +120,7 @@ pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: S
 pub fn rendre() -> BTreeMap<String, String> {
     REGISTRE.with(|r| {
         let mut pile = r.borrow_mut();
-        let entrees = pile.pop().map(|g| g.entrees).unwrap_or_default();
+        let entrees: BTreeMap<String, String> = pile.pop().into_iter().flat_map(|g| g.entrees).collect();
         if let Some(dessous) = pile.last_mut() {
             for (k, v) in &entrees {
                 dessous.entrees.entry(k.clone()).or_insert_with(|| v.clone());
@@ -199,11 +197,13 @@ pub fn sha256_hex(octets: &[u8]) -> String {
     Sha256::digest(octets).iter().map(|o| format!("{:02x}", o)).collect()
 }
 
-/// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, ou `absent`.
+/// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, `absent` s'il n'existe pas, `illisible` (et la
+/// raison) s'il ne se lit pas.
 pub fn empreinte_fichier(chemin: &Path) -> String {
     match std::fs::read(chemin) {
         Ok(o) => empreinte_des_octets(chemin, o),
-        Err(_) => "absent".into(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "absent".into(),
+        Err(e) => format!("illisible : {}", e),
     }
 }
 
@@ -214,7 +214,7 @@ fn empreinte_des_octets(chemin: &Path, octets: Vec<u8>) -> String {
     type Empreintes = Mutex<HashMap<PathBuf, (Vec<u8>, String)>>;
     static EMPREINTES: OnceLock<Empreintes> = OnceLock::new();
     let cache = EMPREINTES.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some((vus, e)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+    if let Some((vus, e)) = crate::memoire::tenu(cache).get(chemin) {
         if *vus == octets {
             return e.clone();
         }
@@ -224,17 +224,29 @@ fn empreinte_des_octets(chemin: &Path, octets: Vec<u8>) -> String {
     e
 }
 
-fn noms(chemin: &Path) -> Option<Vec<String>> {
-    let mut n: Vec<String> = std::fs::read_dir(chemin).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".json")).collect();
+fn noms(chemin: &Path) -> std::io::Result<Vec<String>> {
+    let mut n = Vec::new();
+    for e in std::fs::read_dir(chemin)? {
+        let nom = e?.file_name().to_string_lossy().into_owned();
+        if nom.ends_with(".json") {
+            n.push(nom);
+        }
+    }
     n.sort();
-    Some(n)
+    Ok(n)
 }
 
-/// L'empreinte d'un dossier : les noms de ses `.json`, tries ; `absent` s'il ne s'ouvre pas.
+/// L'empreinte d'un dossier : les noms de ses `.json`, tries ; `absent` s'il n'existe pas, `illisible` (et la raison)
+/// s'il ne se lit pas : ni l'un ni l'autre n'est l'empreinte d'un dossier lu.
 pub fn empreinte_dossier(chemin: &Path) -> String {
-    match noms(chemin) {
-        Some(n) => sha256_hex(n.join("\n").as_bytes()),
-        None => "absent".into(),
+    empreinte_des_noms(&noms(chemin))
+}
+
+fn empreinte_des_noms(noms: &std::io::Result<Vec<String>>) -> String {
+    match noms {
+        Ok(n) => sha256_hex(n.join("\n").as_bytes()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "absent".into(),
+        Err(e) => format!("illisible : {}", e),
     }
 }
 
@@ -279,15 +291,16 @@ pub fn est_dossier(chemin: &Path) -> bool {
     v
 }
 
-/// Les `.json` d'un dossier, tries ; `None` s'il ne s'ouvre pas. Note : ce
-/// qui apparait ou disparait dans le dossier change l'empreinte.
-pub fn lister(dossier: &Path) -> Option<Vec<PathBuf>> {
+/// Les `.json` d'un dossier, tries ; `None` s'il n'existe pas ; le disque qui refuse se dit (`echec::du_disque`). Note :
+/// ce qui apparait ou disparait dans le dossier change l'empreinte.
+pub fn lister(dossier: &Path) -> Resultat<Option<Vec<PathBuf>>> {
     let n = noms(dossier);
-    noter("dossier", dossier, match &n {
-        Some(n) => sha256_hex(n.join("\n").as_bytes()),
-        None => "absent".into(),
-    });
-    Some(n?.into_iter().map(|x| dossier.join(x)).collect())
+    noter("dossier", dossier, empreinte_des_noms(&n));
+    match n {
+        Ok(n) => Ok(Some(n.into_iter().map(|x| dossier.join(x)).collect())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(crate::echec::du_disque(dossier, &e)),
+    }
 }
 
 /// Le dossier des referentiels livres (`donnees/`) : `PUPPETPAIE_CODE` si posee, sinon
@@ -305,32 +318,36 @@ pub fn dossier_du_code() -> PathBuf {
 /// fichier du code (`dossier_du_code`) se lit une fois. Les caches du moteur la demandaient a chaque service -- mille
 /// fois `norme-dsn-base.json` pour un seul `etat` --, et sous Windows chaque demande ouvre le fichier, que l'antivirus
 /// inspecte. Les fichiers de la compagnie, eux, se relisent toujours : une route les ecrit.
-pub fn signature(chemin: &Path) -> Option<(u128, u64)> {
+pub fn signature(chemin: &Path) -> Resultat<Option<(u128, u64)>> {
     let memo = CODE_FIGE.with(|c| c.borrow().as_ref().filter(|(code, _)| chemin.starts_with(code)).map(|(_, m)| m.get(chemin).copied()));
     match memo {
-        Some(Some(s)) => s,
+        Some(Some(s)) => Ok(s),
         Some(None) => {
-            let s = signature_lue(chemin);
+            let s = signature_lue(chemin)?;
             CODE_FIGE.with(|c| {
                 if let Some((_, m)) = c.borrow_mut().as_mut() {
                     m.insert(chemin.to_path_buf(), s);
                 }
             });
-            s
+            Ok(s)
         }
         None => signature_lue(chemin),
     }
 }
 
-fn signature_lue(chemin: &Path) -> Option<(u128, u64)> {
-    let m = std::fs::metadata(chemin).ok()?;
-    let ns = m
-        .modified()
-        .ok()
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    Some((ns, m.len()))
+/// `None` pour un fichier absent : rien ne se garde de lui ; un fichier qui ne dit pas sa date (illisible, d'avant 1970)
+/// se refuse.
+fn signature_lue(chemin: &Path) -> Resultat<Option<(u128, u64)>> {
+    // Un fichier absent n'a pas de signature : rien ne se garde de lui.
+    if !chemin.is_file() {
+        return Ok(None);
+    }
+    let illisible = |e: std::io::Error| format!("{} ne dit pas sa date : {}", repr(&chemin.display().to_string()), e);
+    let m = std::fs::metadata(chemin).map_err(illisible)?;
+    let d = m.modified().map_err(illisible)?.duration_since(std::time::UNIX_EPOCH).map_err(|e| {
+        format!("{} est daté d'avant 1970 ({} s) : régler la date du fichier.", repr(&chemin.display().to_string()), e.duration().as_secs())
+    })?;
+    Ok(Some((d.as_nanos(), m.len())))
 }
 
 type SignaturesDuCode = Option<(PathBuf, HashMap<PathBuf, Option<(u128, u64)>>)>;
@@ -363,147 +380,26 @@ impl Drop for CodeFige {
     }
 }
 
-type Cache = Mutex<HashMap<PathBuf, ((u128, u64), Arc<Value>)>>;
+/// Le cache d'une table livree lue par sa forme (`forme_en_cache`) : le chemin, sa signature, la table construite.
+pub type FormeGardee<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<T>)>>;
 
-/// Un fichier JSON lu une fois tant qu'il ne change pas (objet partage : on
-/// ne le modifie pas).
-pub fn json_en_cache(chemin: &Path) -> Resultat<Arc<Value>> {
-    json_en_cache_ou(chemin, lire_json)
-}
-
-/// `json_en_cache`, lu par `lire` quand il faut le lire : le refus d'un fichier illisible reste celui de l'appelant (sa
-/// classe, son message), et ne se garde jamais -- seul un JSON lu se garde, sous la signature du fichier (date, taille).
-/// `lire` doit noter sa lecture (`lire_texte`) ; servi du cache, le fichier se note ici (`noter_si_besoin`).
-pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Value, E>) -> Result<Arc<Value>, E> {
-    static CACHE: OnceLock<Cache> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let sig = signature(chemin);
-    if let Some(s) = sig {
-        if let Some((vue, v)) = cache.lock().unwrap().get(chemin) {
-            if *vue == s {
-                noter_si_besoin(chemin);
-                return Ok(v.clone());
-            }
+/// UNE TABLE LIVREE (`donnees/<nom>`), lue par sa forme `B` (`forme::lire_fichier`, `phrase` pour son refus) et
+/// construite par `construire` une fois tant que son fichier ne change pas (chemin, date, taille) ; servie du cache, elle
+/// se note quand meme au registre d'un calcul suivi. Un calcul la consulte a chaque champ : elle ne se relit pas a chaque
+/// fois.
+pub fn forme_en_cache<B: serde::de::DeserializeOwned, T>(cache: &'static OnceLock<FormeGardee<T>>, nom: &str, phrase: &str, construire: impl Fn(B) -> Resultat<T>) -> Resultat<Arc<T>> {
+    let chemin = dossier_du_code().join(nom);
+    let sig = signature(&chemin)?;
+    let cache = cache.get_or_init(|| Mutex::new(None));
+    if let Some((p, s, v)) = crate::memoire::tenu(cache).as_ref() {
+        if *p == chemin && sig.is_some() && *s == sig {
+            noter_si_besoin(&chemin);
+            return Ok(v.clone());
         }
     }
-    let v = Arc::new(lire(chemin)?);
-    if let Some(s) = sig {
-        cache.lock().unwrap().insert(chemin.to_path_buf(), (s, v.clone()));
-    }
+    let v = Arc::new(construire(crate::forme::lire_fichier(&chemin, phrase)?)?);
+    *crate::memoire::tenu(cache) = Some((chemin, sig, v.clone()));
     Ok(v)
-}
-
-type CacheDesContenus = Mutex<HashMap<PathBuf, (Arc<Vec<u8>>, Arc<Value>)>>;
-
-/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : hors d'un geste, le fichier se relit a chaque fois (ses octets), et ce
-/// qu'on en avait tire ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui
-/// l'a ecrit et quand (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse
-/// s'epargne. PENDANT UN GESTE (`geste`), il se lit une fois : la lecture du geste le garde, et ce que le geste ecrit
-/// (`ecriture::ecrire_json`) y prend sa place. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce
-/// qu'il lit (les engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux
-/// lectures du meme contenu rendent la meme valeur (`Arc::ptr_eq`).
-pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
-    static CACHE: OnceLock<CacheDesContenus> = OnceLock::new();
-    if let Some(v) = GESTE.with(|g| g.borrow().as_ref().and_then(|l| l.get(chemin).cloned())) {
-        return Ok(v);
-    }
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let octets = match std::fs::read(chemin) {
-        Ok(o) => o,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            garder_dans_le_geste(chemin, None);
-            return Ok(None);
-        }
-        Err(e) => return Err(panne_fichier(&e, chemin)),
-    };
-    let deja = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin).filter(|(vus, _)| **vus == octets).map(|(_, v)| v.clone());
-    let v = match deja {
-        Some(v) => v,
-        None => {
-            let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| crate::echec::du_disque(&chemin, &e))?);
-            ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
-            v
-        }
-    };
-    garder_dans_le_geste(chemin, Some(v.clone()));
-    Ok(Some(v))
-}
-
-thread_local! {
-    /// LA LECTURE DU GESTE EN COURS (`geste`) : chaque fichier que `json_partage` a servi, tel qu'il l'a lu ou tel que le
-    /// geste l'a ecrit (`None` : absent).
-    static GESTE: RefCell<Option<HashMap<PathBuf, Option<Arc<Value>>>>> = const { RefCell::new(None) };
-}
-
-fn garder_dans_le_geste(chemin: &Path, v: Option<Arc<Value>>) {
-    GESTE.with(|g| {
-        if let Some(l) = g.borrow_mut().as_mut() {
-            l.insert(chemin.to_path_buf(), v);
-        }
-    });
-}
-
-/// Ce que le geste vient d'ecrire dans `chemin` (`ecriture::ecrire_json`) : si le geste l'a lu, c'est ce qu'il a
-/// en main ; il ne relit pas ce qu'il a ecrit.
-pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
-    GESTE.with(|g| {
-        if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
-            l.insert(chemin.to_path_buf(), Some(Arc::new(v.clone())));
-        }
-    });
-}
-
-/// Le geste vient d'effacer `chemin` (`ecriture::effacer`) : s'il l'a lu, il ne l'a plus.
-pub(crate) fn efface_pendant_le_geste(chemin: &Path) {
-    GESTE.with(|g| {
-        if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
-            l.insert(chemin.to_path_buf(), None);
-        }
-    });
-}
-
-/// UN GESTE (une route, l'etat d'un mois refait) LIT UNE FOIS ce que la compagnie porte et que `json_partage` sert (les
-/// engagements, le journal de ce qui est parti) : rendu par `geste`, la lecture vit tant que son garde vit, et tombe
-/// avec lui ; un geste ouvert depuis un autre lit dans la lecture de celui-ci.
-pub struct Geste(bool);
-
-#[must_use = "la lecture du geste ne vit que tant que son garde vit"]
-pub fn geste() -> Geste {
-    Geste(GESTE.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.is_some() {
-            return false;
-        }
-        *g = Some(HashMap::new());
-        true
-    }))
-}
-
-impl Drop for Geste {
-    fn drop(&mut self) {
-        if self.0 {
-            GESTE.with(|g| *g.borrow_mut() = None);
-        }
-    }
-}
-
-/// Le JSON d'un fichier UTF-8, sans cache.
-pub fn lire_json(chemin: &Path) -> Resultat<Value> {
-    let texte = lire_texte(chemin)
-        .map_err(|e| crate::echec::du_disque(&chemin, &e))?;
-    serde_json::from_str(&texte).map_err(|e| crate::echec::du_disque(&chemin, &e))
-}
-
-/// Une valeur est-elle vraie ? Faux : `null`, `false`, zero, un texte, une liste ou un objet vides.
-pub fn vrai(v: &Value) -> bool {
-    match v {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64().map(|x| x != 0.0).unwrap_or(true),
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
-    }
 }
 
 /// Un texte cite dans un message : entre guillemets simples (doubles s'il porte une apostrophe et aucun guillemet),
@@ -553,19 +449,6 @@ pub fn imprimable(c: char) -> bool {
         || n & 0xfffe == 0xfffe)
 }
 
-/// Une valeur JSON citee dans un message (`None`, `True`, `12`, `'x'`).
-pub fn repr_valeur(v: &Value) -> String {
-    match v {
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
-        Value::String(s) => repr(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(repr_valeur).collect::<Vec<_>>().join(", ")),
-        Value::Object(o) => format!("{{{}}}", o.iter().map(|(k, v)| format!("{}: {}", repr(k), repr_valeur(v))).collect::<Vec<_>>().join(", ")),
-        autre => autre.to_string(),
-    }
-}
-
 // ------------------------------------------------ les refus d'une donnee lue
 //
 // Un fichier ou une demande dont un champ manque ou n'a pas la forme attendue :
@@ -576,7 +459,7 @@ pub fn absent(cle: &str) -> String {
     crate::echec::cle("Il manque une donnée attendue.", cle)
 }
 
-/// Une valeur JSON dite en francais, depuis son nom de type (`valeur::nom_type`).
+/// Une valeur dite en francais, depuis son nom de type (`NoneType`, `bool`, `int`, `float`, `str`, `list`, `dict`).
 pub fn nature(nom_type: &str) -> &'static str {
     match nom_type {
         "dict" => "un objet",
@@ -626,11 +509,6 @@ pub fn pas_une_paire(rang: usize, nom_type: &str) -> String {
     element(rang, &format!("une paire (clé, valeur) est attendue, lu : {}", nature(nom_type)))
 }
 
-/// « un texte ne se modifie pas par clé » : une valeur qui n'est ni un objet ni une liste, là où l'on écrit dedans.
-pub fn non_modifiable(nom_type: &str) -> String {
-    format!("{} ne se modifie pas par clé", nature(nom_type))
-}
-
 /// Un nombre que l'on voudrait entier et qui ne tient pas : infini, ou hors de ce qu'un entier porte.
 pub fn entier_hors_limites(n: &str) -> String {
     format!("nombre entier hors limites : {}", n)
@@ -664,15 +542,15 @@ pub const CONFIG: &str = "config";
 /// Le marqueur d'une compagnie qui n'est pas la vraie (une compagnie fictive, une copie de developpement).
 pub const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
 
-/// Le modele `nom` (gabarit de contrat, de DPAE, de certificat) : celui de la compagnie (`_gabarits` de sa fiche `ent`),
+/// Le modele `nom` (gabarit de contrat, de DPAE, de certificat) : celui de la compagnie (son dossier `gabarits`),
 /// a defaut celui du poste (`poste`), a defaut celui livre avec le logiciel (`donnees/modeles/`). Une compagnie qui
 /// ecrit ses propres clauses passe devant ; une copie de la configuration du poste sans son dossier de gabarits reste la
 /// meme compagnie et garde ceux du poste (son gabarit DPAE porte son centre de medecine du travail). Une compagnie qui
 /// porte `MARQUEUR_COPIE` n'emprunte rien au poste : ses documents ne prennent jamais les clauses de la compagnie reelle.
-pub fn modele_de(nom: &str, ent: &Value, poste: &Path) -> PathBuf {
-    let propre = match ent.get("_gabarits") {
-        Some(g) if vrai(g) => PathBuf::from(crate::date::en_texte(g)),
-        _ => poste.to_path_buf(),
+pub fn modele_de(nom: &str, gabarits: Option<&Path>, poste: &Path) -> PathBuf {
+    let propre = match gabarits {
+        Some(g) => g.to_path_buf(),
+        None => poste.to_path_buf(),
     };
     let copie = propre.parent().is_some_and(|p| p.join(MARQUEUR_COPIE).is_file());
     let dossiers: Vec<&Path> = if copie { vec![&propre] } else { vec![&propre, poste] };
@@ -703,14 +581,12 @@ pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", crate::echec::du_disque(&p, &e)))
 }
 
-/// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas).
-pub fn lire_json_echec(p: &Path) -> Result<Value, crate::echec::Echec> {
-    serde_json::from_str(&lire_texte_echec(p)?).map_err(|e| crate::echec::erreur("JSONDecodeError", e.to_string()))
-}
-
 /// Le nom d'un chemin, ou son texte entier s'il n'en a pas.
 pub fn nom_du(chemin: &std::path::Path) -> String {
-    chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| chemin.to_string_lossy().into_owned())
+    match chemin.file_name() {
+        Some(n) => n.to_string_lossy().into_owned(),
+        None => chemin.to_string_lossy().into_owned(),
+    }
 }
 
 #[cfg(test)]

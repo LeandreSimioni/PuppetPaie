@@ -16,9 +16,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-
-use serde_json::{Map, Value};
-
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::fichiers::{self, dossier_du_code};
@@ -34,23 +31,22 @@ pub const MOTEUR: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("ENGAGEMEN
 /// et celle du spectacle, telles qu'elles valent au dernier jour du mois (`Contexte::du_mois`). La fiche d'un autre
 /// salarie, une valeur datee apres le mois n'en sont pas : elles ne font pas recalculer cette paie.
 pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Option<&str>) -> Resultat<(String, String)> {
-    let cle = Value::Array(vec![mois.into(), salarie.into(), spectacle.map_or(Value::Null, Value::from)]);
+    let cle = socle::ecriture::json_en_ligne(&(mois, salarie, spectacle));
     Ok((format!("fiches {}", cle), empreinte_fiches(&ctx.du_mois(mois)?, salarie, spectacle)))
 }
 
 fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
-    let fiche = |m: &Map<String, Value>, k: Option<&str>| k.and_then(|k| m.get(k)).cloned().unwrap_or(Value::Null);
-    let v = Value::Array(vec![ctx.entreprise.clone(), droit::pas::sans_taux_recus(&fiche(&ctx.salaries, Some(salarie))), fiche(&ctx.spectacles, spectacle)]);
-    fichiers::sha256_hex(v.to_string().as_bytes())
+    // L'entreprise, la fiche au jour sans ses taux recus, et le spectacle, chacun dans l'ordre de sa forme
+    // (`droit::fiche`) ; ce qui manque s'ecrit `null`.
+    let sal = ctx.salaries.get(salarie).map(|f| droit::fiche::ChampsSalarie { taux_pas: None, ..f.champs.clone() });
+    let spec = spectacle.and_then(|k| ctx.spectacles.get(k));
+    fichiers::sha256_hex(socle::ecriture::json_en_ligne(&(&ctx.entreprise, &sal, &spec)).as_bytes())
 }
 
 /// L'entree `fiches [mois, salarie, spectacle]` tient-elle encore ?
-fn fiches_tiennent(ctx: &Contexte, cle: &str, v: &str) -> bool {
-    let Ok(Value::Array(c)) = serde_json::from_str::<Value>(cle) else { return false };
-    match (c.first().and_then(Value::as_str), c.get(1).and_then(Value::as_str)) {
-        (Some(mois), Some(salarie)) => fiches(ctx, mois, salarie, c.get(2).and_then(Value::as_str)).is_ok_and(|(_, e)| e == v),
-        _ => false,
-    }
+fn fiches_tiennent(ctx: &Contexte, cle: &str, v: &str) -> Resultat<bool> {
+    let (mois, salarie, spectacle) = socle::forme::lire_texte::<(String, String, Option<String>)>(cle, socle::echec::PAIE_ILLISIBLE)?;
+    Ok(fiches(ctx, &mois, &salarie, spectacle.as_deref())?.1 == v)
 }
 
 /// Une entree de fichier qui est la saisie d'un mois : elle se compte par la saisie (`stock::cle_de_saisie`), pas par
@@ -75,74 +71,79 @@ pub(crate) fn suivre<T>(ctx: &Contexte, f: impl FnOnce() -> Resultat<T>) -> Resu
 pub struct Relues(HashMap<(String, String), bool>);
 
 /// Les entrees valent-elles encore ce qu'elles valaient ? Chacune est relue sur le disque ; la saisie d'un mois se relit
-/// et se hache ; rien ne se calcule.
-pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Relues) -> bool {
-    entrees.iter().all(|(k, v)| {
-        if let Some(t) = relues.0.get(&(k.clone(), v.clone())) {
-            return *t;
+/// et se hache ; rien ne se calcule. Une entree qui ne se relit pas (une fiche, une paie, un imprevu illisibles) refuse,
+/// avec sa raison : rien ne dit qu'elle tient, ni qu'elle a change.
+pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Relues) -> Resultat<bool> {
+    for (k, v) in entrees {
+        let t = match relues.0.get(&(k.clone(), v.clone())) {
+            Some(t) => *t,
+            None => {
+                let t = entree_tient(ctx, k, v)?;
+                relues.0.insert((k.clone(), v.clone()), t);
+                t
+            }
+        };
+        if !t {
+            return Ok(false);
         }
-        let t = entree_tient(ctx, k, v);
-        relues.0.insert((k.clone(), v.clone()), t);
-        t
-    })
+    }
+    Ok(true)
 }
 
 /// Une decision de l'editeur rend-elle l'empreinte ecrite `ecrite` (d'une paie de `mois`) fausse ? Le code qui calcule
 /// a change (`MOTEUR`, ou un fichier livre avec le code), ou une regle datee s'applique au mois qu'elle n'avait pas.
 /// Rien ne se calcule.
-pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &Value, mois: &str, relues: &mut Relues) -> bool {
+pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &crate::paie_ecrite::Empreinte, mois: &str, relues: &mut Relues) -> Resultat<bool> {
     let code = |k: &str| k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"));
-    let entrees: BTreeMap<String, String> = entrees_de(ecrite).unwrap_or_default().into_iter().filter(|(k, _)| code(k)).collect();
-    if !tient(ctx, &entrees, relues) {
-        return true;
+    let entrees: BTreeMap<String, String> = ecrite.entrees.iter().filter(|(k, _)| code(k)).map(|(k, v)| (k.clone(), v.clone())).collect();
+    if !tient(ctx, &entrees, relues)? {
+        return Ok(true);
     }
-    let ecrites = regles_de(ecrite);
-    socle::date::dernier_du_mois(mois)
-        .ok()
-        .and_then(|fin| regles(ctx, &fin).ok())
-        .is_some_and(|r| r.iter().any(|x| !ecrites.contains(x)))
+    let fin = socle::mois::Mois::lire(mois)?.dernier_jour();
+    Ok(regles(ctx, &fin)?.iter().any(|x| !ecrite.regles.contains(x)))
 }
 
-fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
+fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> Resultat<bool> {
     let (racine, code) = (&ctx.racine, dossier_du_code());
-    match k {
-        "moteur" => v == MOTEUR,
-        k if k.starts_with("fiches ") => fiches_tiennent(ctx, &k["fiches ".len()..], v),
-        "date" => v == ctx.date.iso(),
-        "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
-        _ => {
-            // L'indemnite de mission d'un jour a l'etranger : la valeur prise, pas la table (`droit::missions`).
-            if let Some((code, jour)) = k.strip_prefix("mission ").and_then(|r| r.split_once(' ')) {
-                return Jour::lire(jour).ok().and_then(|j| droit::missions::du_jour(code, &j).ok()).is_some_and(|i| v == i.empreinte());
-            }
-            if k.starts_with("pas ") {
-                return droit::pas::empreinte(ctx, k).is_some_and(|e| v == e);
-            }
-            if let Some((mois, salarie)) = k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')) {
-                return crate::conges::empreinte_des_mensuels_d_avant(ctx, mois, salarie).is_some_and(|e| v == e);
-            }
-            if let Some((mois, salarie)) = k.strip_prefix("paies ").and_then(|r| r.split_once(' ')) {
-                return crate::etats::empreinte_des_paies_validees(ctx, mois, Some(salarie)).is_some_and(|e| v == e);
-            }
-            if let Some(salarie) = crate::imprevus::salarie_de_l_entree(k) {
-                return crate::imprevus::empreinte_du_salarie(racine, salarie).is_ok_and(|e| v == e);
-            }
-            if let Some(reste) = k.strip_prefix("saisie ") {
-                let (mois, salarie) = reste.split_once(' ').map_or((reste, None), |(m, s)| (m, Some(s)));
-                return stock::empreinte_de_la_saisie_du_mois(racine, mois, salarie).ok().flatten().is_some_and(|e| v == e);
-            }
-            match fichiers::chemin_de(k, racine, &code) {
-                Some((genre, p)) => match genre.as_str() {
-                    "fichier" => v == fichiers::empreinte_fichier(&p),
-                    "existe" => v == if p.exists() { "oui" } else { "non" },
-                    "dossier?" => v == if p.is_dir() { "oui" } else { "non" },
-                    "dossier" => v == fichiers::empreinte_dossier(&p),
-                    _ => false,
-                },
-                None => false,
-            }
-        }
+    if let Some(c) = k.strip_prefix("fiches ") {
+        return fiches_tiennent(ctx, c, v);
     }
+    match k {
+        "moteur" => return Ok(v == MOTEUR),
+        "date" => return Ok(v == ctx.date.iso()),
+        "aujourdhui" => return Ok(v == droit::contexte::aujourdhui_sans_note()?.iso()),
+        _ => {}
+    }
+    // L'indemnite de mission d'un jour a l'etranger : la valeur prise, pas la table (`droit::missions`).
+    if let Some((code, jour)) = k.strip_prefix("mission ").and_then(|r| r.split_once(' ')) {
+        return Ok(v == droit::missions::du_jour(code, &Jour::lire(jour)?)?.empreinte());
+    }
+    if k.starts_with("pas ") {
+        return Ok(droit::pas::empreinte(ctx, k)?.is_some_and(|e| v == e));
+    }
+    if let Some((mois, salarie)) = k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')) {
+        return Ok(v == crate::conges::empreinte_des_mensuels_d_avant(ctx, mois, salarie)?);
+    }
+    if let Some((mois, salarie)) = k.strip_prefix("paies ").and_then(|r| r.split_once(' ')) {
+        return Ok(v == crate::etats::empreinte_des_paies_validees(ctx, mois, Some(salarie))?);
+    }
+    if let Some(salarie) = crate::imprevus::salarie_de_l_entree(k) {
+        return Ok(v == crate::imprevus::empreinte_du_salarie(racine, salarie)?);
+    }
+    if let Some(reste) = k.strip_prefix("saisie ") {
+        let (mois, salarie) = match reste.split_once(' ') {
+            Some((m, s)) => (m, Some(s)),
+            None => (reste, None),
+        };
+        return Ok(stock::empreinte_de_la_saisie_du_mois(racine, mois, salarie)?.is_some_and(|e| v == e));
+    }
+    Ok(fichiers::chemin_de(k, racine, &code).is_some_and(|(genre, p)| match genre.as_str() {
+        "fichier" => v == fichiers::empreinte_fichier(&p),
+        "existe" => v == if p.exists() { "oui" } else { "non" },
+        "dossier?" => v == if p.is_dir() { "oui" } else { "non" },
+        "dossier" => v == fichiers::empreinte_dossier(&p),
+        _ => false,
+    }))
 }
 
 /// Les regles datees qui s'appliquent au jour `jour` (`Contexte::regles_datees`), en AAAA-MM-JJ.
@@ -158,25 +159,6 @@ pub fn configuration(ctx: &Contexte, jour: &Jour, salarie: &str, spectacle: Opti
 }
 
 /// L'empreinte telle qu'elle s'ecrit : les entrees, les regles datees, et les valeurs datees de la compagnie.
-pub fn en_json(entrees: &BTreeMap<String, String>, regles: &[String], configuration: &[String]) -> Value {
-    let mut m = Map::new();
-    m.insert("entrees".into(), Value::Object(entrees.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect()));
-    m.insert("regles".into(), Value::Array(regles.iter().cloned().map(Value::String).collect()));
-    m.insert("configuration".into(), Value::Array(configuration.iter().cloned().map(Value::String).collect()));
-    Value::Object(m)
-}
-
-/// Les valeurs datees de la compagnie d'une empreinte ecrite.
-pub fn configuration_de(v: &Value) -> Vec<String> {
-    v.get("configuration").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
-}
-
-/// Les entrees d'une empreinte ecrite ; `None` si elle ne se lit pas.
-pub fn entrees_de(v: &Value) -> Option<BTreeMap<String, String>> {
-    v.get("entrees")?.as_object()?.iter().map(|(k, x)| x.as_str().map(|s| (k.clone(), s.to_string()))).collect()
-}
-
-/// Les regles datees d'une empreinte ecrite.
-pub fn regles_de(v: &Value) -> Vec<String> {
-    v.get("regles").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+pub fn ecrite(entrees: &BTreeMap<String, String>, regles: &[String], configuration: &[String]) -> crate::paie_ecrite::Empreinte {
+    crate::paie_ecrite::Empreinte { entrees: entrees.clone(), regles: regles.to_vec(), configuration: configuration.to_vec() }
 }

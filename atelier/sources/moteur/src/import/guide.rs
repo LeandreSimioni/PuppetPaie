@@ -3,7 +3,7 @@
 //! (`importation-etat`, `guide`) ; chaque phrase dit ce que le code de l'import lit, et rien d'autre :
 //! - les bulletins : `bulletin_lu` (`Entreprise`, `Salarie`, `BulletinLu`), et la fiche que `bulletins` en tire
 //!   (`fiche_entreprise`, `statut_et_metier`) ;
-//! - les DSN : `dsn_aem::lire_une_dsn` (`ENTREPRISE`, `IDENTITE`, `EMPLOI`, `VERSEMENT`, le bloc 20, la licence 40.049,
+//! - les DSN : `declarations::dsn_lue::lire` (`DsnLue` : `EntrepriseDeclaree`, `IndividuDeclare`, `ContratDeclare`, `VersementLu`, le bloc 20, la licence 40.049,
 //!   le numero d'adherent Conges Spectacles 40.022, le contact S20.G00.07) et `parametrage` (le code risque 40.040, les
 //!   adhesions S21.G00.15) ;
 //! - les certificats Congés Spectacles : `certificat_lu` (`Certificat`), et ce que `bulletins` en tire
@@ -18,32 +18,48 @@
 
 use std::path::Path;
 
-use serde_json::{json, Value};
+/// Le guide, tel que la page le montre.
+#[derive(Debug, serde::Serialize)]
+pub struct Guide {
+    pub a_quoi_sert: &'static [&'static str],
+    pub accepte: &'static str,
+    pub pieces: Vec<Piece>,
+    pub reste: &'static str,
+    pub rien_n_est_perdu: &'static str,
+}
+
+/// Une sorte de piece : ce que c'est, ou la trouver, ce qui s'en lit.
+#[derive(Debug, serde::Serialize)]
+pub struct Piece {
+    pub quoi: &'static str,
+    pub ou: &'static str,
+    pub lu: &'static [&'static str],
+}
 
 /// Le guide, tel que la page le montre.
-pub fn guide() -> Value {
-    json!({
-        "a_quoi_sert": [
+pub fn guide() -> Guide {
+    Guide {
+        a_quoi_sert: &[
             "Les bulletins de paie complets suffisent : ils recréent votre historique dans le logiciel.",
             "Une AEM ou une AER Cinéma Spectacle remplace un bulletin qui manque.",
             "Au moins une DSN déposée pré-remplit la configuration de la compagnie.",
         ],
-        "accepte": crate::import::tri::ACCEPTE,
-        "pieces": [
-            {
-                "quoi": "Les bulletins de paie, en PDF",
-                "ou": "Ceux que votre ancien logiciel imprime ou exporte : un bulletin par fichier, ou plusieurs dans un même fichier. Pas une photo ni un scan : le logiciel lit le texte du PDF.",
-                "lu": [
+        accepte: crate::import::tri::ACCEPTE,
+        pieces: vec![
+            Piece {
+                quoi: "Les bulletins de paie, en PDF",
+                ou: "Ceux que votre ancien logiciel imprime ou exporte : un bulletin par fichier, ou plusieurs dans un même fichier. Pas une photo ni un scan : le logiciel lit le texte du PDF.",
+                lu: &[
                     "la compagnie : son nom, son adresse, son Siret, son code APE, sa convention collective ; son compte Urssaf et sa licence quand le bulletin les imprime",
                     "chaque salarié : nom, prénom, adresse, numéro de sécurité sociale, emploi, artiste ou non, cadre ou non, numéro Congés Spectacles ; sa date de naissance quand le bulletin l'imprime",
                     "chaque spectacle : son numéro d'objet et son titre",
                     "chaque paie : les jours travaillés, les cachets ou les heures, le brut, les cotisations, le net et l'impôt prélevé ; le bulletin lui-même se garde, et se rouvre depuis l'Historique",
                 ],
             },
-            {
-                "quoi": "Les DSN déposées",
-                "ou": "Les fichiers que votre ancien logiciel a déposés chaque mois sur net-entreprises, s'il vous les a laissés. Mettez-les avec les bulletins : ils portent ce que les bulletins n'impriment pas toujours (le compte bancaire, le numéro Congés Spectacles, la licence, le contact des organismes, le code risque des accidents du travail, les contrats de prévoyance).",
-                "lu": [
+            Piece {
+                quoi: "Les DSN déposées",
+                ou: "Les fichiers que votre ancien logiciel a déposés chaque mois sur net-entreprises, s'il vous les a laissés. Mettez-les avec les bulletins : ils portent ce que les bulletins n'impriment pas toujours (le compte bancaire, le numéro Congés Spectacles, la licence, le contact des organismes, le code risque des accidents du travail, les contrats de prévoyance).",
+                lu: &[
                     "la compagnie : son Siret, son adresse, son code APE, sa convention, sa licence, son numéro d'adhérent Congés Spectacles, le compte qui paie les cotisations, la personne que les organismes contactent",
                     "ses accidents du travail : le code risque et le taux de chaque année déclarée",
                     "ses organismes et ses contrats de prévoyance et de santé",
@@ -52,47 +68,47 @@ pub fn guide() -> Value {
                     "chaque mois : ce qui a été versé et déclaré",
                 ],
             },
-            {
-                "quoi": "Les certificats d'emploi Congés Spectacles, en PDF",
-                "ou": "Ceux que votre ancien logiciel a édités pour chaque intermittent, à la mise en page d'Audiens. Avec les bulletins, ils complètent sans rien reprendre deux fois ; seuls, ils suffisent à créer les intermittents et leurs contrats.",
-                "lu": [
+            Piece {
+                quoi: "Les certificats d'emploi Congés Spectacles, en PDF",
+                ou: "Ceux que votre ancien logiciel a édités pour chaque intermittent, à la mise en page d'Audiens. Avec les bulletins, ils complètent sans rien reprendre deux fois ; seuls, ils suffisent à créer les intermittents et leurs contrats.",
+                lu: &[
                     "la compagnie : son Siret, son nom, son numéro d'adhérent Congés Spectacles",
                     "chaque salarié : nom, prénom, adresse, numéro de sécurité sociale, emploi, cadre ou non",
                     "chaque contrat : ses dates, ses cachets (un artiste) ou ses jours (un technicien), son salaire brut arrondi à l'euro",
                 ],
             },
-            {
-                "quoi": "Les attestations employeur (AEM)",
-                "ou": "Les fichiers d'attestations envoyés à France Travail pour les intermittents.",
-                "lu": ["chaque contrat d'intermittent : ses dates, ses cachets ou ses heures, son salaire, son numéro d'objet"],
+            Piece {
+                quoi: "Les attestations employeur (AEM)",
+                ou: "Les fichiers d'attestations envoyés à France Travail pour les intermittents.",
+                lu: &["chaque contrat d'intermittent : ses dates, ses cachets ou ses heures, son salaire, son numéro d'objet"],
             },
-            {
-                "quoi": "Les attestations employeur (AEM), en PDF",
-                "ou": "Celles que votre ancien logiciel a éditées et remises à chaque intermittent, une par mois. Avec les bulletins, elles complètent sans rien reprendre deux fois ; seules, elles suffisent à créer les intermittents et leurs contrats. Un formulaire rempli à la main dont le texte ne se lit pas est dit tel quel : déposez alors le bulletin ou le certificat du même mois.",
-                "lu": [
+            Piece {
+                quoi: "Les attestations employeur (AEM), en PDF",
+                ou: "Celles que votre ancien logiciel a éditées et remises à chaque intermittent, une par mois. Avec les bulletins, elles complètent sans rien reprendre deux fois ; seules, elles suffisent à créer les intermittents et leurs contrats. Un formulaire rempli à la main dont le texte ne se lit pas est dit tel quel : déposez alors le bulletin ou le certificat du même mois.",
+                lu: &[
                     "la compagnie : son Siret, son nom, son code APE, sa convention, sa commune, son numéro d'adhérent Congés Spectacles",
                     "chaque salarié : nom, prénom, date de naissance, adresse, numéro de sécurité sociale, emploi, artiste ou technicien, cadre ou non",
                     "chaque contrat : ses dates dans le mois, ses heures, ses cachets, ses jours, son salaire brut, son numéro d'objet",
                 ],
             },
-            {
-                "quoi": "Les AER Cinéma Spectacle, en PDF",
-                "ou": "Les attestations que France Travail a éditées depuis vos DSN, telles que vous les avez reçues. Comme une AEM, chacune remplace un bulletin qui manque, sans rien reprendre deux fois.",
-                "lu": [
+            Piece {
+                quoi: "Les AER Cinéma Spectacle, en PDF",
+                ou: "Les attestations que France Travail a éditées depuis vos DSN, telles que vous les avez reçues. Comme une AEM, chacune remplace un bulletin qui manque, sans rien reprendre deux fois.",
+                lu: &[
                     "la compagnie : son Siret, son nom, son code APE, sa convention, sa commune",
                     "chaque salarié : nom, prénom, date de naissance, adresse, numéro de sécurité sociale, emploi",
                     "chaque période d'emploi : ses dates, ses heures, ses cachets, son salaire brut, le numéro d'objet de son contrat",
                 ],
             },
-            {
-                "quoi": "Une archive zip",
-                "ou": "Telle que vous l'avez reçue : elle s'ouvre et son contenu se lit comme le reste.",
-                "lu": [],
+            Piece {
+                quoi: "Une archive zip",
+                ou: "Telle que vous l'avez reçue : elle s'ouvre et son contenu se lit comme le reste.",
+                lu: &[],
             },
         ],
-        "reste": "Ce qu'aucune pièce ne porte se demande ensuite, une fois, avec l'endroit où le trouver : par exemple qui signe les contrats, la date de la première embauche de la compagnie, ou, pour un salarié payé au mois, si son contrat est un CDI ou un CDD, ce qu'un bulletin n'imprime pas.",
-        "rien_n_est_perdu": "Un document que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste, et l'import se rejoue sans rien effacer ni doubler. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
-    })
+        reste: "Ce qu'aucune pièce ne porte se demande ensuite, une fois, avec l'endroit où le trouver : par exemple qui signe les contrats, la date de la première embauche de la compagnie, ou, pour un salarié payé au mois, si son contrat est un CDI ou un CDD, ce qu'un bulletin n'imprime pas.",
+        rien_n_est_perdu: "Un document que le logiciel ne sait pas lire est dit, avec sa raison ; il ne change rien au reste, et l'import se rejoue sans rien effacer ni doubler. Les noms des fichiers ne comptent pas : le logiciel lit leur contenu.",
+    }
 }
 
 /// LA COMPAGNIE COMMENCE PAR L'IMPORT : elle est venue par « d'un logiciel precedent » (`compagnies::Venue`) et rien

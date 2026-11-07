@@ -986,7 +986,7 @@ cahier technique en PDF → `usages-dsn-*.json`, `formats-dsn-*.json`), `urssaf`
 (la Table des Urssaf, la liste des sites, le COG 2015 →
 `urssaf-dpae-base.json`). Les sources, puis la sortie, se nomment toujours ;
 une sortie qui existe ne se remplace qu'avec `--remplacer`, et rien ne s'écrit
-avant que le relevé soit fait. Le `_source` du JSON nomme la commande, les
+avant que le relevé soit fait. La `note` du JSON nomme la commande, les
 fichiers déposés et le jour du relevé. Par exemple :
 `moteur extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer`
 (les commandes de chaque table sont dans `atelier/reference/norme-dsn/LISEZMOI.md`

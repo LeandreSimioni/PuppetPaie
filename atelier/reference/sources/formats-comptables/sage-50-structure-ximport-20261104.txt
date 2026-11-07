@@ -1,0 +1,218 @@
+                                    (/p      / /    g     j p
+       |            redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_
+   Français           S'abonner
+                    redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_
+    Rechercher
+
+
+
+
+           Retour
+
+
+
+
+Comprendre la structure du fichier d'import XImport
+Créé le 30 avril 2021 | Dernière modification le 13 juin 2026
+
+
+ PDF          Imprimer    Copier dans le presse-papier
+
+
+
+
+    RÉSUMÉ
+    Cet article décrit la structure du fichier Ximport ainsi que la procédure d’export des écritures au format XImport dans Sage 50.
+
+
+
+    Résolution
+    Structure du fichier XImport
+    Le fichier XIMPORT.TXT est un fichier de type sans délimiteur fixe (SDF). La taille d’un enregistrement ne dépasser 137 caractères.
+    Le séparateur décimal est une virgule.
+    Les données numériques sont alignées à droite, les autres données à gauche.
+       ▼ Consultez la structure du fichier
+                       Titre                     Nombre De Caractères                   Type
+    N° de Mouvement                                      5 caractères    Numérique
+    Journal                                              2 caractères    Alphanumérique
+    Date d’écriture                                      8 caractères    Date (AAAAMMJJ)
+    Date d’échéance                                      8 caractères    Date (AAAAMMJJ)
+    N° de pièce                                         12 caractères    Alphanumérique
+    Compte                                              11 caractères    Alphanumérique
+    Libellé                                             25 caractères    Alphanumérique
+    Montant                                             13 caractères    (2 déc.) Numérique
+    Crédit-Débit                                         1 caractère     (D ou C)
+    N° de pointage                                      12 caractères    Alphanumérique
+    Code analyt./budgét.                                 6 caractères    Alphanumérique
+    Libellé du compte                                   34 caractères    Alphanumérique
+    Euro                                                 1 caractère     Alphanumérique
+       Avec en plus pour le format Ciel
+       2003 :
+                                                         4 caractères    Alphanumérique
+       Version
+
+
+
+
+    Procédure de génération d'un fichier au format XImport
+
+    Étape 1 : Configuration de la préférence d'export au format Ximport
+
+        1. Allez dans le menu Dossier > Options > Préférences.
+   2. Déployez le dossier Liaison comptable.
+
+   3. Double-cliquez sur Génération des écritures. La fenêtre Génération des écritures s'affiche.
+
+   4. Dans l'onglet Destination du transfert, sélectionnez Fichier au format Ximport.
+
+   5. Dans la zone Chemin d'accès, sélectionnez l'emplacement où enregistrer le fichier XImport.TXT .
+
+
+             REMARQUE :
+             Si le chemin est vide le fichier sera généré par défaut sur le bureau.
+
+
+
+   6. Cliquez sur OK.
+
+
+
+Étape 2 : Export des écritures
+
+   1. Cliquez sur le menu Échanges > Exporter des écritures.
+
+   2. Sélectionnez le format CIEL et cliquez sur OK.
+
+   3. Sélectionnez la période souhaitée et le type d'écritures à exporter (validées, en brouillard, en simulation).
+
+   4. Cliquez sur OK.
+
+   5. Dans la fenêtre qui s'affiche, cliquez sur Continuer.
+
+   6. Si l'option Voir les écritures avant transfert est cochée, la fenêtre Écritures à transférer s'affiche.
+
+   7. Cliquez sur Continuer.
+
+
+Le fichier des écritures comptables au format Ximport est généré.
+
+
+
+
+                Et si une offre plus complète faisait vraiment la différence ?
+
+
+                Version Sérénity, solution Hébergée ou Pass Facture Électronique pour l'accompagnement de mise en
+                conformité à la réforme : un conseiller vous accompagne pour identifier l’offre la plus adaptée à vos enjeux.
+                En savoir plus (https://bupme.sage.com.dl1.ipercast.net/formation/CataloguesFormations/2-
+                %20CATALOGUE%20SERVICES%20-%20Contenu%20Clients.pdf)
+
+
+                   Complétez le formulaire (https://www.sage.com/fr-fr/cp/sage50-aller-plus-loin/)
+
+
+
+
+Solutions connexes
+Modifier la structure d'exportation XImport en indiquant 3 caractères sur le code journal
+   Est-ce que cela a aidé?
+
+        Oui                 Non
+
+     3096 views           2 voté oui
+
+
+
+
+mots clés: écriture comptables importer exporter exportation ascii                 Publié le: 30 avril 2021
+raexternalrequest
+                                                                                   S'applique à: Catégorie de cas > Comment faire > un import / export
+Produit: Ciel                                                                      Modules de produits > Ciel > Comptabilité 'R'
+Sage 50                                                                            Modules de produits > Ciel > Gestion Intégrale
+                                                                                   Modules de produits > Sage 50 > Comptabilité
+ID de la solution: …
+
+
+
+
+                                                                           (http://www.sage.com)
+
+
+
+
+                               (https://www.facebook.com/SageFrance)               (https://www.instagram.com/sageofficial/)
+
+
+
+                              (https://www.linkedin.com/company/sage-software/)                (https://twitter.com/SageFrance)
+
+
+                                                      (https://www.youtube.com/user/Sageenfrance)
+
+
+
+
+      SERVICES ET ASSISTANCE                           PARTENAIRES                                        ENTREPRISE
+
+
+      Assistance (https://www.sage.com/fr-             Nos opportunités de partenariat                    À propos de Sage (https://www.sage.com/fr-fr/a-
+      fr/assistance-support/)                          (https://www.sage.com/fr-fr/partenaires/)          propos/)
+
+
+      Blog (https://www.sage.com/fr-fr/blog/)          ISV éditeurs et alliances                          Contactez-nous (https://www.sage.com/fr-fr/a-
+                                                       (https://www.sage.com/fr-fr/partenaires/isv-       propos/contact/)
+
+      Espace Client My Sage                            developpeurs/)
+      (https://my.sage.fr/Account/Login)                                                                  Réseaux sociaux (https://www.sage.com/fr-
+                                                       Nous rejoindre (https://www.sage.com/fr-           fr/social/)
+      Sage University (http://www.sageu.com/france/)   fr/partenaires/nous-rejoindre/)
+                                                                                                          Carrières (https://www.sage.com/fr-
+
+      Forums de la communauté                          Revendeurs (https://www.sage.com/fr-               fr/societe/carrieres/trouver-un-emploi/)
+      (https://sagecity.com/fr)                        fr/partenaires/revendeurs/)
+                                                                                                          Actualité (https://www.sage.com/fr-
+      Espace Client Sage Experts-comptables            Intégrateurs (https://www.sage.com/fr-             fr/actualites/)
+      (https://experts-                                fr/partenaires/integrateurs/)
+
+      comptables.sage.fr/authentification)                                                                Événements Sage (https://www.sage.com/fr-
+                                                       Éducation (https://www.sage.com/fr-                fr/societe/evenements/)
+      Partner Hub (https://www.sage-partner-           fr/partenaires/education/)
+
+      hub.com                                                                      Investisseurs (https://www.sage.com/investors/)
+                                                       Sage Marketplace (https://fr-
+
+      Boutique Partenaire (https://store.sage.fr/)     marketplace.sage.com/fr-fr/home)                   Sage Foundation (https://www.sage.com/fr-
+                                                                                                          fr/societe/sage-foundation/)
+
+      Programme d'affiliation de Sage
+      (https://www.sage.com/fr-fr/assistance-                                                             Coronavirus (COVID-19)
+      support/programme-affiliation/)                                                                     (https://www.sage.com/fr-fr/coronavirus/)
+                                                                                                                           Sage Champions (https://www.sage.com/fr-
+                                                                                                                           fr/sage-champions/)
+
+
+
+      FAQs
+
+
+      Conseils pour la recherche
+     
+
+
+      Voir toutes les FAQ
+     
+
+
+
+
+            France | Français 
+
+
+
+
+                                          © Sage France 2021 2026.       Informations légales (https://www.sage.com/fr-fr/informations-legales/)
+
+Protection de la vie privée et cookies (https://www.sage.com/fr-fr/informations-legales/protection-vie-privee-cookies/)     RGPD (https://www.sage.com/fr-fr/informations-legales/rgpd/)
+
+                                                                     Plan du site (https://www.sage.com/fr-fr/sitemap/)
+

@@ -10,6 +10,15 @@
 
 use crate::date::Jour;
 
+/// Le jour d'un jour unix ; hors du calendrier (annees 1 a 9999), l'epoque unix, le 01/01/1970 : une horloge qui en
+/// sort n'a pas de date a dire.
+fn jour_unix(jours: i64) -> Jour {
+    match Jour::depuis_jours_unix(jours) {
+        Some(j) => j,
+        None => Jour { an: 1970, mois: 1, jour: 1 },
+    }
+}
+
 /// Le jour unix (nombre de jours depuis le 01/01/1970) du dernier dimanche du
 /// mois `mois` de l'annee `an`.
 fn dernier_dimanche(an: i32, mois: u32) -> i64 {
@@ -22,7 +31,7 @@ fn dernier_dimanche(an: i32, mois: u32) -> i64 {
 /// Le decalage de Paris sur UTC, en secondes, a cet instant (secondes unix).
 pub fn decalage(t: i64) -> i64 {
     let jours = t.div_euclid(86_400);
-    let an = Jour::depuis_jours_unix(jours).map_or(1970, |j| j.an);
+    let an = jour_unix(jours).an;
     let debut = dernier_dimanche(an, 3) * 86_400 + 3_600;
     let fin = dernier_dimanche(an, 10) * 86_400 + 3_600;
     if t >= debut && t < fin {
@@ -37,7 +46,7 @@ pub fn iso_secondes(t: f64) -> String {
     let (local, _) = local_de(t);
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = Jour::depuis_jours_unix(jours).unwrap_or(Jour { an: 1970, mois: 1, jour: 1 });
+    let j = jour_unix(jours);
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
 }
 
@@ -76,8 +85,8 @@ pub fn iso_minutes(t: f64) -> String {
     let local = utc + decalage(utc);
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = Jour::depuis_jours_unix(jours).unwrap_or(Jour { an: 1970, mois: 1, jour: 1 });
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60)
+    let j = jour_unix(jours);
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}",j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60)
 }
 
 /// La date de modification d'un fichier : les secondes et la fraction
@@ -91,14 +100,24 @@ pub fn mtime(m: &std::fs::Metadata) -> f64 {
 
 #[cfg(not(unix))]
 pub fn mtime(m: &std::fs::Metadata) -> f64 {
-    let d = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).unwrap_or_default();
-    d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9
+    // Windows date tout fichier (`ftLastWriteTime`) ; une date d'avant 1970 compte en secondes negatives, comme `mtime` de
+    // Unix.
+    let date = match m.modified() {
+        Ok(t) => t,
+        Err(e) => unreachable!("Windows date tout fichier : {}", e),
+    };
+    match date.duration_since(std::time::UNIX_EPOCH) {
+        Ok(d) => d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+        Err(avant_1970) => -avant_1970.duration().as_secs_f64(),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Directive 2000/84/CE, art. 2 : « la période de l'heure d'été commence […] à 1 heure du matin, temps universel, le
+    /// dernier dimanche de mars » (`atelier/reference/sources/union-europeenne/eurlex-directive-2000-84-ce-heure-d-ete-20010202.txt`).
     #[test]
     fn l_heure_d_ete_commence_le_dernier_dimanche_de_mars_a_1_h_utc() {
         // 2026 : dimanche 29 mars. 00:59:59 UTC encore l'hiver, 01:00:00 l'ete.
@@ -109,6 +128,8 @@ mod tests {
         assert_eq!(iso_minutes((t * 86_400 + 3_600) as f64), "2026-03-29T03:00");
     }
 
+    /// Directive 2000/84/CE, art. 3 : la période « se termine […] à 1 heure du matin, temps universel, le dernier dimanche
+    /// d'octobre » (même fichier).
     #[test]
     fn l_heure_d_ete_finit_le_dernier_dimanche_d_octobre_a_1_h_utc() {
         // 2026 : dimanche 25 octobre.
@@ -138,7 +159,7 @@ pub fn maintenant_naif() -> i64 {
 pub fn iso_de_naif(local: i64) -> String {
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = Jour::depuis_jours_unix(jours).unwrap_or(Jour { an: 1970, mois: 1, jour: 1 });
+    let j = jour_unix(jours);
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
 }
 
@@ -147,7 +168,8 @@ pub fn naif_de_iso(iso: &str) -> Option<i64> {
     let c: Vec<char> = iso.chars().collect();
     let n = |a: usize, b: usize| -> Option<i64> {
         let t: String = c.get(a..b)?.iter().collect();
-        t.chars().all(|x| x.is_ascii_digit()).then(|| t.parse().ok()).flatten()
+        // Des chiffres seuls, au plus quatre : leur valeur se compte, sans lecture qui puisse echouer.
+        t.chars().all(|x| x.is_ascii_digit()).then(|| t.bytes().fold(0i64, |n, x| n * 10 + i64::from(x - b'0')))
     };
     let jour = Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
     let jours = jour.ordinal() - 719_163;

@@ -104,7 +104,7 @@ impl Soir<'_> {
     /// Le bloc de l'individu `nom` dans la DSN mensuelle de `mois` (`sorties/<mois>/DSN_<Mois><Annee>.dsn`) : (rubrique,
     /// valeur), dans l'ordre ; vide si elle n'est pas encore fabriquee.
     pub fn bloc_dsn(&self, mois: &str, nom: &str) -> Vec<(String, String)> {
-        let f = self.racine.join("sorties").join(mois).join(format!("DSN_{}.dsn", socle::date::etiquette_du_mois(mois).unwrap()));
+        let f = self.racine.join("sorties").join(mois).join(format!("DSN_{}.dsn", socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).unwrap()));
         let Ok(octets) = std::fs::read(&f) else { return Vec::new() };
         super::individu(&octets.iter().map(|&o| o as char).collect::<String>(), nom)
     }
@@ -212,10 +212,10 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
     let mut paies = Map::new();
     let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     for mois in engagement::stock::mois_saisis(&racine).unwrap() {
-        let calcul = engagement::vue_requise(&racine, &mois)
+        let calcul = engagement::vue_requise(&racine, &mois.to_string())
             .and_then(|d| engagement::pour_l_ecran(&ctx, &d))
             .and_then(|s| s.paies.iter().map(|p| p.canon(&ctx)).collect::<Result<Vec<_>, _>>())
-            .map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |v| json!({"paies": v}));
+            .map_or_else(|m| json!({"refus": socle::echec::phrase_de(&m)}), |v| json!({"paies": v}));
         paies.insert(mois.to_string(), masquer(calcul, &r));
     }
     json!({"paies": paies, "fichiers": par_fichier, "copies_avant": avant})

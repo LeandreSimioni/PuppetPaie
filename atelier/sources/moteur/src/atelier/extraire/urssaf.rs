@@ -308,19 +308,19 @@ pub fn relever(table: &Path, sites: &Path, cog: &Path, jour: &Jour) -> Resultat<
     let departements = par_departement(cog, &regions, &codes)?;
     let bilan = vec![format!("{} organismes, {} departements", organismes.len(), departements.len())];
     let donnees = json!({
-        "_quoi": "Les organismes de recouvrement et leur code a trois chiffres, tel que la DPAE l'attend en C_URSSAF \
+        "quoi": "Les organismes de recouvrement et leur code a trois chiffres, tel que la DPAE l'attend en C_URSSAF \
                   (positions 133-136, annexe II.1 de la norme), et le departement dont chacun releve.",
-        "_source": format!(
+        "note": format!(
             "Trois sources relevees et datees -- `moteur sources` : urssaf-table-des-urssaf (les codes, {}), \
              urssaf-liste-des-sites (region -> code, {}), insee-cog-2015-departements (departement -> ancienne region, {}), \
-             deposees dans atelier/reference/sources/. Extrait par `moteur extraire urssaf` le {} ; ne pas editer a la main.",
+             deposees dans atelier/reference/sources/. Extrait par `moteur extraire urssaf` le {} ; ne pas editer a la main. \
+             Le rattachement d'une entreprise a une Urssaf est un fait ADMINISTRATIF, \
+             pas une consequence de son adresse : versement en lieu unique, pole grandes entreprises, GUSO. Cette table dit \
+             l'organisme du territoire, ce qui est le cas ordinaire ; l'ecran la propose, il ne l'impose pas, et la valeur \
+             de la fiche gagne toujours. \
+             Par defaut : 117 -- Urssaf Ile-de-France, la valeur du gabarit quand ni la fiche ni le departement ne disent rien.",
             nom_de(table), nom_de(sites), nom_de(cog), date_du_releve(jour)
         ),
-        "_par_departement_est_une_suggestion": "Le rattachement d'une entreprise a une Urssaf est un fait ADMINISTRATIF, \
-            pas une consequence de son adresse : versement en lieu unique, pole grandes entreprises, GUSO. Cette table dit \
-            l'organisme du territoire, ce qui est le cas ordinaire ; l'ecran la propose, il ne l'impose pas, et la valeur \
-            de la fiche gagne toujours.",
-        "_defaut": "117 -- Urssaf Ile-de-France, la valeur du gabarit quand ni la fiche ni le departement ne disent rien.",
         "organismes": organismes,
         "par_ancienne_region": regions,
         "par_departement": departements,

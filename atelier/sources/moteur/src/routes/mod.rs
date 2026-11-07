@@ -11,7 +11,7 @@
 //! « Un probleme, une idee ? » (`filet`), l'accueil des compagnies (`accueil` : les routes de l'installation), et les lectures que les ecrans partagent (`ouverture`). Chacun dit ses routes et
 //! leurs fiches (`ROUTES`, `catalogue::FICHES`), comme les modules des obligations,
 //! des conseils et de l'ouverture ; l'aiguillage ne fait rien d'autre que les servir (et l'horloge
-//! du banc, hors catalogue). Ce que les routes partagent (lire un fichier, le salarie d'une charge, `qui_de`) est ici.
+//! du banc, hors catalogue). Ce que les routes partagent (lire un fichier, le salarie d'une charge, `INTERFACE`) est ici.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -20,16 +20,18 @@ use serde_json::{json, Map, Value};
 
 use socle::date::repr_texte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
+use ::documents::valeur::vrai;
 use droit::contexte::Contexte;
 use socle::num::Resultat;
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
+use ::documents::valeur::{valeur_ecrite, valeur_en_texte};
 use crate::service::contexte;
+use catalogue::Route;
 
 
 pub mod ouverture;
 pub mod depots;
 pub mod archives;
+pub mod libelles_courts;
 pub mod historique;
 pub mod documents;
 pub mod dossier_salarie;
@@ -53,9 +55,6 @@ pub mod accueil;
 pub mod catalogue;
 pub mod affiche;
 
-/// Supprimer la compagnie : avertir, puis effacer (`interface::suppression::route`).
-pub const COMPAGNIE_SUPPRIMER: &str = "compagnie-supprimer";
-
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `moteur route` sous Linux (un
 /// fil neuf n'en a que 2). Un calcul qui remonte les mois d'avant s'y empile ; un debordement de pile ne se rattrape pas
 /// (`catch_unwind` n'y peut rien), il fermerait la fenetre.
@@ -69,9 +68,6 @@ pub fn fil_de_routes<F: FnOnce() + Send + 'static>(f: F) {
     }
 }
 
-/// La route d'essai qui tombe (`commande`, en essai seulement).
-pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
-
 /// Le fil remis propre apres une route servie dans la fenetre (`dans_la_fenetre`, `etat_garde::FileDesEtats`) : plus
 /// de mot de passe tape, les nombres a leur ecriture normale, aucun registre de lectures ouvert.
 pub(crate) fn remettre_le_fil() {
@@ -82,20 +78,18 @@ pub(crate) fn remettre_le_fil() {
 
 /// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL. La fenetre sert ses routes dans son
 /// processus (`interface::api::route`, la file des etats), et le fil d'une connexion en sert d'autres ensuite. Cette
-/// fonction fait la route (`commande`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel` et le
-/// fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` : il ne
-/// survit jamais a sa route), les nombres a leur ecriture normale (`num::ECHELLE_GARDEE`), le registre des lectures
+/// fonction fait la route (`servir_la_route`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel`
+/// et le fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` :
+/// il ne survit jamais a sa route), les nombres a leur ecriture normale (`num::ECHELLE_GARDEE`), le registre des lectures
 /// qu'un calcul aurait laisse ouvert en tombant ferme (`fichiers::suivre`).
 ///
 /// `moteur route` et la ligne de commande (`commandes::Cadre`) appellent `commande` directement : le processus meurt avec
 /// sa commande, et le mot de passe qu'elle a fait taper (`demande::autoriser_acte`) sert a toute la commande.
-pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value) -> Value {
-    let entree = json!({"route": route, "charge": charge}).to_string();
-    let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| commande(o, &entree)));
+pub fn dans_la_fenetre(o: &HashMap<String, String>, route: Route, charge: &Value) -> Value {
+    let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| servir_la_route(o, route, charge)));
     remettre_le_fil();
     match rendu {
-        Ok(Ok(rep)) => rep,
-        Ok(Err(m)) => json!({"ok": false, "erreur": m}),
+        Ok(rep) => rep,
         Err(panique) => {
             let pourquoi = panique
                 .downcast_ref::<&str>()
@@ -107,17 +101,36 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
     }
 }
 
-/// `moteur route [--racine R] [--date D]`.
+/// `moteur route [--racine R] [--date D]` : la demande `{"route", "charge"}` lue (la route une fois, par son nom :
+/// `Route::lire`), puis servie.
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
+    Ok(match lire_la_demande(entree) {
+        Ok((route, charge)) => servir_la_route(o, route, &charge),
+        Err(e) => reponse(crate::service::compagnie_nommee(o).then(|| crate::service::racine_de(o)).as_deref(), "", Err(e)),
+    })
+}
+
+/// La route et la charge d'une demande ; un refus si elle ne se lit pas, ne nomme pas sa route, ou en nomme une qui
+/// n'existe pas.
+fn lire_la_demande(entree: &str) -> Result<(Route, Value), Echec> {
+    let d: Value = serde_json::from_str(entree)
+        .map_err(|e| Echec::from(socle::echec::avec("La demande ne se lit pas : ce n'est pas du JSON.", json!({"detail": e.to_string()}))))?;
+    let nom = d.get("route").and_then(Value::as_str).unwrap_or_default();
+    if nom.is_empty() {
+        return Err(socle::echec::avec("La demande ne nomme pas sa route.", json!({"cle": "route"})).into());
+    }
+    let route = Route::lire(nom).ok_or_else(|| Echec::from(socle::echec::avec(catalogue::ROUTE_INCONNUE, json!({"route": nom}))))?;
+    Ok((route, d.get("charge").cloned().unwrap_or_else(|| json!({}))))
+}
+
+/// La route `route` servie sur `charge`, et ce que l'ecran et le LLM en lisent (`reponse`).
+pub(crate) fn servir_la_route(o: &HashMap<String, String>, route: Route, charge: &Value) -> Value {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
     let _code = socle::fichiers::code_fige();
-    // Ce que la compagnie porte (les engagements, le journal de ce qui est parti) se lit une fois par geste (`fichiers::geste`).
-    let _geste = socle::fichiers::geste();
+    // Ce que la compagnie porte (les engagements, leurs paies, les imprevus) se lit une fois par geste (`socle::forme::geste`).
+    let _geste = socle::forme::geste();
     crate::compagnie::incidents::brancher_l_engagement();
-    let d: Value = serde_json::from_str(entree).unwrap_or(Value::Null);
-    let route = d.get("route").and_then(Value::as_str).unwrap_or_default();
-    let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
-    let rendu = servir(o, entree, route, &charge);
+    let rendu = servir(o, route, charge);
     // Ce que la route rend, reussite ou refus, est ce que l'ecran lit : ses phrases passent ici (`phrase_a_sa_place`).
     let racine = crate::service::compagnie_nommee(o).then(|| crate::service::racine_de(o));
     if let (Ok(v), Some(r)) = (&rendu, &racine) {
@@ -125,17 +138,11 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
             phrase_a_sa_place(r, route, v);
         }
     }
-    Ok(reponse(racine.as_deref(), route, rendu))
+    reponse(racine.as_deref(), route.nom(), rendu)
 }
 
 /// La route `route` servie : ce qu'elle rend, ou son refus.
-fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value) -> Result<Value, Echec> {
-    if let Err(e) = serde_json::from_str::<Value>(entree) {
-        return Err(socle::echec::avec("La demande ne se lit pas : ce n'est pas du JSON.", json!({"detail": e.to_string()})).into());
-    }
-    if route.is_empty() {
-        return Err(socle::echec::avec("La demande ne nomme pas sa route.", json!({"cle": "route"})).into());
-    }
+fn servir(o: &HashMap<String, String>, route: Route, charge: &Value) -> Result<Value, Echec> {
     let charge = charge.clone();
     // Le mot de passe du logiciel tape pour cette route ouvre aussi le coffre (`coffre::retenir_mot_de_passe_tape`) ;
     // dans la fenetre, le temps de cette route seulement (`dans_la_fenetre`).
@@ -144,8 +151,11 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
     }
     // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
     // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes/`). Le fil est laisse sale
-    // expres, comme un calcul qui tombe le laisserait.
-    if route == ROUTE_QUI_TOMBE && socle::garde_reseau::en_essai() {
+    // expres, comme un calcul qui tombe le laisserait. Hors des essais, elle n'existe pas.
+    if route == Route::EssaiDefautDuLogiciel {
+        if !socle::garde_reseau::en_essai() {
+            return Err(socle::echec::avec(catalogue::ROUTE_INCONNUE, json!({"route": route})).into());
+        }
         socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }
@@ -159,7 +169,7 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         return filet::route_sans_compagnie(o, route, &charge);
     }
     // Le catalogue lui-meme, ce que `moteur routes --json` imprime : il ne porte sur aucune compagnie non plus.
-    if catalogue::dans(catalogue::ROUTES, route).is_some() {
+    if route == Route::Routes {
         let mut v = catalogue::en_json(charge.get("avance").is_some_and(vrai));
         let lignes: Vec<Value> = v["routes"].as_array().into_iter().flatten().map(|f| json!(format!("{} : {}", mot(&f["nom"]), mot(&f["geste"])))).collect();
         let p = format!("Routes : {} (la fiche de chacune : moteur routes NOM).", lignes.len());
@@ -167,9 +177,14 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         return Ok(phrase_en_tete(v, p));
     }
     // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
-    // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
-    let ctx = match charge.get("mois").and_then(Value::as_str).filter(|m| socle::date::premier_du_mois(m).is_ok()) {
-        Some(m) => contexte(o)?.du_mois(m)?,
+    // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui. Le mois de la charge se lit ici, une
+    // fois : un mois qui ne se lit pas refuse la route, rien ne s'ecrit.
+    let mois = match charge.get("mois").and_then(Value::as_str).filter(|m| !m.is_empty()) {
+        Some(m) => Some(socle::mois::Mois::lire(m).map_err(|e| erreur("ValueError", socle::echec::a_la_cle("Le mois de la demande ne se lit pas : il s'écrit AAAA-MM, de 01 à 12.", "mois", e)))?),
+        None => None,
+    };
+    let ctx = match mois {
+        Some(m) => contexte(o)?.du_mois(&m.to_string())?,
         None => contexte(o)?,
     };
     let dans = |l: &[catalogue::Fiche]| catalogue::dans(l, route).is_some();
@@ -197,9 +212,10 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         _ if dans(filet::ROUTES) => filet::route(o, &ctx, route, &charge),
         _ if dans(import::ROUTES) => import::route(o, &ctx, route, &charge),
         _ if dans(archives::ROUTES) => archives::route(o, &ctx, route, &charge),
+        _ if dans(libelles_courts::ROUTES) => libelles_courts::route(o, &ctx, route, &charge),
         _ if dans(historique::ROUTES) => historique::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
-        _ if dans(crate::historique_mois::ROUTES) => crate::historique_mois::route(&ctx, &charge),
+        Route::HistoriqueMois => crate::historique_mois::route(&ctx, &charge),
         _ if dans(dossier_salarie::ROUTES) => dossier_salarie::route(o, &ctx, route, &charge),
         _ if dans(ouverture::ROUTES) => ouverture::route(o, &ctx, route, &charge),
         _ if dans(rappels::ROUTES) => rappels::route(o, &ctx, route, &charge),
@@ -211,8 +227,8 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         _ if dans(crate::compagnie::ouverture::ROUTES) => crate::compagnie::ouverture::route(o, &ctx, route, &charge),
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`).
-        r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
-        autre => return Err(socle::echec::avec("Cette route n'existe pas : la liste des routes le dit.", json!({"route": autre})).into()),
+        Route::HorlogeRattraper => crate::horloge::route(o, &ctx, &charge),
+        autre => return Err(socle::echec::avec(catalogue::ROUTE_INCONNUE, json!({"route": autre})).into()),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     // Les mots de passe et les comptes (`routes::coffre`), le filet et les messages au developpeur (`routes::filet`) ne
@@ -220,7 +236,7 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
     match rendu {
         Err(Echec { classe, message }) if est_une_ecriture(route) && !dans(coffre::ROUTES) && !dans(filet::ROUTES) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) => {
             // Un refus qui porte une donnee a part (l'etat d'un mois, les anomalies d'une fiche, un chemin) se dit seul.
-            let message = if socle::echec::separer(&message).1.is_empty() { let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default(); message + &suite } else { message };
+            let message = if ::documents::valeur::separer(&message).1.is_empty() { let suite = match declarations::demarrage::a_la_suite(&ctx, &message) { Ok(s) => s.unwrap_or_default(), Err(e) => format!(" {}", e) }; message + &suite } else { message };
             Err(Echec { classe, message })
         }
         autre => autre,
@@ -235,7 +251,7 @@ fn reponse(racine: Option<&Path>, route: &str, rendu: Result<Value, Echec>) -> V
     match rendu {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(Echec { classe, message }) => {
-            let (phrase, plus) = socle::echec::separer(&message);
+            let (phrase, plus) = ::documents::valeur::separer(&message);
             if let Some(r) = racine {
                 refus_a_sa_place(r, route, &phrase);
             }
@@ -312,18 +328,18 @@ pub fn phrases_rendues(v: &Value) -> Vec<&str> {
 /// UNE PHRASE PLUS LONGUE QUE SA PLACE (la `phrase` de la fiche ; `plus_longue_phrase`) se lit entiere, et note un incident silencieux au
 /// developpeur : la route, la place, la longueur ; jamais la phrase, qui peut nommer un salarie. On la corrige a la cause,
 /// en l'ecrivant plus breve.
-fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
+fn phrase_a_sa_place(racine: &Path, route: Route, rendu: &Value) {
     // UNE REPONSE SANS PHRASE d'une route du catalogue (un avertissement, une variante que l'exemple de sa fiche ne joue
     // pas) : ni l'ecran ni `moteur route --texte` n'ont rien a lire. Le meme incident silencieux, pour la reponse qui l'a
     // oubliee. (L'horloge du banc, hors catalogue, rend ses phrases en liste.)
-    let au_catalogue = catalogue::catalogue().iter().any(|f| f.nom == route);
+    let au_catalogue = route.au_catalogue();
     if au_catalogue && !rendu.get("phrase").and_then(Value::as_str).is_some_and(|p| !p.trim().is_empty()) {
         let resume = format!("La route {} a rendu une réponse sans phrase.", route);
         let cles: Vec<&str> = rendu.as_object().map(|o| o.keys().map(String::as_str).collect()).unwrap_or_default();
         let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
             nature: crate::compagnie::incidents::LOGICIEL,
             resume: &resume,
-            ou: route,
+            ou: route.nom(),
             quoi: "PhraseManquante",
             detail: json!({"route": route, "cles": cles}),
             sans_contexte: true,
@@ -338,14 +354,14 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
         let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
             nature: crate::compagnie::incidents::LOGICIEL,
             resume: &resume,
-            ou: route,
+            ou: route.nom(),
             quoi: "PhrasePasFaitePourLEcran",
             detail: json!({"route": route, "defaut": format!("{:?}", d)}),
             sans_contexte: true,
             ..Default::default()
         });
     }
-    let Some(place) = catalogue::catalogue().iter().find(|f| f.nom == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
+    let Some(place) = catalogue::catalogue().iter().find(|f| f.route == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
     let longueur = plus_longue_phrase(rendu);
     if longueur <= place {
         return;
@@ -354,7 +370,7 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
     let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
         nature: crate::compagnie::incidents::LOGICIEL,
         resume: &resume,
-        ou: route,
+        ou: route.nom(),
         quoi: "PhraseTropLongue",
         detail: json!({"route": route, "place": place, "longueur": longueur}),
         sans_contexte: true,
@@ -364,7 +380,7 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
 
 /// Les routes qui ecrivent ou engagent, d'apres l'acte de leur fiche : apres elles, la fenetre verifie les etats des mois
 /// (`interface/api.rs`).
-pub fn est_une_ecriture(route: &str) -> bool {
+pub fn est_une_ecriture(route: Route) -> bool {
     catalogue::FICHES.iter().any(|l| catalogue::dans(l, route).is_some_and(|f| f.acte != catalogue::Acte::Lit))
 }
 
@@ -373,28 +389,40 @@ pub(crate) fn maintenant() -> String {
     socle::paris::maintenant()[..16].replacen('T', " ", 1)
 }
 
-/// QUI ECRIT. Les routes inscrivent `interface` : c'est la fenetre. La ligne de commande (`moteur ...`) ajoute `qui` a la charge
-/// (`cli`, ou `ligne de commande` selon la commande) : une valeur ecrite reste identique d'une face a
-/// l'autre. Absent, vide ou pas un texte : `interface` -- la fenetre ne change pas.
-pub(crate) fn qui_de(charge: &Value) -> String {
-    match charge.get("qui") {
-        Some(Value::String(s)) if !s.trim().is_empty() => s.clone(),
-        _ => "interface".to_string(),
-    }
+/// QUI ECRIT : ce que les routes inscrivent, la fenetre comme la ligne de commande (`moteur route`, qui sert les memes).
+pub(crate) const INTERFACE: &str = "interface";
+
+/// LA CHARGE D'UNE ROUTE, lue une fois a son entree, en sa forme (`socle::forme::lire`) : une cle que la forme ne connait
+/// pas, une cle qui manque, une valeur d'une autre forme la refusent (`TypeError`, `catalogue::FORME`), la cle fautive a
+/// part ; rien ne s'ecrit.
+pub(crate) fn lire_charge<T: serde::de::DeserializeOwned>(charge: &Value) -> R<T> {
+    socle::forme::lire(charge, "La demande est mal formée.").map_err(|m| erreur("TypeError", m))
 }
 
+/// Une reponse en JSON : chacune est une structure de son module, que `serde_json` ecrit toujours.
+pub(crate) fn en_json(v: impl serde::Serialize) -> R<Value> {
+    serde_json::to_value(v).map_err(|e| Echec::from(e.to_string()))
+}
+
+/// La charge d'une route qui ne prend rien : `{}`.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SansCharge {}
+
 /// Le salarié que `nom` désigne (`Contexte::salarie`) ; refus (`KeyError`) avec la phrase de `Contexte::salarie`.
-pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
+pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<droit::fiche::FicheSalarie> {
+    ctx.salarie(&cle_du_salarie(ctx, nom)?).map_err(|m| erreur("KeyError", m))
+}
+
+/// La cle de la fiche que `nom` designe (`Contexte::cle_du_salarie`) ; refus (`KeyError`) avec sa phrase, qui cite `nom`
+/// tel que la charge l'ecrit.
+pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<droit::contexte::IdSalarie> {
     let texte = valeur_en_texte(nom);
-    ctx.salarie(&texte).map_err(|m| {
-        let m = if m.starts_with("Salarie ") {
-            let m = match nom {
-                Value::String(_) => m,
-                autre => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
-            };
-            m
-        } else {
-            m
+    ctx.cle_du_salarie(&texte).map_err(|m| {
+        let m = match nom {
+            Value::String(_) => m,
+            autre if m.starts_with("Salarie ") => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
+            _ => m,
         };
         erreur("KeyError", m)
     })
@@ -402,30 +430,38 @@ pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
 
 /// LA COULEUR D'UN ETAT, la meme sur tout l'ecran : `vert` ce qui est fait, `orange` ce qui reste a faire et que la
 /// compagnie peut faire (une signature attendue se relance), `rouge` ce qui est refuse, `gris` ce qui n'est qu'une
-/// information (rien a faire). La page dessine la couleur qu'on lui donne ; elle n'en choisit aucune.
-pub(crate) fn couleur_de_l_etat(etat: &str) -> &'static str {
-    match etat {
-        "fait" => "vert",
-        "a_faire" | "en_attente" | "en_retard" => "orange",
-        "refuse" => "rouge",
-        _ => "gris",
-    }
-}
+/// information (rien a faire). La page dessine la couleur qu'on lui donne ; elle n'en choisit aucune. Sa pastille :
+/// `Pastille`.
+pub(crate) use socle::ecran::{couleur_de_l_etat, Pastille};
 
 /// UN ENCART, tel que la page le dessine (`encart` de js/tuyau.js) : un titre en gras, sa phrase, la couleur de l'etat.
 /// La page n'ecrit aucune phrase : ce qu'une boite dit d'un cas, la route le rend ainsi.
 pub(crate) fn encart(etat: &str, titre: impl Into<String>, phrase: impl Into<String>) -> Value {
-    json!({"couleur": couleur_de_l_etat(etat), "titre": titre.into(), "phrase": phrase.into()})
+    json!(Encart::de(etat, titre, phrase))
 }
 
-/// Les encarts d'une reponse, en lignes pour `moteur route --texte` : « titre : phrase ».
-pub(crate) fn encarts_en_lignes(encarts: &[Value]) -> Vec<Value> {
-    encarts.iter().map(|e| json!([mot(&e["titre"]), mot(&e["phrase"])].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" : "))).collect()
+/// UN ENCART, tel que la page le dessine (`encart` de js/tuyau.js) : un titre en gras, sa phrase, la couleur de l'etat.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct Encart {
+    pub couleur: &'static str,
+    pub titre: String,
+    pub phrase: String,
 }
 
-/// LA PASTILLE D'UN ETAT, telle que la page la dessine : sa couleur (`couleur_de_l_etat`) et ses mots.
+impl Encart {
+    pub(crate) fn de(etat: &str, titre: impl Into<String>, phrase: impl Into<String>) -> Encart {
+        Encart { couleur: couleur_de_l_etat(etat), titre: titre.into(), phrase: phrase.into() }
+    }
+
+    /// L'encart en une ligne pour `moteur route --texte` : « titre : phrase ».
+    pub(crate) fn en_ligne(&self) -> String {
+        [self.titre.as_str(), self.phrase.as_str()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" : ")
+    }
+}
+
+/// `Pastille::de`, en JSON.
 pub(crate) fn pastille(etat: &str, mots: &str) -> Value {
-    json!({"couleur": couleur_de_l_etat(etat), "mots": mots})
+    json!(Pastille::de(etat, mots))
 }
 
 /// « 12/09/2026 à 18:18 » : un horodatage ISO tel que l'ecran le dit ; ce qui n'en est pas un, tel quel.
@@ -444,11 +480,8 @@ pub(crate) fn quand(iso: &str) -> String {
 /// LE NOM D'UN SALARIE TEL QU'UN ECRAN LE MONTRE : le nom de famille en capitales, sous sa forme lisible (`nom_affichage`,
 /// accents compris : « SÉRAPHIN »), puis le prenom lisible. La forme declaree (`nom`, sans accents) reste celle de la DSN
 /// et de la DPAE ; une fiche qui n'a que celle-la la montre.
-pub(crate) fn nom_a_l_ecran(sal: &Value) -> String {
-    let lu = |cles: [&str; 2]| {
-        cles.iter().filter_map(|c| sal.get(*c).filter(|v| vrai(v))).map(valeur_en_texte).find(|t| !t.trim().is_empty()).unwrap_or_default()
-    };
-    format!("{} {}", lu(["nom_affichage", "nom"]).to_uppercase(), lu(["prenom_affichage", "prenom"])).trim().to_string()
+pub(crate) fn nom_a_l_ecran(sal: &droit::fiche::ChampsSalarie) -> String {
+    sal.nomme().unwrap_or_default()
 }
 
 /// `sortie_json.brut` d'une valeur lue d'un fichier : un dictionnaire perd ses
@@ -474,44 +507,6 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 fn lire_texte(p: &Path) -> R<String> {
     let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&p, &e)))
-}
-
-/// Le JSON d'un fichier UTF-8.
-fn lire_json(p: &Path) -> R<Value> {
-    serde_json::from_str(&lire_texte(p)?).map_err(|e| erreur("JSONDecodeError", e.to_string()))
-}
-
-/// `_lire_json(p)` : `{}` si le fichier n'existe pas.
-pub(crate) fn lire_json_ou_vide(p: &Path) -> R<Value> {
-    if p.exists() {
-        lire_json(p)
-    } else {
-        Ok(Value::Object(Map::new()))
-    }
-}
-
-/// Le JSON d'un fichier : `None` quand il est absent, illisible comme texte ou comme JSON ; un autre refus du
-/// disque se leve.
-fn lire_json_tolerant(p: &Path) -> R<Option<Value>> {
-    if !p.exists() {
-        return Ok(None);
-    }
-    let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
-    Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
-}
-
-/// `v.get(...)` sur un dictionnaire ; sinon `AttributeError`.
-fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
-}
-
-/// `x or ""`.
-fn ou_texte(v: &Value) -> Value {
-    if vrai(v) {
-        v.clone()
-    } else {
-        json!("")
-    }
 }
 
 pub(crate) fn vers_route(x: crate::compagnie::coffre::Echec) -> Echec {

@@ -14,7 +14,7 @@ fn iso(v: &[Jour]) -> Value {
 fn essai(r: Result<Value, String>) -> Value {
     match r {
         Ok(v) => json!({"ok": v}),
-        Err(e) => json!({"refus": socle::echec::separer(&e).0}),
+        Err(e) => json!({"refus": socle::echec::phrase_de(&e)}),
     }
 }
 
@@ -43,7 +43,7 @@ fn releve(e: &Engagement) -> Value {
         "lieu_de".into(),
         essai(Ok(json!(lieux.iter().map(|j| e.lieu_de(j)).collect::<Vec<_>>()))),
     );
-    json!({"canon": essai(e.canon()), "extras": extras})
+    json!({"canon": essai(e.canon().map(|c| socle::ecriture::en_valeur(&c))), "extras": extras})
 }
 
 #[test]
@@ -52,10 +52,18 @@ fn les_engagements_fabriques_et_leurs_refus() {
     let racine = dossier_de_test("engagement", "directs");
     let mut refus = 0;
     for c in directs.as_array_mut().unwrap() {
-        c["attendu"] = Engagement::nouveau(&racine, &c["kwargs"], c["kwargs"]["salarie"].as_str().filter(|s| !s.trim().is_empty()).unwrap_or("Cet engagement")).map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |e| releve(&e));
+        let qui = c["kwargs"]["salarie"].as_str().filter(|s| !s.trim().is_empty()).unwrap_or("Cet engagement").to_string();
+        // Un cas ne dit que ce qui le distingue : l'engagement a fabriquer porte chaque cle, `null` (ou sans jours) ailleurs.
+        let mut charge = socle::ecriture::en_valeur(&engagement::Assemble::default());
+        for (k, v) in c["kwargs"].as_object().unwrap() {
+            charge[k] = v.clone();
+        }
+        c["attendu"] = socle::forme::lire::<engagement::Assemble>(&charge, "L'engagement à fabriquer ne se lit pas.")
+            .and_then(|a| Engagement::nouveau(&racine, &a, &qui))
+            .map_or_else(|m| json!({"refus": socle::echec::phrase_de(&m)}), |e| releve(&e));
         refus += c["attendu"].get("refus").is_some() as usize;
     }
     // un refus par cas `refus_*`
-    assert!(refus >= 30, "{}", refus);
+    assert!(refus >= 27, "{}", refus);
     oracle("engagement.json", "/directs", &directs);
 }

@@ -4,14 +4,16 @@
 //! Le certificat se délivre à l'expiration du contrat (L1234-19) et ne porte que les mentions de D1234-6 ; le reçu
 //! fait l'inventaire des sommes versées (L1234-20), ligne à ligne, et s'établit en double exemplaire (D1234-7).
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::bulletin::{fmt_eur, identite_de, jj_mm_aaaa};
+use crate::bulletin::{fmt_eur, identite_de};
+use crate::marqueurs::{dans_la_description, Marqueur, ModeleLu, Valeurs};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::echec::{erreur, R};
 use socle::num::eur2;
 
@@ -26,24 +28,24 @@ pub const AVIS: [&str; 3] = [
 /// puis le reçu ; les deux ou aucun (un reçu qui ne s'écrit pas emporte le certificat déjà posé).
 pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf; 2]> {
     let e = &p.engagement;
-    let numero = e.numero.clone().unwrap_or_else(|| "?".to_string());
+    let numero = e.numero.as_deref().unwrap_or("?").to_string();
     let Some(fin) = e.fin else {
         return Err(erreur(
             "ValueError",
             format!("Certificat de travail : le contrat {} n'a pas de date de fin. Il se délivre à l'expiration du contrat (L1234-19).", numero),
         ));
     };
-    let cle = p.salarie.get("_cle").map(en_texte).unwrap_or_default();
+    let cle = p.salarie.id.to_string();
     let ent = ctx.entreprise_et_gabarits();
     let poste = ctx.gabarits();
     let certificat = sortie.join(format!("CertificatTravail_{}_{}.pdf", cle, fin.aaaammjj()));
     let recu = sortie.join(format!("RecuSoldeToutCompte_{}_{}.pdf", cle, fin.aaaammjj()));
     let valeurs_cert = marqueurs_communs(&date, p, &ent)?;
     let mut valeurs = valeurs_cert.clone();
-    valeurs.insert("solde.inventaire".into(), json!(inventaire(p)));
-    valeurs.insert("solde.net".into(), json!(fmt_eur(eur2(p.net_a_payer))));
-    ecrire_papier(&socle::fichiers::modele_de("certificat-travail.modele", &ent, &poste), valeurs_cert, &certificat, &ent, true)?;
-    if let Err(e) = ecrire_papier(&socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste), valeurs, &recu, &ent, false) {
+    valeurs.insert(Marqueur::SoldeInventaire, inventaire(p));
+    valeurs.insert(Marqueur::SoldeNet, fmt_eur(eur2(p.net_a_payer)));
+    ecrire_papier(&socle::fichiers::modele_de("certificat-travail.modele", Some(&ent.gabarits), &poste), valeurs_cert, &certificat, &ent, true)?;
+    if let Err(e) = ecrire_papier(&socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", Some(&ent.gabarits), &poste), valeurs, &recu, &ent, false) {
         let _ = std::fs::remove_file(&certificat);
         return Err(e);
     }
@@ -51,41 +53,39 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
 }
 
 /// Les mentions communes du certificat de travail et du reçu.
-fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>> {
+fn marqueurs_communs(date: &Jour, p: &Paie, ent: &droit::fiche::ChampsEntreprise) -> R<Valeurs> {
     let s = &p.salarie;
     let e = &p.engagement;
-    let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
-    let ou_vide = |v: &Value, k: &str| -> String { v.get(k).map(en_texte).unwrap_or_default() };
-    let sig = ent.get("signataire").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
+    fn ecrite<T: AsRef<str>>(c: &Option<T>, k: &str) -> R<String> {
+        c.ecrite(k).map(str::to_string).map_err(|m| erreur("KeyError", m))
+    }
+    let sig = ent.signataire.exigee("signataire").map_err(|m| erreur("KeyError", m))?;
     let aujourdhui = date.jj_mm_aaaa();
-    let mut m = Map::new();
-    let mut poser = |k: &str, v: String| {
-        m.insert(k.to_string(), Value::String(v));
+    let mut m = Valeurs::new();
+    let mut poser = |k: Marqueur, v: String| {
+        m.insert(k, v);
     };
-    poser("employeur.raison_sociale", req(ent, "raison_sociale")?);
-    poser("employeur.adresse", req(ent, "adresse")?);
-    poser("employeur.code_postal", req(ent, "code_postal")?);
-    poser("employeur.commune", req(ent, "commune")?);
-    poser("employeur.siret", req(ent, "siret")?);
-    poser("employeur.naf", req(ent, "naf")?);
-    poser("employeur.signataire", format!("{} {}", req(sig, "prenom")?, req(sig, "nom")?));
-    poser("employeur.signataire_fonction", ou_vide(sig, "fonction"));
-    poser("salarie.nom_complet", format!("{} {}", req(s, "prenom")?, req(s, "nom")?));
-    poser(
-        "salarie.date_naissance",
-        jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
-    );
-    poser("salarie.lieu_naissance", ou_vide(s, "lieu_naissance"));
-    poser("salarie.adresse", req(s, "adresse")?);
-    poser("salarie.code_postal", req(s, "code_postal")?);
-    poser("salarie.commune", req(s, "commune")?);
-    poser("contrat.numero", e.numero.clone().unwrap_or_default());
-    poser("contrat.debut", e.debut.jj_mm_aaaa());
-    poser("contrat.fin", e.fin.map(|f| f.jj_mm_aaaa()).unwrap_or_default());
-    poser("contrat.emploi", ou_vide(s, "emploi"));
-    poser("contrat.nature", e.nat().map_err(|m| erreur("ValueError", m))?.libelle.clone());
-    poser("certificat.date", aujourdhui.clone());
-    poser("recu.date", aujourdhui);
+    poser(Marqueur::EmployeurRaisonSociale, ecrite(&ent.raison_sociale, "raison_sociale")?);
+    poser(Marqueur::EmployeurAdresse, droit::fiche::avec_complement(ecrite(&ent.adresse.en_texte(), "adresse")?, ent.complement_adresse.remplie()));
+    poser(Marqueur::EmployeurCodePostal, ecrite(&ent.code_postal, "code_postal")?);
+    poser(Marqueur::EmployeurCommune, ecrite(&ent.commune, "commune")?);
+    poser(Marqueur::EmployeurSiret, ecrite(&ent.siret, "siret")?);
+    poser(Marqueur::EmployeurNaf, ecrite(&ent.naf, "naf")?);
+    poser(Marqueur::EmployeurSignataire, format!("{} {}", ecrite(&sig.prenom, "prenom")?, ecrite(&sig.nom, "nom")?));
+    poser(Marqueur::EmployeurSignataireFonction, sig.fonction.texte().to_string());
+    poser(Marqueur::SalarieNomComplet, format!("{} {}", ecrite(&s.prenom, "prenom")?, ecrite(&s.nom, "nom")?));
+    poser(Marqueur::SalarieDateNaissance, s.date_naissance.exigee("date_naissance").map_err(|m| erreur("KeyError", m))?.jj_mm_aaaa());
+    poser(Marqueur::SalarieLieuNaissance, s.lieu_naissance.texte().to_string());
+    poser(Marqueur::SalarieAdresse, ecrite(&s.adresse, "adresse")?);
+    poser(Marqueur::SalarieCodePostal, ecrite(&s.code_postal, "code_postal")?);
+    poser(Marqueur::SalarieCommune, ecrite(&s.commune, "commune")?);
+    poser(Marqueur::ContratNumero, e.numero.as_deref().unwrap_or_default().to_string());
+    poser(Marqueur::ContratDebut, e.debut.jj_mm_aaaa());
+    poser(Marqueur::ContratFin, e.fin.map(|f| f.jj_mm_aaaa()).unwrap_or_default());
+    poser(Marqueur::ContratEmploi, s.emploi.texte().to_string());
+    poser(Marqueur::ContratNature, e.nat().map_err(|m| erreur("ValueError", m))?.libelle.clone());
+    poser(Marqueur::CertificatDate, aujourdhui.clone());
+    poser(Marqueur::RecuDate, aujourdhui);
     Ok(m)
 }
 
@@ -106,14 +106,14 @@ fn inventaire(p: &Paie) -> String {
 
 /// Le papier de `modele`, par la fabrique (style « attestation »). `signe` : le certificat s'établit signé de
 /// l'employeur.
-fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &Value, signe: bool) -> R<()> {
-    let texte = crate::contrat::lire_modele_texte(modele)?;
+fn ecrire_papier(modele: &Path, valeurs: Valeurs, chemin: &Path, ent: &droit::contexte::EntrepriseDuDocument, signe: bool) -> R<()> {
+    let lu = ModeleLu::du_fichier(modele)?;
     let mut d = crate::contrat::enveloppe("attestation", ent);
     let mut un = Map::new();
-    un.insert("texte".into(), json!(texte));
-    un.insert("valeurs".into(), Value::Object(valeurs));
+    un.insert("texte".into(), json!(lu.texte));
+    un.insert("valeurs".into(), dans_la_description(&valeurs));
     if signe {
-        if let Some(s) = identite_de(ent, "signature") {
+        if let Some(s) = identite_de(&ent.gabarits, "signature") {
             un.insert("signature_employeur".into(), json!(crate::conges_spectacles::chemin_texte(&s)));
         }
     }

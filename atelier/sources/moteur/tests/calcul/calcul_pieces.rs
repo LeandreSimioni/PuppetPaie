@@ -6,17 +6,36 @@ use crate::outils::{dec, dossier_de_test, lire_oracle, oracle, sceller};
 use droit::catalogue::rubrique;
 use droit::catalogue::code_54;
 use droit::reduction::{au_dela_du_seuil, reduction_generale};
-use engagement::canon_valeur;
 use serde_json::{json, Value};
 
 const ORACLE: &str = "calcul-pieces.json";
+
+/// La forme canonique d'un resultat : ses nombres en texte normalise, ses cles en `_` retirees.
+fn canon_valeur(v: &Value) -> Result<Value, String> {
+    Ok(match v {
+        Value::Number(_) => Value::String(socle::num::nombre(documents::valeur::dec(v)?)),
+        Value::Array(a) => Value::Array(a.iter().map(canon_valeur).collect::<Result<_, _>>()?),
+        Value::Object(o) => Value::Object(
+            o.iter()
+                .filter(|(k, _)| !k.starts_with('_'))
+                .map(|(k, x)| canon_valeur(x).map(|c| (k.clone(), c)))
+                .collect::<Result<serde_json::Map<_, _>, String>>()?,
+        ),
+        autre => autre.clone(),
+    })
+}
+
+/// La section `reduction_generale` d'un bareme de la grille, lue comme la pile la lit.
+fn section(bar: &Value) -> Result<Option<droit::forme_bareme::ReductionGenerale>, String> {
+    bar.get("reduction_generale").filter(|v| !v.is_null()).map(|v| socle::forme::lire(v, "section illisible")).transpose()
+}
 
 
 /// `{"ok": canon(v)}` ou `{"refus": message}`.
 fn essai(r: Result<Value, String>) -> Value {
     match r {
         Ok(v) => json!({"ok": canon_valeur(&v).unwrap()}),
-        Err(e) => json!({"refus": socle::echec::separer(&e).0}),
+        Err(e) => json!({"refus": socle::echec::phrase_de(&e)}),
     }
 }
 
@@ -29,7 +48,7 @@ fn le_code_du_bloc_54() {
     let mut refus = 0;
     for c in cas.as_array_mut().unwrap() {
         let r = rubrique(&racine, c[0].as_str().unwrap(), &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap();
-        let vu = code_54(&r, &c[1]);
+        let vu = socle::forme::lire::<Option<String>>(&c[1]["genre"], "La ligne ne se lit pas.").and_then(|g| code_54(&r, g.as_deref()));
         refus += vu.is_err() as usize;
         c[2] = essai(vu.map(|o| o.map_or(Value::Null, Value::String)));
     }
@@ -61,9 +80,9 @@ fn la_reduction_generale() {
         let mut vus = Vec::new();
         for b in rel["grilles"][&cle].as_array().unwrap() {
             points += 1;
-            let r = reduction_generale(bar, statut.as_deref(), dec(b.as_str().unwrap()), dec(h), caisse);
+            let r = section(bar).and_then(|rg| reduction_generale(rg.as_ref(), statut.as_deref(), dec(b.as_str().unwrap()), dec(h), caisse));
             appliquees += matches!(r, Ok(Some(_))) as usize;
-            vus.push(essai(r.map(|o| o.map_or(Value::Null, |x| x.canon()))));
+            vus.push(essai(r.map(|o| o.map_or(Value::Null, |x| socle::ecriture::en_valeur(&x)))));
         }
         groupe(g, vus);
     }
@@ -84,7 +103,8 @@ fn le_seuil_de_smic() {
         let mut vus = Vec::new();
         for b in rel["grilles"][&cle].as_array().unwrap() {
             points += 1;
-            vus.push(essai(au_dela_du_seuil(bar, dec(b.as_str().unwrap()), dec(h), Some(&g["seuil"])).map(Value::Bool)));
+            let seuil = Some(&g["seuil"]).filter(|s| !s.is_null()).map(documents::valeur::dec).transpose();
+            vus.push(essai(section(bar).and_then(|rg| au_dela_du_seuil(rg.as_ref(), dec(b.as_str().unwrap()), dec(h), seuil?)).map(Value::Bool)));
         }
         groupe(g, vus);
     }

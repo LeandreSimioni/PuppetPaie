@@ -7,7 +7,7 @@
 //!
 //! | sorte | ce que le contenu dit |
 //! |---|---|
-//! | `dsn` | l'en-tete `S10.G00.00.001,` (comme `importation::fichiers_dsn`), et un mois declare (`importation::lire_une_dsn`) |
+//! | `dsn` | l'en-tete `S10.G00.00.001,` (`declarations::dsn_lue::est_une_dsn`), et un mois declare (`dsn_lue::lire_une_dsn`) |
 //! | `aem` | chaque enregistrement fait 1000 caracteres, commence par `AEMEDIC2` et porte ses dates aux positions que `importation::lire_aem` lit |
 //! | `pdf_texte` | un PDF (`%PDF-`) que la fabrique ouvre, et dont au moins une page a des mots |
 //! | `pdf_sans_texte` | un PDF que la fabrique ouvre, sans un seul mot (lettres en traces, ou page scannee : pas d'OCR) |
@@ -291,13 +291,15 @@ impl Trieur {
         }
         if est_un_pdf(&octets) {
             lire_pdf(&mut f);
-        } else if apres_bom(&octets).starts_with(b"S10.G00.00.001,") {
-            match crate::import::dsn_aem::lire_une_dsn(&f.disque) {
-                Some(d) => {
+        } else if declarations::dsn_lue::est_une_dsn(&octets) {
+            match declarations::dsn_lue::lire_une_dsn(&f.disque) {
+                Ok(Some(declarations::dsn_lue::DsnLue { mois: Some(m), .. })) => {
                     f.sorte = Sorte::Dsn;
-                    f.mois = d.get("mois").and_then(Value::as_str).map(String::from);
+                    f.mois = Some(m.to_string());
                 }
-                None => {
+                // Une DSN fautive reste une DSN : sa lecture refuse l'import, et dit quoi corriger (`dsn_aem::lire_dsn`).
+                Err(_) => f.sorte = Sorte::Dsn,
+                Ok(_) => {
                     f.sorte = Sorte::Illisible;
                     f.raison = Some("commence comme une DSN, mais ne dit pas son mois (S20.G00.05.005)".into());
                 }
@@ -401,7 +403,7 @@ impl Trieur {
     }
 }
 
-/// Les marques d'ordre d'octets UTF-8 en tete (comme `importation::fichiers_dsn`).
+/// Les marques d'ordre d'octets UTF-8 en tete.
 fn apres_bom(mut o: &[u8]) -> &[u8] {
     while o.starts_with(b"\xef\xbb\xbf") {
         o = &o[3..];

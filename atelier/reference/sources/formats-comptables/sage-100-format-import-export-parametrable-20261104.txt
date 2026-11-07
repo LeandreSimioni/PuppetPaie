@@ -1,0 +1,685 @@
+                                  (/p      / /   g      j p
+      |            redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_g
+   Français          S'abonner
+                   redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_g
+    Rechercher
+
+
+
+
+          Retour
+
+
+
+
+Configurer le Format import / export paramétrable
+Créé le 05 août 2020 | Dernière modification le 01 décembre 2025
+
+
+
+
+   RÉSUMÉ
+   Cet article décrit l'utilisation et la configuration du format d'import / export paramétrable des applications Sage 100.
+
+
+
+   LA DESCRIPTION
+   La fonction d'import / export paramétrable permet d'importer ou d'exporter des données principales. Cette fonction permet d'importer et exporter
+   vers n'importe quel logiciel capable d'émettre ou de recevoir des fichiers au format ASCII (exemple : fichier texte).
+
+   Privilégiez l'importation et l'exportation au format paramétrable pour des transferts de fichiers entre un logiciel Sage et un logiciel d'éditeur
+   différent.
+
+   Le transfert de données dans un format paramétrable s'effectue en deux étapes :
+
+
+       1. La création du fichier qui contient les paramètres des données à transférer
+
+       2. Le transfert des données.
+
+
+
+
+   Résolution
+
+   Table des matières
+
+           Étape 1 : Création du fichier de paramètre
+
+
+                   Présentation du fichier au format paramétrable
+
+                   Liste des différents onglets du format
+
+                   Génération du fichier d'exemple
+
+                   Vérification du fichier à importer
+
+
+
+           Étape 2 : Transfert des données
+
+
+                   Importation des données au format paramétrable
+
+                   Exportation des données au format paramétrable
+
+
+
+
+   Étape 1 : Création du fichier de paramètre
+   Pour créer un format d'import/export paramétrable :
+   1. Dirigez-vous dans le menu Fichier > Format import/export paramétrable.
+
+   2. Sur la fenêtre Ouvrir le format paramétrable, cliquez sur Nouveau en bas à droite de cette fenêtre.
+
+   3. Sur la fenêtre Enregistrer le format paramétrable, donnez un emplacement et un nom.
+
+   4. Cliquez sur Enregistrer.
+
+
+
+Présentation du fichier au format paramétrable
+Le paramétrage du fichier permet de choisir les champs des données à transférer. Ainsi, au lieu de transférer toutes les données des
+fiches clients, transférez que les données souhaitées. Le fichier au format paramétrable est donc un modèle que le logiciel utilise pour
+exporter ou importer les données.
+
+Un fichier au format paramétrable contient :
+
+
+     Une table de données (Exemple client, écriture comptable)
+
+     Plusieurs champs contenus dans cette table (Exemple : n° compte client, Code journal)
+
+     Des propriétés pour chaque champ (en termes de format de champ ou de correspondance)
+
+     Des particularités sur les caractéristiques du fichier à exporter (Exemple : délimiteur de champ et d'enregistrement)
+
+     Une fonction de génération d'un fichier exemple en fonction des paramètres définis
+
+     Une fonction de vérification de la structure du fichier à importer
+
+
+
+
+Liste des différents onglets du format
+  ▼ Onglet « Description »
+  L'onglet description permet de définir quelles informations exporter.
+
+  Intitulé : Texte libre, par défaut le nom du format d'import/export
+
+Type de fichiers
+
+     Délimité : Des caractères spécifiques sépareront les champs les uns des autres. Le séparateur d'enregistrement est généralement
+     le Retour-chariot.
+
+
+
+           Délimiteur d'enregistrement : Tabulation, Point-virgule, Virgule, Retour chariot ou Autres
+
+           Délimiteur champ : Tabulation, Point-virgule, Virgules ou Autres
+
+           Les colonnes « Longueur » et « Position » sont vides.
+
+
+
+     Largeur fixe : Les champs sont juxtaposés les uns aux autres, habituellement complétés par des blancs. Le séparateur
+     d'enregistrement est souvent le Retour-chariot.
+
+
+           Délimiteur enregistrement : Tabulation, Point-virgule, Virgule, Retour chariot ou Autres
+
+           Délimiteur champ : Dépend de la position et de la longueur du champ
+
+
+
+
+     Longueur fixe : Il n'existe aucun séparateur de champ ou d'enregistrement. Les enregistrements se suivent avec une longueur fixe à
+     définir.
+
+
+           Longueur : Indique le nombre de caractères par enregistrement
+
+
+
+
+Type de donnée
+Le type de donnée correspond à la table à extraire. Il est possible de sélectionner qu'un seul type de donnée par format d'import/export.
+
+Longueur fixe
+
+Disponible uniquement si le type de fichier est en longueur fixe. Correspond au nombre de caractères par enregistrement. Il est
+important que cette valeur soit égale à la somme des longueurs des champs du format.
+
+Insertion des champs
+
+Pour insérer ensuite les champs des données à transférer :
+
+
+1. Cliquez sur Ajouter.
+
+2. Cliquez sur la colonne Champ pour afficher la liste des données possibles
+
+3. Sélectionnez le champ
+
+4. Définissez la longueur du champ si le type de fichier est largeur fixe ou longueur fixe
+
+5. Validez la saisie par la touche Entrée.
+
+
+Insérez obligatoirement les champs précédés d'un astérisque (*).
+
+Modifiez l'ordre des champs à l'aide des boutons Monter et Descendre.
+
+Propriétés des champs
+
+Pour chacun des champs insérés dans un format de fichier, il est possible d'ouvrir une fenêtre Champ en sélectionnant la ligne
+correspondante.
+Cliquez ensuite sur le bouton Propriétés.
+
+Il est possible que cette fenêtre comporte un ou deux volets. Le nombre de volets dépend de la ligne qui était sélectionnée lors de son
+ouverture :
+
+
+     Volet 1 : Propriétés
+
+
+
+         Valeur par défaut : zone de saisie dont le type (alphanumérique, date, etc.) dépend du champ. Cette zone permet d'enregistrer la
+         valeur fixe que prendra le champ lors de son exportation. Si aucune valeur n'existe sur la ligne, elle permet aussi d'enregistrer la
+         valeur fixe lors de son importation.
+         EXEMPLE : Affectation d'un pays fixe « France » pour les clients exportés qui ne possèdent aucun pays sur leur fiche.
+         Si elle est absente dans le fichier, appliquez la valeur par défaut :
+         Case à cocher précisant au programme que le champ correspondant est absent du fichier importé. Elle lui précise aussi d'y ajouter
+         ce champ, éventuellement en y mentionnant la valeur par défaut saisie dans la zone correspondante.
+
+
+
+         Enregistrez dans cette zone le format de date des champs de type date.
+         Exemple : formats de dates jjmmaa, jj/mm/aaaa
+
+
+
+         Numéro d'indice : enregistrez dans cette zone le numéro d'indice du champ à importer / exporter. Ce champ est disponible
+         uniquement pour les champs à valeurs multiples : Plan analytique, Information libre, Catégorie comptable...). Ce numéro d'indice
+         est affiché dans la liste des champs après l'intitulé du champ.
+         Exemple : le taux de taxe d'un article dépend de la catégorie comptable utilisée. Pour exporter les articles avec les taux de taxe de
+         la seconde catégorie comptable. Sélectionnez le champ Taux de taxe et renseignez un numéro d'indice à 2.
+
+
+
+
+      Volet 2 : Correspondance
+
+   Pour certains champs, les valeurs sont identifiables selon un tableau de correspondance. Les correspondances sont modifiables.
+   Exemple : pour un export des écritures comptables et analytiques. Pour différencier ces types d'écriture, ajoutez le champ Type
+   d'écriture dans le format paramétrable. La correspondance des champs par défaut est la lettre G pour une écriture générale.
+   Pour une écriture analytique, il s'agira de la lettre A.
+
+
+▼ Onglet « Particularités »
+L'onglet particularité permet de définir les attributs et caractéristiques du format de fichier paramétrable.
+  Origine du fichier :
+  Il est possible que l'importation traite des fichiers provenant de programmes fonctionnant sous les systèmes d'exploitation différents.
+  Indiquez l'origine des fichiers à traiter :
+
+
+        Windows (caractères de type ANSI seulement)
+
+        MS-DOS
+
+        Mac OS
+
+
+     Pour les fichiers Macintosh, il est nécessaire que ceux-ci aient été enregistrés sur un support au format MS-DOS ou Windows. S'il
+     dispose de l'extension Echange PC/Macintosh, cette opération se fait sur le Macintosh. Elle s'effectue aussi par recopie sur un disque
+     dur lorsque Macintosh et PC sont connectés en réseau.
+
+
+
+Caractéristiques du fichier
+
+
+  Délimiteur enregistrement : Un enregistrement est un ensemble de champs concernant un même sujet. Par exemple un enregistrement
+  comprend les informations d'un seul client pour tous les champs ajoutés dans l'onglet Description. Cette liste déroulante permet donc
+  d'indiquer l'élément qui sépare deux sujets.
+  Les délimiteurs accessibles sont :
+
+
+        Tabulation
+
+        Point-virgule
+
+        Virgule
+
+        Retour-chariot
+
+        Autre : la zone « Autre délimiteur » devient alors accessible pour saisir le caractère de séparation entre deux enregistrements.
+
+
+        REMARQUE: Pour un fichier de type Longueur fixe, le délimiteur d'enregistrement est obligatoirement un Retour-Chariot.
+
+
+  Délimiteur champ : Un champ correspond à une valeur. Cette liste déroulante permet d'indiquer l'élément qui sépare deux valeurs. Cette
+  zone n'est accessible et utile seulement pour les fichiers de type « Délimité ».
+  Les délimiteurs accessibles sont :
+
+
+        Tabulation
+
+        Point-virgule
+
+        Virgule
+
+        Retour-chariot
+
+        Autre : la zone « Autre délimiteur » devient alors accessible pour saisir le caractère de séparation entre deux enregistrements.
+
+
+     Pour un fichier de type « Longueur fixe », le délimiteur d'enregistrement est obligatoirement un « Retour-Chariot ».
+
+
+     Délimiteur champ : Un champ correspond à une valeur. Cette liste déroulante vous permet d'indiquer l'élément qui sépare deux
+
+  valeurs. Cette zone n'est accessible et utile seulement pour les fichiers de type « Délimité ».
+  Les délimiteurs accessibles sont :
+
+
+        Tabulation
+
+        Point-virgule
+
+        Virgule
+
+        Autre : la zone « Autre délimiteur » devient alors accessible pour saisir le caractère de séparation entre deux champs.
+           ATTENTION: Si le caractère permettant de délimiter les champs se retrouve également dans une autre information, il sera
+        impossible pour le logiciel de distinguer et considérer ce caractère comme un délimiteur de champs. Par exemple lorsqu'une
+        virgule se retrouve dans un libellé. Dans ce cas, réenregistrez le fichier à importer avec un autre délimiteur de champ
+        (Exemple : tabulation, point virgule).
+
+
+
+
+  Caractère échappement :
+  Cette zone permet d'indiquer lorsque le caractère suivant n'est pas un identificateur de texte. Elle permet aussi d'indiquer qu'il
+  s'agit bien d'un caractère du champ. Il s'agit généralement du caractère « \ »
+  EXEMPLE : Format paramétrable des journaux.
+  "BQE";"Trésorerie";"Banque \"";"5120000"
+  La troisième valeur retenue sera : Banque"
+
+
+
+  Identificateur texte :
+  Cette zone permet d'enregistrer le symbole dont certains programmes se servent pour délimiter un champ de type Texte. (Principalement
+  le guillemet)
+
+
+
+  Interpréter les séparateurs identiques comme unique :
+  Cette case à cocher permet de gérer les cas où plusieurs identificateurs de texte se suivent immédiatement.
+  EXEMPLE : Format paramétrable des journaux.
+  ""ACH"";""Achat"";""Achats"";""""
+
+
+
+
+Format des montants
+
+  Nombre de décimales : Permet de définir le nombre de décimales à importer.
+
+
+
+  Séparateur de décimales : Permet de définir le séparateur de décimales.
+  Séparateurs disponibles :
+
+
+        Virgule
+
+        Point
+
+
+
+
+  Séparateur des milliers : Permet de définir le séparateur des milliers.
+  Séparateurs disponibles :
+
+
+        Aucun
+
+        Virgule
+
+        Point
+
+        Espace
+
+        Autre : la zone « Autre séparateur » devient alors accessible pour saisir le caractère de séparation des milliers.
+
+
+
+
+  Caractère de remplissage :
+  Permet de définir un caractère à adopter lorsqu'un champ de type Montant ne remplit pas entièrement sa zone allouée. Elle est
+  non disponible en type de fichier « Délimité ».
+  Caractères disponibles :
+
+
+        Aucun
+
+        Autre : la zone « Autre caractère » devient alors accessible pour saisir le caractère de remplissage
+
+
+
+  Cadrage : Permet de définir si le caractère de remplissage se situe à droite ou à gauche.
+En-tête du fichier
+
+   Début d'enregistrement : Cette zone permet de déterminer à partir de quelle ligne commencent les enregistrements. Pour
+   éliminer les lignes d'en-tête de fichier ou zone de titre.
+   Zone de 2 caractères numériques, de 1 à 99.
+
+
+
+   En-tête du fichier : Il est possible que le fichier généré lors de l'exportation comporte dans son en-tête certaines valeurs à
+   renseigner.
+   La zone en-tête du fichier n'est accessible que lorsque la ligne de début d'enregistrement est différente de 1.
+   Choisissez la valeur à faire apparaître dans l'en-tête du fichier :
+
+
+        Aucun
+
+        Raison sociale
+
+        Autre : la zone « Autre En-tête » permet de définir l'en-tête grâce à la combinaison de caractères alphanumériques et de codes
+        champs.
+
+
+
+Codes champs disponibles :
+
+
+   @D Date du jour
+
+   @H Heure
+
+   @R Raison sociale
+
+   @N Nom du fichier
+
+   @T Titre des champs notamment pour les fichiers Délimité
+
+
+Exemple : "Export Ecritures comptables @D @H du fichier @N"
+
+
+
+▼ Onglet « Numérotation »
+Cet onglet est disponible seulement pour certains types de données. Lors de l'importation de données, il faudra peut-être modifier ou
+regrouper certains numéros de compte pour répondre au format attendu par l'application. L'onglet "Numérotation" permet donc de
+paramétrer cette modification.
+
+
+
+
+Pour paramétrer la structure des comptes :
+
+
+1. Modifiez la transformation proposée en double-cliquant sur la ligne
+
+2. Ajoutez une ligne de paramétrage de conversion
+
+3. Cliquez sur « OK » pour valider et fermez la fenêtre.
+Paramétrage de la
+
+                                        Commentaires
+
+conversion
+
+
+
+n° compte Avant     n° compte Après
+
+
+
+Toute valeur        Toute valeur
+alphabétique ou     alphabétique ou     L'astérisque (*) remplace
+numérique saisie    numérique saisie    tous les caractères du
+dans cette          remplace ce qui     numéro à partir de la
+colonne est         se trouvait à la    position de l'astérisque.
+remplacée.          même position.
+
+
+
+                                        Tous les comptes
+                                        fournisseurs commençant
+401*                40100000            par 401 sont regroupés
+                                        sur le même compte
+                                        fournisseur 40100000.
+
+
+
+                                        Tous les comptes
+                                        clients commençant par
+411*                41100000            411 sont regroupés sur le
+                                        même compte
+                                        fournisseur 41100000.
+
+
+
+411*                *                   Le radical 411 est
+                                        supprimé. Le compte tiers
+                                        est alors composé des
+exemple :           exemple :           derniers caractères du
+411DUPON            DUPON               compte initial.
+
+
+
+                                        Le logiciel supprime le
+                                        radical 411 et le remplace
+411*                C*
+                                        par la lettre C.
+
+
+exemple :           exemple :
+                                        Les derniers caractères
+411DUPON            CDUPON
+                                        du compte initial sont
+                                        conservés.
+
+
+
+*                   F*
+                                        Le compte initial
+                                        est conservé et la lettre F
+
+exemple : 001       exemple : F001      est ajoutée devant.
+
+
+
+
+La case à cocher "Importer uniquement les comptes renumérotés" permet de constituer ou reconstituer la liste des tiers. Il sera
+possible d'utiliser cette case seulement lors de l'import via des formats paramétrables de type "comptes généraux" ou "comptes
+tiers".
+
+
+Si elle est cochée pour d'autres types d'import, des messages comme "Les écritures générales ne sont pas équilibrées pour le journal
+xxx" apparaîtront. Par exemple, pour le type d'import "écritures comptables".
+Génération du fichier d'exemple
+La génération est disponible depuis le menu Fonctions > Générer du format d'import/export paramétrable. Elle permet de créer un
+fichier texte d'exemple correspondant au paramétrage défini dans le format d'import/export. Le but est de montrer la structure du
+fichier à exporter/importer.
+
+Le fichier exemple comporte 5 lignes au maximum constituées de la manière suivante :
+
+
+     Pour les zones de type Texte, les caractères A et B s'alternent pour distinguer les champs de type « Texte » consécutifs.
+
+     Pour les champs de type Date, la date système est restituée selon le format défini.
+
+     Pour les champs de type Montant, la valeur 9999,99 est exportée avec les séparateurs de décimales et de milliers définis. Le
+     cadrage et les caractères de remplissage sont également appliqués.
+
+     Pour les montants signés, les signes Débit et Crédit sont mentionnés en alternance sur les différents enregistrements.
+
+     Pour les champs avec attribut (Type d'écritures, Sens, Type de tiers, etc.), les valeurs sont restituées en alternance sur les différentes
+     lignes d'enregistrements.
+
+     Pour les champs "Inutilisés", la valeur neuf est restituée (en fonction de la longueur du champ).
+
+
+
+
+Vérification du fichier à importer
+La vérification s'effectue depuis le menu Fonctions > Vérifier le format d'import/export paramétrable.
+
+Avant d'importer les données, le logiciel permet de tester la compatibilité entre le fichier à importer et le fichier paramètres. Le logiciel
+contrôle le format de fichier, la structure du fichier, les données à importer et informe des erreurs trouvées.
+
+Une fois la vérification terminée, il sera possible d'importer vos données.
+
+
+
+Étape 2 : Transfert des données
+Importation des données au format paramétrable
+Pour importer des données au format paramétrable, utilisez la fonction Fichier > Importer > Format Paramétrable.
+
+
+   1. Dans la fenêtre Ouvrir le format paramétrable, sélectionnez le fichier du format.
+
+   2. Cliquez sur Ouvrir.
+
+   3. Dans la fenêtre Ouvrir le fichier d'import, sélectionnez le fichier à importer.
+
+   4. Cliquez sur Ouvrir.
+
+
+Les données du fichier d'import sont importées dans votre fichier de travail conformément aux fichiers paramètres. Des messages
+informent du déroulement de la procédure d'import, soyez attentif à leur contenu.
+
+Il est possible de modifier des champs existants via l'import/export paramétrable. Pour cela, activez l'option Mettre à jour l'élément
+existant avec les nouvelles informations contenues dans le fichier d'import du menu Paramètres société > Échange de données.
+
+À chaque importation, le logiciel complète le journal de traitement par des informations sur le déroulement de l'importation. Ce journal
+est disponible depuis le menu Édition > Afficher le journal de traitement.
+
+
+
+
+Exportation des données au format paramétrable
+Pour exporter des données au format paramétrable, utilisez la fonction Fichier > Exporter > Format Paramétrable.
+
+
+   1. Dans la fenêtre Ouvrir le format paramétrable, sélectionnez le fichier du format.
+
+   2. Cliquez sur Ouvrir.
+
+   3. Dans la fenêtre Créer le fichier d'export, donnez un nom et un emplacement au fichier.
+   4. Cliquez sur Enregistrer.
+
+   5. Dans la fenêtre Export paramétrable, filtrez les informations souhaitées.
+
+
+Le programme construit le fichier en fonction des éléments définis dans le format de fichier paramétrable et de la sélection effectuée.
+
+
+
+
+   Est-ce que cela a aidé?
+
+        Oui                Non
+
+     74364 views          56 voté oui
+
+
+
+
+mots clés: fichier importer exportation importation exporter                       Publié le: 05 août 2020
+
+Produit: Sage 100                                                                  S'applique à: Catégorie de cas > Comment faire > un import / export
+Sage 100 Hébergé                                                                   Modules de produits > Sage 100
+                                                                                   Modules de produits > Sage 100 Hébergé
+ID de la solution: …
+
+
+
+
+                                                                           (http://www.sage.com)
+
+
+
+
+                              (https://www.facebook.com/SageFrance)                (https://www.instagram.com/sageofficial/)
+
+
+                             (https://www.linkedin.com/company/sage-software/)                 (https://twitter.com/SageFrance)
+
+
+
+                                                    (https://www.youtube.com/user/Sageenfrance)
+
+
+
+
+      SERVICES ET ASSISTANCE                           PARTENAIRES                                        ENTREPRISE
+
+
+      Assistance (https://www.sage.com/fr-             Nos opportunités de partenariat                    À propos de Sage (https://www.sage.com/fr-fr/a-
+      fr/assistance-support/)                          (https://www.sage.com/fr-fr/partenaires/)          propos/)
+
+
+      Blog (https://www.sage.com/fr-fr/blog/)          ISV éditeurs et alliances                          Contactez-nous (https://www.sage.com/fr-fr/a-
+                                                       (https://www.sage.com/fr-fr/partenaires/isv-       propos/contact/)
+      Espace Client My Sage                            developpeurs/)
+      (https://my.sage.fr/Account/Login)                                                                  Réseaux sociaux (https://www.sage.com/fr-
+                                                       Nous rejoindre (https://www.sage.com/fr-           fr/social/)
+      Sage University (http://www.sageu.com/france/)   fr/partenaires/nous-rejoindre/)
+
+                                                                                                          Carrières (https://www.sage.com/fr-
+      Forums de la communauté                          Revendeurs (https://www.sage.com/fr-               fr/societe/carrieres/trouver-un-emploi/)
+      (https://sagecity.com/fr)                        fr/partenaires/revendeurs/)
+
+                                                                                                          Actualité (https://www.sage.com/fr-
+      Espace Client Sage Experts-comptables            Intégrateurs (https://www.sage.com/fr-             fr/actualites/)
+      (https://experts-                                fr/partenaires/integrateurs/)
+      comptables.sage.fr/authentification)                                                                Événements Sage (https://www.sage.com/fr-
+                                                                                                                           fr/societe/evenements/)
+      Partner Hub (https://www.sage-partner-                     Éducation (https://www.sage.com/fr-
+      hub.com                             fr/partenaires/education/)
+                                                                                                                           Investisseurs (https://www.sage.com/investors/)
+
+      Boutique Partenaire (https://store.sage.fr/)               Sage Marketplace (https://fr-
+                                                                 marketplace.sage.com/fr-fr/home)                          Sage Foundation (https://www.sage.com/fr-
+                                                                                                                           fr/societe/sage-foundation/)
+      Programme d'affiliation de Sage
+      (https://www.sage.com/fr-fr/assistance-
+      support/programme-affiliation/)                                                                                      Coronavirus (COVID-19)
+                                                                                                                           (https://www.sage.com/fr-fr/coronavirus/)
+
+
+                                                                                                                           Sage Champions (https://www.sage.com/fr-
+                                                                                                                           fr/sage-champions/)
+
+
+
+      FAQs
+
+
+      Conseils pour la recherche
+     
+
+
+      Voir toutes les FAQ
+     
+
+
+
+
+            France | Français 
+
+
+
+
+                                          © Sage France 2021 2026.       Informations légales (https://www.sage.com/fr-fr/informations-legales/)
+
+Protection de la vie privée et cookies (https://www.sage.com/fr-fr/informations-legales/protection-vie-privee-cookies/)     RGPD (https://www.sage.com/fr-fr/informations-legales/rgpd/)
+
+                                                                     Plan du site (https://www.sage.com/fr-fr/sitemap/)
+

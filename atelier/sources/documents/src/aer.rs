@@ -41,13 +41,14 @@
 //! Le jour de la signature vient de l'appelant (le jour du logiciel, celui de
 //! Paris) : ce module ne lit jamais l'horloge.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
 use engagement::cachet;
-use socle::date::{en_texte, Jour};
-use socle::fichiers::vrai;
+use socle::date::Jour;
+use crate::valeur::vrai;
 use socle::num::{Decimal, Resultat};
 
 /// Les champs du cadre 5, et rien d'autre.
@@ -162,24 +163,24 @@ pub struct Cadre5 {
     pub courriel: String,
 }
 
-/// `ent[cle]` : la cle doit exister (`KeyError`).
-fn req<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
+/// Une case que le cadre 5 exige : absente, elle se refuse (`KeyError`).
+fn req<T: AsRef<str>>(c: &Option<T>, cle: &str) -> Resultat<String> {
+    c.ecrite(cle).map(str::to_string)
 }
 
 impl Cadre5 {
-    pub fn depuis(ent: &Value, aujourdhui: &Jour) -> Resultat<Cadre5> {
-        let sig = req(ent, "signataire")?;
-        let dec = req(ent, "declarant_dsn")?;
+    pub fn depuis(ent: &droit::fiche::ChampsEntreprise, aujourdhui: &Jour) -> Resultat<Cadre5> {
+        let sig = ent.signataire.exigee("signataire")?;
+        let dec = ent.declarant_dsn.exigee("declarant_dsn")?;
         // Le lieu de signature est le siege, pas le lieu du spectacle.
-        let lieu = match ent.get("commune_affichage").filter(|v| vrai(v)) {
-            Some(v) => en_texte(v),
-            None => en_texte(req(ent, "commune")?),
+        let lieu = match ent.commune_affichage.remplie() {
+            Some(v) => v.to_string(),
+            None => req(&ent.commune, "commune")?,
         };
         Ok(Cadre5 {
-            nom: en_texte(req(sig, "nom")?),
-            prenom: en_texte(req(sig, "prenom")?),
-            qualite: en_texte(req(sig, "fonction")?),
+            nom: req(&sig.nom, "nom")?,
+            prenom: req(&sig.prenom, "prenom")?,
+            qualite: req(&sig.fonction, "fonction")?,
             lieu,
             jour: format!("{:02}", aujourdhui.jour),
             mois: format!("{:02}", aujourdhui.mois),
@@ -187,9 +188,9 @@ impl Cadre5 {
             // << Personne a joindre concernant cette attestation >> : c'est le
             // declarant DSN, pas le signataire. France Travail rappelle pour
             // une question de declaration, et c'est l'employeur qui les depose.
-            correspondant: en_texte(req(dec, "nom_prenom")?),
-            telephone: en_texte(req(dec, "tel")?),
-            courriel: en_texte(req(dec, "email")?).to_lowercase(),
+            correspondant: req(&dec.nom_prenom, "nom_prenom")?,
+            telephone: req(&dec.tel, "tel")?,
+            courriel: req(&dec.email, "email")?.to_lowercase(),
         })
     }
 
@@ -239,7 +240,7 @@ pub fn jour(t: &str) -> Resultat<Option<Jour>> {
         return Err(socle::date::annee_impossible(a));
     }
     if !(1..=12).contains(&m) {
-        return Err(socle::date::mois_impossible(m));
+        return Err(socle::mois::mois_impossible(m));
     }
     Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| socle::date::jour_impossible(a, m, j))
 }
@@ -311,10 +312,10 @@ impl PaieAer {
     pub fn du_mois(p: &engagement::calcul::Paie) -> Resultat<PaieAer> {
         let e = &p.engagement;
         let (d, f) = (e.debut_mois()?, e.fin_mois()?);
-        let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
+        let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.as_deref().unwrap_or_default().to_string()))?;
         let heures = if e.nat()?.mensuelle() { p.heures_travaillees } else { socle::num::dec_f64(e.heures.unwrap_or(0.0))? };
         Ok(PaieAer {
-            numero: e.numero.clone().unwrap_or_default(),
+            numero: e.numero.as_deref().unwrap_or_default().to_string(),
             debut: if e.debut > d { e.debut } else { d },
             fin: if fin < f { fin } else { f },
             cachets: Decimal::from(e.cachets),
@@ -429,7 +430,7 @@ fn rect_de(case: &Value) -> Option<(&Value, [f64; 4])> {
 
 /// Ce que `authentifier` recoit, en dehors du PDF lui-meme.
 pub struct Authentification<'a> {
-    pub ent: &'a Value,
+    pub ent: &'a droit::fiche::ChampsEntreprise,
     /// Le jour de la signature : celui du logiciel (Paris), donne par l'appelant.
     pub aujourdhui: Jour,
     /// La signature de la compagnie (PNG, JPEG ou SVG), si elle en a une.
@@ -476,7 +477,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
             // ne tape pas son nom a la place. PNG, JPEG ou SVG.
             let _ = rect;
             let page = champs[CHAMP_SIGNATURE].get("page").cloned().unwrap_or(Value::Null);
-            images.push(cachet::image_fichier(&page, &json!(cadre_signature(r)), sig));
+            images.push(image_fichier(&page, &json!(cadre_signature(r)), sig));
         }
     }
     if let Some((rect, _)) = champs.get(CHAMP_CACHET).and_then(rect_de) {
@@ -487,7 +488,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
         // dans Configuration, et c'est lui qui part ; qu'elle le retire, et le
         // dessin reprend la main.
         let page = champs[CHAMP_CACHET].get("page").cloned().unwrap_or(Value::Null);
-        if let Some(tampon) = cachet::image(&page, rect, a.ent, a.cachet_fichier) {
+        if let Some(tampon) = image(&page, rect, a.ent, a.cachet_fichier) {
             images.push(tampon);
         }
     }
@@ -507,24 +508,55 @@ pub fn remplir(donnees: &[u8], valeurs: &Map<String, Value>, images: &[Value]) -
 /// Toutes les periodes que l'AER de `cle` pour `periode` doit porter (`ecarts`) : chaque contrat dont l'AER est due ce
 /// mois-ci (`due`), mois par mois depuis son debut, chacun lu dans la paie de son mois (`paies_du_mois`).
 pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMut(&str) -> Vec<engagement::calcul::Paie>) -> Resultat<Vec<PaieAer>> {
-    let de_lui = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).as_deref() == Some(cle);
+    let de_lui = |p: &engagement::calcul::Paie| p.salarie.id == cle;
     let mut out = Vec::new();
     for p in paies_du_mois(periode).iter().filter(|p| de_lui(p)) {
         let e = &p.engagement;
         if !due(p)? {
             continue;
         }
-        let numero = e.numero.clone().unwrap_or_default();
+        let numero = e.numero.as_deref().unwrap_or_default().to_string();
         let mut m = e.debut.iso()[..7].to_string();
         while m.as_str() < periode {
             for q in paies_du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {
                 out.push(PaieAer::du_mois(q)?);
             }
-            m = socle::date::premier_du_mois(&m)?.mois_suivant();
+            m = socle::mois::Mois::lire(&m)?.suivant().to_string();
         }
         if !e.sans_paie() {
             out.push(PaieAer::du_mois(p)?);
         }
     }
     Ok(out)
+}
+
+/// Une image (PNG, JPEG ou SVG) a poser dans `rect`, a `cachet::MARGE` du bord.
+///
+/// C'est la fabrique qui la pose (`fabrique::remplir`) : le plus grand
+/// rectangle aux proportions de l'image qui tient dans la case, centre -- un
+/// tampon 2:1 pose dans une case presque carree ne sort pas ovale. Un SVG y
+/// reste VECTORIEL, net quelle que soit la taille de la case, la ou un PNG
+/// agrandi bave. Un fichier illisible n'est pas pose en silence : la fabrique
+/// refuse, et l'attestation ne sort pas sans qu'on sache pourquoi.
+fn image_fichier(page: &Value, rect: &Value, fichier: &str) -> Value {
+    json!({"page": page, "rect": rect, "marge": cachet::MARGE, "fichier": fichier})
+}
+
+/// Le cachet a poser dans `rect` de la page `page` : celui de la compagnie
+/// s'il est pose, sinon le notre. C'est le SEUL endroit ou l'on choisit entre
+/// les deux. Rend l'image telle que la fabrique la prend, ou None s'il n'y a
+/// rien a dessiner.
+///
+/// Le dessin n'est pas un pis-aller : il porte les memes faits, tires de la
+/// fiche, et il suit la fiche quand elle change. Un fichier pose l'emporte
+/// simplement parce qu'une compagnie qui prend la peine d'apporter son tampon
+/// veut le sien.
+fn image(page: &Value, rect: &Value, ent: &droit::fiche::ChampsEntreprise, fichier: Option<&str>) -> Option<Value> {
+    if let Some(f) = fichier {
+        if Path::new(f).exists() {
+            return Some(image_fichier(page, rect, f));
+        }
+    }
+    let dessin = cachet::svg(ent)?;
+    Some(json!({"page": page, "rect": rect, "marge": cachet::MARGE, "svg": dessin}))
 }

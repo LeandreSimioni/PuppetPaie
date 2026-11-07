@@ -7,6 +7,8 @@ Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'u
 - `afdas-1790-plaquette-loisirs-2026-20260929.pdf` : transcription `afdas-1790-plaquette-loisirs-2026-20260929.md`
 - `afdas-2026-plaquette-audiovisuel-dialogue-social-20260929.pdf` : transcription `afdas-2026-plaquette-audiovisuel-dialogue-social-20260929.md`
 - `afdas-contributions-2026-audiovisuel.pdf` : transcription `afdas-2026-plaquette-audiovisuel-dialogue-social-20260929.md`
+- `afdas-contributions-2026/afdas-contributions-2026-audiovisuel-20261104.pdf` : transcription `afdas-contributions-2026/afdas-contributions-2026-audiovisuel-20261104.txt`
+- `afdas-contributions-2026/afdas-taux-contribution-formation-continue-20261104.html` : transcription `afdas-contributions-2026/afdas-taux-contribution-formation-continue-20261104.txt`
 - `audiens-2024-webconf-taux-conventionnels-20260929.pdf` : transcription `audiens-2024-webconf-taux-conventionnels-20260929.md`
 - `audiens-2026-webconf-nouveautes-taux-conventionnels-20260929.pdf` : transcription `audiens-2026-webconf-nouveautes-taux-conventionnels-20260929.md`
 - `audiens-3090-prevoyance-sante-fiche-produit-2021.pdf` : transcription `audiens-3090-prevoyance-sante-fiche-produit-2021.txt`

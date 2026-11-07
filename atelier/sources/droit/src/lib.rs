@@ -6,6 +6,7 @@
 
 pub mod adhesions;
 pub mod apprentissage;
+pub mod arrets;
 pub mod bareme;
 pub mod caisse_conges;
 pub mod catalogue;
@@ -17,8 +18,10 @@ pub mod contexte;
 pub mod echeances;
 pub mod emplois;
 pub mod essai;
+pub mod fiche;
 pub mod heures_en_plus;
 pub mod maintien;
+pub mod majoration_chomage;
 pub mod minima;
 pub mod missions;
 pub mod natures;
@@ -29,4 +32,6 @@ pub mod periodes;
 pub mod plafond;
 pub mod preavis;
 pub mod reduction;
+pub mod forme_bareme;
+pub mod source;
 pub mod versement;

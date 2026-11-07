@@ -27,6 +27,7 @@
    "suspension": [{"valeur": false}],
    "arret_de_travail": [{"valeur": true}],
    "conges_pris": [{"valeur": false}],
+   "salaire_de_base": [{"valeur": false}],
    "dsn_bloc52": [{"valeur": "05"}]
   }
  }

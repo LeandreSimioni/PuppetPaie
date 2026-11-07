@@ -15,21 +15,20 @@
 //! accent hors de cette table n'est pas retire. Les chiffres des motifs de date et de nom de fichier sont les chiffres
 //! ASCII. Un mois saisi est un mois que des engagements touchent (`engagements/`).
 
+use droit::fiche::Lue as _;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use socle::mois::Mois;
 
 use engagement::calcul::Paie;
 use documents::conges_spectacles::{self, ContratCs, MoisPaye, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use engagement::{self, Engagement};
-use envois::etats::{items};
-use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
 use documents::fiche_recapitulative::Recapitulatifs;
-use socle::fichiers::vrai;
 use documents::fabrique::{fusion_octets, fusion_pieces, Temporaire};
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
@@ -38,6 +37,7 @@ use socle::echec::Refus;
 type R<T> = Result<T, Refus>;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -45,7 +45,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Exports);
 
 /// La route de ce module, et sa fiche.
 pub const ROUTES: &[Fiche] = &[Fiche {
-    nom: "dossier-salarie",
+    route: Route::DossierSalarie,
     geste: "Assembler les documents de salariés sur une période, en PDF ou en ZIP.",
     charge: &[
         Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "les clés des salariés", avance: false },
@@ -65,18 +65,141 @@ pub const ROUTES: &[Fiche] = &[Fiche {
 
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> Result<Value, Echec> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> Result<Value, Echec> {
     match nom {
-        "dossier-salarie" => dossier_salarie_route(ctx, charge).map_err(Echec::from).map(|mut v| {
-            let liste = |k: &str| v[k].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>();
-            let (qui, fichiers) = (liste("salaries").join(", "), liste("fichiers"));
-            let p = if fichiers.is_empty() { format!("Dossier de {} ({}) : rien n'est écrit.", qui, valeur_en_texte(&v["periode"])) } else { format!("Dossier de {} ({}) : {}.", qui, valeur_en_texte(&v["periode"]), super::compte(fichiers.len(), "fichier écrit", "fichiers écrits")) };
-            let mut lignes = liste("avertissements");
-            lignes.extend(liste("refus"));
-            v["phrases"] = json!(lignes);
-            super::phrase_en_tete(v, p)
-        }),
+        Route::DossierSalarie => super::en_json(dossier_salarie(ctx, &super::lire_charge(charge)?)?),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
+    }
+}
+
+/// `dossier-salarie` : le dossier construit (`construire`), et ce qu'il a ecrit.
+fn dossier_salarie(ctx: &Contexte, demande: &DemandeDeDossier) -> R<DossierRendu> {
+    let d = construire(ctx, demande)?;
+    let p = if d.fichiers.is_empty() {
+        format!("Dossier de {} ({}) : rien n'est écrit.", d.salaries.join(", "), d.periode)
+    } else {
+        format!("Dossier de {} ({}) : {}.", d.salaries.join(", "), d.periode, super::compte(d.fichiers.len(), "fichier écrit", "fichiers écrits"))
+    };
+    Ok(DossierRendu::de(d, p, None))
+}
+
+// ------------------------------------------------------------------ les formes
+
+/// L'annee d'une demande, en nombre (AAAA) ou telle que la page la choisit (« 2026 »).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum AnneeDite {
+    Nombre(i64),
+    Texte(String),
+}
+
+impl AnneeDite {
+    pub(crate) fn texte(&self) -> String {
+        match self {
+            AnneeDite::Nombre(n) => n.to_string(),
+            AnneeDite::Texte(t) => t.clone(),
+        }
+    }
+}
+
+/// La demande d'un dossier (la charge de `dossier-salarie` ; `dossier-envoyer` la compose) : les salaries (aucun :
+/// chacun), UNE periode (le mois, l'annee, ou toutes les annees), ce qu'il porte (rien : tout), un seul fichier pour
+/// tous (`ensemble`), et `apercu` pour dire ce qui s'ecrirait sans rien ecrire.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DemandeDeDossier {
+    #[serde(default)]
+    pub(crate) salaries: Vec<String>,
+    #[serde(default)]
+    pub(crate) mois: Option<Mois>,
+    #[serde(default)]
+    pub(crate) annee: Option<AnneeDite>,
+    #[serde(default)]
+    pub(crate) toutes_les_annees: bool,
+    #[serde(default)]
+    pub(crate) categories: Vec<String>,
+    #[serde(default)]
+    pub(crate) ensemble: bool,
+    #[serde(default)]
+    pub(crate) apercu: bool,
+}
+
+/// Une table JSON dont les cles gardent l'ordre ou elles sont venues (les salaries, puis leurs categories).
+#[derive(Debug, Clone)]
+pub(crate) struct Ordonnee<V>(pub(crate) Vec<(String, V)>);
+
+impl<V> Default for Ordonnee<V> {
+    fn default() -> Self {
+        Ordonnee(Vec::new())
+    }
+}
+
+impl<V> Ordonnee<V> {
+    pub(crate) fn get(&self, cle: &str) -> Option<&V> {
+        self.0.iter().find(|(k, _)| k == cle).map(|(_, v)| v)
+    }
+
+    fn entree(&mut self, cle: &str, neuf: impl FnOnce() -> V) -> &mut V {
+        let i = match self.0.iter().position(|(k, _)| k == cle) {
+            Some(i) => i,
+            None => {
+                self.0.push((cle.to_string(), neuf()));
+                self.0.len() - 1
+            }
+        };
+        &mut self.0[i].1
+    }
+}
+
+impl<V: Serialize> Serialize for Ordonnee<V> {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_map(self.0.iter().map(|(k, v)| (k, v)))
+    }
+}
+
+/// Ce que l'envoi du dossier a fait : les adresses servies, le nombre de messages, la boite qui envoie.
+#[derive(Debug, Serialize)]
+pub(crate) struct DossierEnvoye {
+    pub(crate) partis: Vec<String>,
+    pub(crate) messages: usize,
+    pub(crate) expediteur: String,
+}
+
+/// Ce que rendent `dossier-salarie` et `dossier-envoyer` : la phrase, le dossier (ses salaries, ses categories, sa
+/// periode, ses fichiers, ses pages par salarie et par categorie, ce qu'il dit), le libelle de chaque categorie, et
+/// sous `envoi` ce que l'envoi a fait.
+#[derive(Debug, Serialize)]
+pub(crate) struct DossierRendu {
+    phrase: String,
+    salaries: Vec<String>,
+    categories: Vec<&'static str>,
+    periode: String,
+    fichiers: Vec<String>,
+    pages: Ordonnee<Ordonnee<usize>>,
+    avertissements: Vec<String>,
+    refus: Vec<String>,
+    libelles: Ordonnee<&'static str>,
+    phrases: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    envoi: Option<DossierEnvoye>,
+}
+
+impl DossierRendu {
+    pub(crate) fn de(d: Dossier, phrase: String, envoi: Option<DossierEnvoye>) -> DossierRendu {
+        let phrases = d.avertissements.iter().chain(&d.refus).cloned().collect();
+        DossierRendu {
+            phrase,
+            salaries: d.salaries,
+            categories: d.categories,
+            periode: d.periode,
+            fichiers: d.fichiers.iter().map(|f| f.to_string_lossy().into_owned()).collect(),
+            pages: d.pages,
+            avertissements: d.avertissements,
+            refus: d.refus,
+            libelles: Ordonnee(CATEGORIES.iter().map(|c| (c.to_string(), libelle_de(c))).collect()),
+            phrases,
+            envoi,
+        }
     }
 }
 
@@ -177,27 +300,15 @@ struct Periode {
 }
 
 impl Periode {
-    fn nouveau(mois: Option<&Value>, annee: Option<&Value>, toutes: bool) -> R<Periode> {
+    fn nouveau(mois: Option<Mois>, annee: Option<String>, toutes: bool) -> R<Periode> {
         let n = mois.is_some() as usize + annee.is_some() as usize + toutes as usize;
         if n != 1 {
             return Err(erreur_operation(
                 "Un dossier se demande pour UNE période : un mois (--mois AAAA-MM), une année (--annee AAAA), ou toute la période (--toutes-les-annees).",
             ));
         }
-        let mut p = Periode { mois: None, annee: None, toutes };
-        if let Some(m) = mois {
-            let Value::String(m) = m else {
-                return Err(avec("TypeError", socle::fichiers::attendu("un mois en texte (AAAA-MM)", nom_type(m))));
-            };
-            let c: Vec<char> = m.chars().collect();
-            let bon = c.len() == 7 && c[4] == '-' && c.iter().enumerate().all(|(i, x)| i == 4 || chiffre(*x).is_some());
-            if !bon {
-                return Err(erreur_operation(format!("Mois attendu sous la forme AAAA-MM : « {} ».", m)));
-            }
-            p.mois = Some(m.clone());
-        }
-        if let Some(a) = annee {
-            let t = valeur_en_texte(a);
+        let mut p = Periode { mois: mois.map(|m| m.to_string()), annee: None, toutes };
+        if let Some(t) = annee {
             if !(t.chars().count() == 4 && t.chars().all(|x| chiffre(*&x).is_some())) {
                 return Err(erreur_operation(format!("Année attendue sous la forme AAAA : « {} ».", t)));
             }
@@ -222,11 +333,7 @@ impl Periode {
             return Ok("toute la période".to_string());
         }
         if let Some(m) = &self.mois {
-            let c: Vec<char> = m.chars().collect();
-            let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
-            // « 00 » n'est aucun mois : il se refuse, comme partout.
-            let nom = socle::date::nom_du_mois(n, socle::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
-            return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
+            return socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Minuscule)).map_err(|e| avec("ValueError", e));
         }
         Ok(self.annee.clone().unwrap_or_default())
     }
@@ -260,30 +367,13 @@ pub(crate) struct Dossier {
     pub(crate) periode: String,
     pub(crate) fichiers: Vec<PathBuf>,
     /// `{cle: {categorie: n}}`, dans l'ordre ou les cles et les categories sont apparues.
-    pub(crate) pages: Map<String, Value>,
+    pub(crate) pages: Ordonnee<Ordonnee<usize>>,
     avertissements: Vec<String>,
     refus: Vec<String>,
     /// Les PDF de contrats signes hors du logiciel deja pris (un contrat court sur plusieurs mois).
     deposes_vus: HashSet<PathBuf>,
 }
 
-/// `dossier_json`.
-pub(crate) fn dossier_json(d: &Dossier) -> Value {
-    let mut libelles = Map::new();
-    for c in CATEGORIES {
-        libelles.insert(c.to_string(), json!(libelle_de(c)));
-    }
-    json!({
-        "salaries": d.salaries,
-        "categories": d.categories,
-        "periode": d.periode,
-        "fichiers": d.fichiers.iter().map(|f| f.to_string_lossy().into_owned()).collect::<Vec<_>>(),
-        "pages": Value::Object(d.pages.clone()),
-        "avertissements": d.avertissements,
-        "refus": d.refus,
-        "libelles": Value::Object(libelles),
-    })
-}
 
 // ------------------------------------------------------------------ les noms de fichier
 
@@ -378,65 +468,62 @@ fn nom_salarie(cle: &str) -> String {
 // ------------------------------------------------------------------ les mois PuppetPaie
 
 pub(crate) fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
+    p.salarie.id.to_string()
 }
 
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
 /// ecrites, sans numeros ; un mois sans saisie n'a rien.
-pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    Ok(engagement::etats::validees_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
+pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(engagement::saisie::VueDuMois, Vec<Paie>)> {
+    let vide = engagement::saisie::VueDuMois::vide(socle::mois::Mois::lire(mois).map_err(|m| avec("ValueError", m))?);
+    Ok(engagement::etats::validees_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?.unwrap_or((vide, Vec::new())))
 }
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
-fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
-    let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
-    let annee = socle::num::entier_lu(&mois.chars().take(4).collect::<String>())
-        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
-    documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
+fn numeroter(ctx: &Contexte, data: &engagement::saisie::VueDuMois, paies: &mut [Paie], attente: &mut HashMap<i32, i64>) -> R<()> {
+    documents::ecrire_documents::numeroter_en_attente(ctx, paies, data.mois.annee(), attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
 }
 
-/// `etiquette(mois)`, ses refus sous leur classe.
+/// L'etiquette d'un mois dans le nom d'un fichier (`Aout2026`) ; un mois illisible se refuse (`ValueError`).
 pub(crate) fn etiquette(mois: &str) -> R<String> {
-    socle::date::etiquette_du_mois(mois).map_err(|m| {
-        if m.starts_with("mois impossible") {
-            avec("IndexError", m)
-        } else {
-            avec("ValueError", m)
-        }
-    })
+    socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(|m| avec("ValueError", m))
 }
 
 
 /// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
 pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
-    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
+    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.champs.clone() })
 }
 
 /// Ce que l'ancien logiciel a verse en `mois` pour un contrat qui continue ici : le brut, les cachets (une ligne, aux
 /// jours que le bulletin imprime) et les jours travailles. `None` sans bulletin qui donne ses jours et ses cachets : le
 /// mois reste parmi les manquants (rien ne se devine).
-fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> Option<(Decimal, Vec<Value>, i64)> {
-    let paies = i.paies();
-    let p = paies.get(mois)?;
-    let brut = eur2(socle::num::dec(p.get("brut")?).ok()?);
+fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> Option<(Decimal, Vec<engagement::LignePaie>, i64)> {
+    let p = i.paies().get(mois)?;
+    let brut = eur2(p.brut?);
     let mut dates: Vec<String> = Vec::new();
-    for d in p.get("dates")?.as_array()? {
-        let (a, b) = (Jour::lire(&valeur_en_texte(d.get("debut")?)).ok()?, Jour::lire(&valeur_en_texte(d.get("fin")?)).ok()?);
-        let mut j = a;
-        while j <= b {
+    for d in &p.dates {
+        let mut j = d.debut;
+        while j <= d.fin {
             dates.push(j.iso());
             j = j.plus_jours(1).ok()?;
         }
     }
-    let nombre = |x: Option<&Value>| x.map(valeur_en_texte).and_then(|t| t.trim().parse::<f64>().ok());
-    let cachets = p.get("lignes")?.as_array()?.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))?;
-    let (quantite, taux) = (nombre(cachets.get("quantite"))?, nombre(cachets.get("taux"))?);
+    let cachets = p.lignes.iter().find(|l| l.rubrique.as_deref() == Some("cachet"))?;
+    let (quantite, taux) = (Some(cachets.quantite?), Some(cachets.taux?));
     if dates.is_empty() {
         return None;
     }
     let jours = dates.len() as i64;
-    Some((brut, vec![json!({"rubrique": "cachet", "quantite": quantite, "taux": taux, "dates": dates})], jours))
+    let cachet = engagement::LignePaie::Unites(engagement::ligne::Unites {
+        rubrique: "cachet".to_string(),
+        quantite,
+        taux,
+        lieu: None,
+        dates: dates.into_iter().map(engagement::DateDeLigne::Nue).collect(),
+        planning: Vec::new(),
+    });
+    Some((brut, vec![cachet], jours))
 }
 
 /// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
@@ -448,12 +535,9 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let mois_du = eng.mois_du_contrat()?;
     let debut = eng.debut.iso();
     let mut manquants: Vec<String> = Vec::new();
-    let mut lignes: Vec<Value> = Vec::new();
+    let mut lignes: Vec<engagement::LignePaie> = Vec::new();
     // Un contrat commence dans l'ancien logiciel : ses mois d'avant sont ceux que l'engagement importe a verses.
-    let mut cherche = Map::new();
-    cherche.insert("salarie".into(), json!(cle));
-    cherche.insert("debut".into(), json!(debut));
-    cherche.insert("numero".into(), eng.numero.clone().map_or(Value::Null, Value::String));
+    let cherche = engagement::saisie::Carte { salarie: Some(p.salarie.id.clone()), debut: Some(debut.clone()), numero: eng.numero.as_ref().map(|n| n.to_string()), ..Default::default() };
     let importe = engagement::importe::continue_par(&ctx.racine, &cherche).map_err(|e| avec("ValueError", e))?;
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
@@ -463,7 +547,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             Some(n) => engagement::etats::paie_ecrite_de(ctx, m, &cle, n, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(|e| avec("ValueError", e))?).map_err(|e| avec("ValueError", e))?,
             None => None,
         };
-        let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
+        let Some(paie) = ecrite.as_ref().map(|x| &x.paie) else {
             match importe.as_ref().and_then(|i| verse_par_l_ancien_logiciel(i, m)) {
                 Some((brut, l, j)) => {
                     bruts += brut;
@@ -474,49 +558,50 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             }
             continue;
         };
-        let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));
-        let e = paie.get("engagement").ok_or_else(|| illisible("engagement"))?;
-        if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
-            lignes.extend(l.iter().cloned());
-        }
-        let (brut_du_mois, jours_du_mois) = (
-            eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?),
-            e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?,
-        );
+        lignes.extend(paie.engagement.lignes.iter().cloned());
+        let (brut_du_mois, jours_du_mois) = (eur2(paie.brut), paie.engagement.jours);
         bruts += brut_du_mois;
         jours += jours_du_mois;
-        mois_payes.push(MoisPaye { fin: socle::date::dernier_du_mois(m).map_err(|x| avec("ValueError", x))?, jours: jours_du_mois, brut: brut_du_mois });
+        mois_payes.push(MoisPaye { fin: socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?, jours: jours_du_mois, brut: brut_du_mois });
     }
     let brut = bruts + eur2(p.brut);
     // Un contrat paye au mois n'a ni cachet ni date jouee : son certificat porte ses bornes, et ses jours travailles et son
     // brut mois par mois (`conges::lignes_du_mois`) ; le 31 mars le coupe entre deux mois.
     if eng.nat()?.mensuelle() {
-        let fin_du_mois = socle::date::dernier_du_mois(&eng.mois).map_err(|x| avec("ValueError", x))?;
+        let fin_du_mois = socle::mois::Mois::lire(&eng.mois).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?;
         mois_payes.push(MoisPaye { fin: fin_du_mois, jours: eng.jours, brut: eur2(p.brut) });
         let contrat = ContratCs { jours: jours + eng.jours, dates_travail: Vec::new(), cachets: 0, heures: None, taux_cachet: None, mois_payes, ..ContratCs::de(eng)? };
-        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.clone() }, manquants));
+        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.champs.clone() }, manquants));
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
     for l in lignes.iter_mut() {
-        if let Value::Object(o) = l {
-            o.shift_remove("planning");
-        }
+        *l = l.avec_les_jours(l.dates().to_vec(), Vec::new());
     }
     // Les jours du contrat entier : ceux de ses lignes de travail (`engagement::dates_engagement`).
-    let dates = engagement::dates_engagement(&ctx.racine, &json!({"lignes": lignes.clone()}));
-    let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
-    let fin = eng.fin.map_or(Value::Null, |f| json!(f.iso()));
-    let entier = json!({
-        "salarie": eng.salarie, "spectacle": texte(&eng.spectacle), "dates_travail": dates, "lignes": lignes,
-        "debut": eng.debut.iso(), "fin": fin, "numero": texte(&eng.numero), "jours": jours + eng.jours,
-        "taux_cachet": eng.taux_cachet, "date_paiement": texte(&eng.date_paiement), "lieu": eng.lieu,
-        "emploi": texte(&eng.emploi), "pcs_ese": texte(&eng.pcs_ese), "code_emploi_ft": texte(&eng.code_emploi_ft),
-        "statut": texte(&eng.statut), "statut_conventionnel": texte(&eng.statut_conventionnel),
-        "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
-    });
+    let dates = engagement::saisie::Carte { lignes: Some(lignes.clone()), ..Default::default() }.dates();
+    let entier = engagement::Assemble {
+        salarie: Some(eng.salarie.clone()),
+        spectacle: eng.spectacle.clone(),
+        dates_travail: dates,
+        lignes: Some(lignes),
+        debut: Some(eng.debut.iso()),
+        fin: eng.fin.map(|f| f.iso()),
+        numero: eng.numero.as_ref().map(|n| n.to_string()),
+        jours: Some(engagement::Chiffre::entier(jours + eng.jours)),
+        taux_cachet: eng.taux_cachet.map(engagement::Chiffre::de_f64),
+        date_paiement: eng.date_paiement.clone(),
+        lieu: Some(eng.lieu.clone()),
+        emploi: eng.emploi.clone(),
+        pcs_ese: eng.pcs_ese.clone(),
+        code_emploi_ft: eng.code_emploi_ft.clone(),
+        statut: eng.statut.clone(),
+        statut_conventionnel: eng.statut_conventionnel.clone(),
+        statut_categoriel_rc: eng.statut_categoriel_rc.clone(),
+        ..Default::default()
+    };
     let entier = Engagement::nouveau(&ctx.racine, &entier, &ctx.nomme(&eng.salarie)).map_err(|m| avec("ValueError", m))?;
-    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.clone() };
+    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.champs.clone() };
     Ok((cs, manquants))
 }
 
@@ -553,7 +638,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
                 avertissements.push(format!(
                     "Certificat Conges Spectacles du contrat {} : aucune paie sur le disque pour {} -- il ne porte que les mois presents.",
                     p.engagement.numero.as_deref().unwrap_or("None"),
-                    manquants.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ")
+                    manquants.iter().map(|m| socle::mois::Mois::en_clair(m)).collect::<Vec<_>>().join(", ")
                 ));
             }
         }
@@ -576,7 +661,7 @@ fn mois_puppetpaie(
     d: &mut Dossier,
     aujourdhui: &Jour,
     contrats_vus: &mut HashSet<String>,
-    attente: &mut HashMap<(String, String), i64>,
+    attente: &mut HashMap<i32, i64>,
 ) -> R<Vec<Page>> {
     let mut pages = Vec::new();
     let sortie = ctx.racine.join("sorties").join(mois);
@@ -590,8 +675,8 @@ fn mois_puppetpaie(
     if siennes.is_empty() {
         return Ok(pages);
     }
-    let ent = ctx.entreprise_du_mois(mois)?;
-    let lib = engagement::libelle_mois(mois);
+    let ent = ctx.pour_un_modele(&ctx.entreprise_du_mois(mois)?);
+    let lib = socle::mois::Mois::en_clair(mois);
 
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
     // dont chaque engagement porte son numero.
@@ -607,7 +692,7 @@ fn mois_puppetpaie(
         // Un engagement valide porte son numero, ecrit a sa validation ; un engagement en saisie n'en a
         // pas, et un numero ne s'invente pas.
         let (data, mut figees) = charger(ctx, mois)?;
-        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.as_deref().is_some_and(|n| !n.is_empty())).collect();
+        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.is_some()).collect();
         if partis.is_empty() {
             if categories.contains(CONTRATS) {
                 d.refus.push(format!("{} : contrats non réédités — aucun n'est parti à la signature, et un numéro ne s'invente pas.", lib));
@@ -657,17 +742,17 @@ fn mois_puppetpaie(
                 .map(|i| &source[*i])
                 .filter(|p| {
                     cle_de(p) == *cle
-                        && p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty())
+                        && p.engagement.numero.is_some()
                         && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false)
                         && !contrats_vus.contains(p.engagement.numero.as_deref().unwrap_or(""))
                 })
                 .cloned()
                 .collect();
-            contrats_vus.extend(a_lui.iter().filter_map(|p| p.engagement.numero.clone()));
+            contrats_vus.extend(a_lui.iter().filter_map(|p| p.engagement.numero.clone().map(String::from)));
             let sans = indices
                 .iter()
                 .map(|i| &source[*i])
-                .filter(|p| cle_de(p) == *cle && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false) && p.engagement.numero.as_deref().map_or(true, str::is_empty))
+                .filter(|p| cle_de(p) == *cle && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false) && p.engagement.numero.is_none())
                 .count();
             if sans > 0 {
                 d.refus.push(format!("{}, {} : {} contrat(s) sans numéro lu, non réédité(s).", lib, cle, sans));
@@ -729,8 +814,8 @@ fn mois_puppetpaie(
                 for (cle, siens) in &paires {
                     let nom = siens
                         .first()
-                        .and_then(|(pc, _)| pc.salarie.get("nom"))
-                        .map(valeur_en_texte)
+                        .and_then(|(pc, _)| pc.salarie.nom.ecrite("nom").ok())
+                        .map(str::to_string)
                         .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
                     let mut ses_pages: Vec<usize> = Vec::new();
                     let mut etrangeres: Vec<i64> = Vec::new();
@@ -792,8 +877,7 @@ fn mois_puppetpaie(
                     .iter()
                     .map(|i| &paies[*i])
                     .filter(|p| cle_de(p) == *cle)
-                    .filter_map(|p| p.engagement.numero.clone())
-                    .filter(|n| !n.is_empty())
+                    .filter_map(|p| p.engagement.numero.clone().map(String::from))
                     .collect();
                 let hors: Vec<&String> = portes.difference(&connus).collect();
                 if ecrit && !hors.is_empty() {
@@ -842,7 +926,7 @@ fn sans_accents(t: &str) -> String {
 /// signes. Ils vont dans le ZIP, pas dans un PDF.
 fn signatures(ctx: &Contexte, cle: &str, p: &Periode) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from) {
         if !p.contient(&mois) {
             continue;
         }
@@ -860,12 +944,14 @@ fn signatures(ctx: &Contexte, cle: &str, p: &Periode) -> Vec<PathBuf> {
 fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut Dossier) -> Vec<Page> {
     let Ok(lignes) = engagement::importe::paies_lues(&ctx.racine) else { return Vec::new() };
     let dossier = ctx.racine.join("historique").join("bulletins");
-    let texte = |x: &Value, k: &str| x.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     let (mut pages, mut manquent): (Vec<Page>, Vec<String>) = (Vec::new(), Vec::new());
-    for x in &lignes {
-        let Some(b) = x.get("bulletin").filter(|b| b.is_object()) else { continue };
-        let (cle, mois, fichier) = (texte(x, "salarie"), texte(x, "mois"), texte(b, "fichier"));
-        let Some(page) = b.get("page").and_then(Value::as_u64).filter(|n| *n >= 1) else { continue };
+    for x in lignes {
+        let Some(b) = &x.paie.bulletin else { continue };
+        let (cle, mois, fichier) = (x.salarie.clone(), x.mois.clone(), b.fichier.clone());
+        let page = b.page;
+        if page < 1 {
+            continue;
+        }
         if !cles.contains(&cle) || mois.is_empty() || !p.contient(&mois) || fichier.is_empty() || fichier.contains(['/', '\\']) {
             continue;
         }
@@ -876,7 +962,7 @@ fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut 
             }
             continue;
         }
-        let debut = texte(x, "debut");
+        let debut = x.paie.debut.map(|j| j.iso()).unwrap_or_default();
         let tri = if debut.is_empty() { format!("{}-01", mois) } else { debut };
         pages.push(Page { categorie: BULLETINS, cle, tri, source, numero: page as usize - 1 });
     }
@@ -1023,24 +1109,13 @@ pub(crate) fn entree_ecrite(nom: String, octets: Vec<u8>) -> Entree {
     Entree { nom, octets, date, heure, attributs: 0o600 << 16 }
 }
 
-/// La date et les droits du fichier.
+/// Le fichier, date de l'instant ou le zip s'ecrit (le temps du moteur, comme tout ce qu'il ecrit : deux rejeux ecrivent le
+/// meme zip), avec ses droits.
 pub(crate) fn entree_fichier(f: &Path, nom: String) -> R<Entree> {
     let octets = std::fs::read(f).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
     let meta = std::fs::metadata(f).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
-    let (date, heure) = horodatage_dos(secondes(&meta));
+    let (date, heure) = horodatage_dos(maintenant());
     Ok(Entree { nom, octets, date, heure, attributs: (mode(&meta) & 0xFFFF) << 16 })
-}
-
-/// `st_mtime` en secondes entieres.
-#[cfg(unix)]
-fn secondes(meta: &std::fs::Metadata) -> i64 {
-    use std::os::unix::fs::MetadataExt;
-    meta.mtime()
-}
-
-#[cfg(not(unix))]
-fn secondes(meta: &std::fs::Metadata) -> i64 {
-    meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs() as i64)
 }
 
 /// `st_mode` d'un fichier du zip. Sous Windows, il se deduit de l'attribut lecture seule : `0o100444`, sinon
@@ -1135,74 +1210,27 @@ pub(crate) fn aujourdhui_reel() -> Jour {
     Jour::depuis_jours_unix((t + socle::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(droit::contexte::jour_reel)
 }
 
-/// `etats::getd(charge, cle)` puis `or None` : la valeur de la charge quand elle est vraie.
-fn vraie<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Value>> {
-    match charge {
-        Value::Object(o) => Ok(o.get(cle).filter(|v| vrai(v))),
-        autre => Err(avec("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-    }
-}
-
-/// `", ".join(liste)` d'une liste de valeurs JSON : un element qui n'est pas un texte est un `TypeError`.
-fn joindre(valeurs: &[Value]) -> R<String> {
-    let mut textes = Vec::new();
-    for (i, v) in valeurs.iter().enumerate() {
-        match v {
-            Value::String(s) => textes.push(s.clone()),
-            autre => return Err(avec("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre))))),
-        }
-    }
-    Ok(textes.join(", "))
-}
-
-/// `for x in v` (liste, cles d'un dictionnaire, caracteres d'un texte), ses refus sous leur classe.
-fn parcourir(v: &Value) -> R<Vec<Value>> {
-    items(v).map(|l| l.into_iter().map(|c| c.into_owned()).collect()).map_err(Refus::from)
-}
-
-/// `dossier_salarie` puis `dossier_json` : ce que la route rend.
-fn dossier_salarie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    construire(ctx, charge).map(|d| dossier_json(&d))
-}
-
 /// Le dossier construit (et ecrit, sauf `apercu`). L'envoi (`archives`, `dossier-envoyer`)
 /// en a besoin tel quel : ses salaries, ses fichiers, ses pages.
-pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
-    let salaries = vraie(charge, "salaries")?;
-    let mois = vraie(charge, "mois")?;
-    let annee = vraie(charge, "annee")?;
-    let toutes = vraie(charge, "toutes_les_annees")?.is_some();
-    let categories = vraie(charge, "categories")?;
-    let ensemble = vraie(charge, "ensemble")?.is_some();
-    let ecrire = vraie(charge, "apercu")?.is_none();
-
-    let p = Periode::nouveau(mois, annee, toutes)?;
+pub(crate) fn construire(ctx: &Contexte, demande: &DemandeDeDossier) -> R<Dossier> {
+    let annee = demande.annee.as_ref().map(AnneeDite::texte).filter(|a| !a.is_empty());
+    let (ensemble, ecrire) = (demande.ensemble, !demande.apercu);
+    let p = Periode::nouveau(demande.mois, annee, demande.toutes_les_annees)?;
     let aujourdhui = aujourdhui_reel();
-    let cats_demandees: Vec<Value> = match categories {
-        Some(c) => parcourir(c)?,
-        None => CATEGORIES.iter().map(|c| json!(c)).collect(),
-    };
-    let inconnues: Vec<Value> = cats_demandees.iter().filter(|c| !c.as_str().is_some_and(|s| CATEGORIES.contains(&s))).cloned().collect();
+    let inconnues: Vec<&str> = demande.categories.iter().map(String::as_str).filter(|c| !CATEGORIES.contains(c)).collect();
     if !inconnues.is_empty() {
-        return Err(erreur_operation(format!("Catégorie inconnue : {}. Les catégories sont {}.", joindre(&inconnues)?, CATEGORIES.join(", "))));
+        return Err(erreur_operation(format!("Catégorie inconnue : {}. Les catégories sont {}.", inconnues.join(", "), CATEGORIES.join(", "))));
     }
-    let cats: Vec<&'static str> = CATEGORIES.iter().copied().filter(|c| cats_demandees.iter().any(|x| x.as_str() == Some(c))).collect();
-    let fiches: Vec<&String> = ctx.salaries.iter().filter(|(k, v)| !k.starts_with('_') && v.is_object()).map(|(k, _)| k).collect();
-    let demandes: Option<Vec<Value>> = salaries.map(parcourir).transpose()?;
-    let cles: Vec<String> = match &demandes {
+    let cats: Vec<&'static str> = CATEGORIES.iter().copied().filter(|c| demande.categories.is_empty() || demande.categories.iter().any(|x| x == c)).collect();
+    let fiches: Vec<String> = ctx.salaries.keys().map(|k| k.to_string()).collect();
+    let demandes: Option<&Vec<String>> = Some(&demande.salaries).filter(|l| !l.is_empty());
+    let cles: Vec<String> = match demandes {
         Some(liste) => {
-            let mut absents = Vec::new();
-            for c in liste {
-                match c {
-                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", socle::fichiers::pas_une_cle(nom_type(c)))),
-                    Value::String(s) if fiches.contains(&s) => {}
-                    autre => absents.push(autre.clone()),
-                }
-            }
+            let absents: Vec<&str> = liste.iter().map(String::as_str).filter(|s| !fiches.iter().any(|f| f == s)).collect();
             if !absents.is_empty() {
-                return Err(erreur_operation(format!("Salarié inconnu : {} (les clés de config/salaries.json).", joindre(&absents)?)));
+                return Err(erreur_operation(format!("Salarié inconnu : {} (les clés de config/salaries.json).", absents.join(", "))));
             }
-            liste.iter().filter_map(|c| c.as_str().map(str::to_string)).collect()
+            liste.clone()
         }
         None => {
             let mut tous: Vec<String> = fiches.iter().map(|k| (*k).clone()).collect();
@@ -1218,8 +1246,8 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let ensemble_cats: HashSet<&str> = cats.iter().copied().collect();
     let mut pages: Vec<Page> = Vec::new();
     let mut contrats_vus: HashSet<String> = HashSet::new();
-    let mut attente: HashMap<(String, String), i64> = HashMap::new();
-    let mois_saisis = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
+    let mut attente: HashMap<i32, i64> = HashMap::new();
+    let mois_saisis = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     for m in &mois_saisis {
         if p.contient(m) {
             pages.extend(mois_puppetpaie(ctx, m, &ensemble_cles, &ensemble_cats, tmp, &mut d, &aujourdhui, &mut contrats_vus, &mut attente)?);
@@ -1282,10 +1310,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
                     },
                     None => contenus.push((cle.clone(), vec![(*cat, octets)])),
                 }
-                let entree = d.pages.entry(cle.clone()).or_insert_with(|| json!({}));
-                if let Some(o) = entree.as_object_mut() {
-                    o.insert(cat.to_string(), json!(n));
-                }
+                *d.pages.entree(cle, Ordonnee::default).entree(cat, || n) = n;
             }
         }
     }

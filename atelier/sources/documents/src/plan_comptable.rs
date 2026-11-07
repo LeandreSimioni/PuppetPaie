@@ -8,6 +8,7 @@
 //! (`{code:010,}`), types flottants (`{code:e}`, `f`, `g`, `%`), methodes ou attributs de `str`/`int` autres que
 //! `real`, `imag`, `numerator`, `denominator` -- est refuse en `ErreurOperation` qui le dit.
 
+use droit::fiche::Lue as _;
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
@@ -15,9 +16,9 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::lire_json_echec as lire_json;
-use socle::fichiers::{repr, vrai};
-use socle::valeur::{getd, nom_type, objet_vide, ou, texte_vide, valeur_en_texte};
+use crate::valeur::lire_json_echec as lire_json;
+use socle::fichiers::repr;
+use crate::valeur::{getd, nom_type, objet_vide, ou, valeur_en_texte, vrai};
 
 /// Les tables fixes des exports et des ecritures comptables.
 pub fn tables() -> &'static Value {
@@ -53,7 +54,7 @@ pub fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
             return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&perso))));
         };
         for (k, v) in &perso {
-            if k.starts_with('_') {
+            if socle::forme::NOTES.contains(&k.as_str()) {
                 continue;
             }
             if k == "lignes" || k == "tiers" || k == "retenues" {
@@ -138,7 +139,7 @@ fn compte_de(plan: &Map<String, Value>, k: &str) -> R<Value> {
 pub fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
     let plan = plan_comptable(ctx)?;
     let Some(lim) = tables()["limites"].get(format) else { return Ok(Vec::new()) };
-    let (lim_compte, lim_journal) = (lim["compte"].as_u64().expect("compte") as usize, lim["journal"].as_u64().expect("journal") as usize);
+    let (lim_compte, lim_journal) = (lim["compte"].as_u64().map(|n| n as usize).unwrap_or(usize::MAX), lim["journal"].as_u64().expect("journal") as usize);
     let nom_format = lim["nom"].as_str().expect("nom");
     let mut comptes: HashSet<String> = HashSet::new();
     for k in ["brut", "net", "pas"] {
@@ -168,12 +169,9 @@ pub fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
         }
     }
     let mut msgs: Vec<String> = Vec::new();
-    let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().collect();
+    let mut fiches: Vec<(&droit::contexte::IdSalarie, &droit::fiche::FicheSalarie)> = ctx.salaries.iter().collect();
     fiches.sort_by(|a, b| a.0.cmp(b.0));
     for (cle, s) in fiches {
-        if cle.starts_with('_') || !s.is_object() {
-            continue;
-        }
         match compte_du_salarie(&plan, s, cle) {
             Ok(c) if !c.is_empty() => {
                 comptes.insert(c);
@@ -213,14 +211,13 @@ pub enum Refus {
 
 /// Le sous-compte 421 d'un salarie, ou
 /// "" si le plan n'en veut pas.
-pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) -> Result<String, Refus> {
+pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &droit::fiche::ChampsSalarie, cle: &str) -> Result<String, Refus> {
     let net = ou(plan.get("net").unwrap_or(&Value::Null), objet_vide());
     let modele = getd(net, "par_salarie", &Value::Null).map_err(Refus::Autre)?;
     if !vrai(modele) {
         return Ok(String::new());
     }
-    let code_brut = ou(salarie.get("code_salarie").unwrap_or(&Value::Null), texte_vide());
-    let code = entier_de(valeur_en_texte(code_brut).trim());
+    let code = entier_de(salarie.code_salarie.texte().trim());
     let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;

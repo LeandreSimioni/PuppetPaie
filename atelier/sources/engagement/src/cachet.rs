@@ -31,13 +31,8 @@
 //! la ligne saute. Un cachet qui afficherait un SIRET vide ou << None >> serait
 //! pire que pas de cachet, et la case n'est exigee par aucun formulaire.
 
-use std::path::Path;
-
-use serde_json::{json, Value};
-
 use droit::contexte::format_g;
-use socle::date::en_texte;
-use socle::fichiers::vrai;
+use droit::fiche::Lue;
 
 /// L'encre d'un tampon, et la geometrie du dessin. Le rapport 2:1 est celui
 /// d'un tampon rectangulaire courant ; il tient dans la case cachet de l'AER
@@ -51,28 +46,30 @@ pub const MARGE: f64 = 3.0;
 /// Ce que le cachet porte : le nom, le lieu, les numeros.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lignes {
-    pub nom: String,
+    pub nom: Option<String>,
     pub lieu: Vec<String>,
     pub numeros: Vec<String>,
 }
 
-fn texte_de(ent: &Value, cle: &str) -> Option<String> {
-    ent.get(cle).filter(|v| vrai(v)).map(en_texte)
+fn texte_de<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
+    c.remplie().map(str::to_string)
 }
 
 /// `lignes` : rendu en donnees et non dessine, pour que cela se lise sans
 /// ouvrir un fichier. Les trois groupes n'ont pas le meme poids a l'oeil : le
 /// nom est ce qu'on lit, le reste est ce qu'on verifie. `ent` est la fiche a la
 /// date du document (`Contexte::entreprise`) : la licence y est le numero du jour.
-pub fn lignes(ent: &Value) -> Lignes {
-    let nom = texte_de(ent, "nom_affichage")
-        .or_else(|| texte_de(ent, "raison_sociale"))
-        .unwrap_or_default();
+pub fn lignes(ent: &droit::fiche::ChampsEntreprise) -> Lignes {
+    let nom = texte_de(&ent.nom_affichage)
+        .or_else(|| texte_de(&ent.raison_sociale));
     let mut lieu = Vec::new();
-    if let Some(adresse) = texte_de(ent, "adresse_affichage").or_else(|| texte_de(ent, "adresse")) {
+    if let Some(adresse) = texte_de(&ent.adresse_affichage).or_else(|| texte_de(&ent.adresse)) {
         lieu.push(adresse);
     }
-    let ou: Vec<String> = [texte_de(ent, "code_postal"), texte_de(ent, "commune_affichage").or_else(|| texte_de(ent, "commune"))]
+    if let Some(complement) = texte_de(&ent.complement_adresse_affichage).or_else(|| texte_de(&ent.complement_adresse)) {
+        lieu.push(complement);
+    }
+    let ou: Vec<String> = [texte_de(&ent.code_postal), texte_de(&ent.commune_affichage).or_else(|| texte_de(&ent.commune))]
         .into_iter()
         .flatten()
         .collect();
@@ -80,13 +77,13 @@ pub fn lignes(ent: &Value) -> Lignes {
         lieu.push(ou.join(" "));
     }
     let mut numeros = Vec::new();
-    if let Some(s) = texte_de(ent, "siret") {
+    if let Some(s) = texte_de(&ent.siret) {
         numeros.push(format!("SIRET {}", s));
     }
-    if let Some(s) = texte_de(ent, "naf") {
+    if let Some(s) = texte_de(&ent.naf) {
         numeros.push(format!("APE {}", s));
     }
-    if let Some(l) = texte_de(ent, "licence_spectacle") {
+    if let Some(l) = texte_de(&ent.licence_spectacle) {
         numeros.push(format!("Licence {}", l));
     }
     Lignes { nom, lieu, numeros }
@@ -117,9 +114,9 @@ fn echapper(t: &str) -> String {
 /// capitales, un filet, puis l'adresse et les numeros. C'est la mise en page
 /// d'un tampon encreur, et elle est tenue ICI pour que la page de
 /// Configuration et l'attestation montrent exactement la meme chose.
-pub fn svg(ent: &Value) -> Option<String> {
+pub fn svg(ent: &droit::fiche::ChampsEntreprise) -> Option<String> {
     let t = lignes(ent);
-    if t.nom.is_empty() && t.lieu.is_empty() && t.numeros.is_empty() {
+    if t.nom.is_none() && t.lieu.is_empty() && t.numeros.is_empty() {
         return None;
     }
 
@@ -139,8 +136,8 @@ pub fn svg(ent: &Value) -> Option<String> {
     // ensuite CENTRE verticalement : un tampon dont le texte pend vers le haut
     // ou vers le bas se voit tout de suite.
     let mut items: Vec<(Option<String>, f64, u32, f64)> = Vec::new();
-    if !t.nom.is_empty() {
-        items.push((Some(t.nom.to_uppercase()), corps_qui_tient(&t.nom, utile, 22.0, 0.62), 700, 0.0));
+    if let Some(nom) = &t.nom {
+        items.push((Some(nom.to_uppercase()), corps_qui_tient(nom, utile, 22.0, 0.62), 700, 0.0));
         items.push((None, 0.0, 0, 9.0)); // le filet
     }
     for (i, ligne) in t.lieu.iter().enumerate() {
@@ -207,35 +204,4 @@ pub fn svg(ent: &Value) -> Option<String> {
     }
     out.push("</svg>".into());
     Some(out.concat())
-}
-
-/// Une image (PNG, JPEG ou SVG) a poser dans `rect`, a `MARGE` du bord.
-///
-/// C'est la fabrique qui la pose (`fabrique::remplir`) : le plus grand
-/// rectangle aux proportions de l'image qui tient dans la case, centre -- un
-/// tampon 2:1 pose dans une case presque carree ne sort pas ovale. Un SVG y
-/// reste VECTORIEL, net quelle que soit la taille de la case, la ou un PNG
-/// agrandi bave. Un fichier illisible n'est pas pose en silence : la fabrique
-/// refuse, et l'attestation ne sort pas sans qu'on sache pourquoi.
-pub fn image_fichier(page: &Value, rect: &Value, fichier: &str) -> Value {
-    json!({"page": page, "rect": rect, "marge": MARGE, "fichier": fichier})
-}
-
-/// Le cachet a poser dans `rect` de la page `page` : celui de la compagnie
-/// s'il est pose, sinon le notre. C'est le SEUL endroit ou l'on choisit entre
-/// les deux. Rend l'image telle que la fabrique la prend, ou None s'il n'y a
-/// rien a dessiner.
-///
-/// Le dessin n'est pas un pis-aller : il porte les memes faits, tires de la
-/// fiche, et il suit la fiche quand elle change. Un fichier pose l'emporte
-/// simplement parce qu'une compagnie qui prend la peine d'apporter son tampon
-/// veut le sien.
-pub fn image(page: &Value, rect: &Value, ent: &Value, fichier: Option<&str>) -> Option<Value> {
-    if let Some(f) = fichier {
-        if Path::new(f).exists() {
-            return Some(image_fichier(page, rect, f));
-        }
-    }
-    let dessin = svg(ent)?;
-    Some(json!({"page": page, "rect": rect, "marge": MARGE, "svg": dessin}))
 }

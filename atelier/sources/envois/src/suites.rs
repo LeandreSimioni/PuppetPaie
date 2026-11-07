@@ -14,7 +14,8 @@ pub struct DepotRefuse {
     pub reel: bool,
     pub classe: String,
     pub message: String,
-    pub repetition: Value,
+    /// Ce qui a ouvert le depot reel (`None` pour un test).
+    pub repetition: Option<crate::journal::Ouverture>,
 }
 
 /// Les suites d'un envoi.

@@ -1,0 +1,12 @@
+[
+{"cas":["3090","depart_a_la_retraite"],"attendu":"0ae4f0960eeb732a"},
+{"cas":["1285","mise_a_la_retraite"],"attendu":"2955038d03e3706d"},
+{"cas":["1285","depart_a_la_retraite"],"attendu":"2955038d03e3706d"},
+{"cas":["3252","depart_a_la_retraite"],"attendu":"e89fd2e390a96b94"},
+{"cas":["3241","mise_a_la_retraite"],"attendu":"a5c84becbdbc8c84"},
+{"cas":["3241","depart_a_la_retraite"],"attendu":"86283e4230f57f57"},
+{"cas":["2121","mise_a_la_retraite"],"attendu":"4aba2922453b40cc"},
+{"cas":["2121","depart_a_la_retraite"],"attendu":"f6ecc80d09962d10"},
+{"cas":["1790","mise_a_la_retraite"],"attendu":"77bac7121950b9d0"},
+{"cas":["1790","depart_a_la_retraite"],"attendu":"77bac7121950b9d0"}
+]

@@ -5,7 +5,6 @@
 //! production ; le depot ordinaire, reel ou de test, est la route `deposer`. Un mois `AAAA-MM` : la DSN que la route
 //! designerait (`depots::designee`).
 
-use serde_json::json;
 
 use crate::commandes::actes::{refuser_si_pas_redirige, Organisme};
 use crate::commandes::analyse::{Args, Opt, Pos, Spec};
@@ -39,7 +38,10 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         },
     };
     refuser_si_pas_redirige(cadre, Organisme::Dsn, "le depot de test")?;
-    let designee = if socle::date::mois_valide(fichier) { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dsn", "mois": fichier}))?.0 } else { json!(fichier) };
+    let designee = match socle::mois::Mois::lire(fichier) {
+        Ok(m) => crate::routes::depots::designee(&cadre.ctx, &crate::routes::depots::Designation::du_mois(crate::routes::depots::Quoi::Dsn, m))?.0,
+        Err(_) => fichier.to_string(),
+    };
     // Un depot de test n'engage rien : il lui faut seulement le secret de l'organisme, donc le coffre ouvert.
     cadre.ouvrir_le_coffre();
     let environnement = args.texte("environnement").unwrap_or("production");

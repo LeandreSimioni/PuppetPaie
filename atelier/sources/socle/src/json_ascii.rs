@@ -2,6 +2,8 @@
 //! separateurs `, ` et `: ` (ou `,` et `:` serres) ; les flottants sous leur forme la plus courte qui se relit, en
 //! notation scientifique hors de 1e-4 .. 1e16. Les octets qu'un coffre deja scelle ou qu'une signature couvre ne
 //! changent pas d'une version a l'autre.
+//!
+//! Un des trois modules du BORD (`forme` lit ; `ecriture` et `json_ascii` ecrivent) : ce qui s'ecrit est une forme.
 
 use serde_json::Value;
 
@@ -17,8 +19,7 @@ pub fn repr_flottant(f: f64) -> String {
     }
     let signe = if f.is_sign_negative() { "-" } else { "" };
     let sci = format!("{:e}", f.abs());
-    let (mant, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
-    let exp: i32 = exp.parse().unwrap_or(0);
+    let (mant, exp) = crate::ecriture::scientifique(&sci);
     let chiffres: String = mant.chars().filter(|c| *c != '.').collect();
     let n = chiffres.len() as i32;
     let decpt = exp + 1;
@@ -43,9 +44,9 @@ pub fn repr_flottant(f: f64) -> String {
 
 /// Le JSON en ASCII (tout autre caractere en `\uXXXX`), cles triees si `trie`. Sans
 /// `indent`, les separateurs sont `, ` et `: ` (ou `,` et `:` si `serre`).
-pub fn dumps(v: &Value, indent: Option<usize>, serre: bool, trie: bool) -> String {
+pub fn dumps<T: serde::Serialize + ?Sized>(v: &T, indent: Option<usize>, serre: bool, trie: bool) -> String {
     let mut s = String::new();
-    ecrire(v, indent, serre, trie, 0, &mut s);
+    ecrire(&crate::ecriture::en_valeur(v), indent, serre, trie, 0, &mut s);
     s
 }
 
@@ -78,10 +79,7 @@ fn ecrire(v: &Value, indent: Option<usize>, serre: bool, trie: bool, niveau: usi
         (None, true) => (",", ":"),
         (None, false) => (", ", ": "),
     };
-    let retrait = |n: usize| match indent {
-        Some(i) => format!("\n{}", " ".repeat(i * n)),
-        None => String::new(),
-    };
+    let retrait = |n: usize| -> String { indent.into_iter().map(|i| format!("\n{}", " ".repeat(i * n))).collect() };
     match v {
         Value::Null => s.push_str("null"),
         Value::Bool(b) => s.push_str(if *b { "true" } else { "false" }),

@@ -33,25 +33,17 @@
 //! INFERENCES, ecrites comme telles : un jour fixe que le mois n'a pas (« le 31 » en avril) est son dernier jour ; « la
 //! 1re semaine du mois suivant » va du 1er au 7.
 
-use serde_json::Value;
-use socle::date::{dernier_du_mois, jours_du_mois, Jour};
+use socle::date::Jour;
+use socle::mois::Mois;
 use socle::num::Resultat;
 
+use crate::fiche::Lue;
 use crate::natures::Nature;
 
 /// Les deux cases de la fiche entreprise : le jour des permanents, le jour des intermittents.
 pub const CLE_PERMANENTS: &str = "date_de_versement_permanents";
 pub const CLE_INTERMITTENTS: &str = "date_de_versement_intermittents";
 pub const CLES: [&str; 2] = [CLE_PERMANENTS, CLE_INTERMITTENTS];
-
-/// La case qui dit le jour d'un contrat de nature `nat` : celle des permanents pour un contrat paye au mois.
-pub fn cle_de(nat: &Nature) -> &'static str {
-    if nat.mensuelle() {
-        CLE_PERMANENTS
-    } else {
-        CLE_INTERMITTENTS
-    }
-}
 
 /// Les formes qu'elle lit, dans la phrase d'un refus.
 const FORMES: &str = "vide (le dernier jour du mois), « fin du contrat », « le 25 » ou « le 5 du mois suivant »";
@@ -72,7 +64,10 @@ impl Versement {
         let t = socle::texte::sans_accent(texte).to_lowercase();
         let mots: Vec<&str> = t.split_whitespace().collect();
         let t = mots.join(" ");
-        let t = t.strip_prefix("le ").unwrap_or(&t);
+        let t = match t.strip_prefix("le ") {
+            Some(reste) => reste,
+            None => &t,
+        };
         match t {
             "" | "fin du mois" | "dernier jour du mois" => return Ok(Versement::FinDuMois),
             "fin du contrat" | "dernier jour du contrat" => return Ok(Versement::FinDuContrat),
@@ -82,7 +77,10 @@ impl Versement {
             Some(n) => (n, true),
             None => (t, false),
         };
-        let n = n.strip_suffix("er").unwrap_or(n);
+        let n = match n.strip_suffix("er") {
+            Some(reste) => reste,
+            None => n,
+        };
         match n.parse::<u32>() {
             Ok(q) if (1..=31).contains(&q) => Ok(Versement::Fixe { quantieme: q, mois_suivant }),
             _ => Err(format!("{} attendu", FORMES)),
@@ -91,9 +89,10 @@ impl Versement {
 
     /// La case de la fiche entreprise `ent` qui dit le jour d'un contrat de nature `nat` (`cle_de`) ; absente : le dernier
     /// jour du mois.
-    pub fn de_la_fiche(ent: &Value, nat: &Nature) -> Resultat<Versement> {
-        match ent.get(cle_de(nat)) {
-            Some(Value::String(t)) => Versement::lire(t).map_err(|_| {
+    pub fn de_la_fiche(ent: &crate::fiche::ChampsEntreprise, nat: &Nature) -> Resultat<Versement> {
+        let dit = if nat.mensuelle() { &ent.date_de_versement_permanents } else { &ent.date_de_versement_intermittents };
+        match dit.portee() {
+            Some(t) => Versement::lire(t).map_err(|_| {
                 format!(
                     "Le jour du versement des {} que dit la configuration, « {} », ne se lit pas : écrire {} \
                      (Configuration › Entreprise).",
@@ -102,7 +101,7 @@ impl Versement {
                     FORMES
                 )
             }),
-            _ => Ok(Versement::FinDuMois),
+            None => Ok(Versement::FinDuMois),
         }
     }
 
@@ -121,20 +120,14 @@ impl Versement {
 
     /// Le jour du versement de la paie du mois `mois` (AAAA-MM) dont la periode finit le `fin_periode`.
     pub fn jour(&self, mois: &str, fin_periode: Jour) -> Resultat<Jour> {
+        let mois = Mois::lire(mois)?;
         match *self {
-            Versement::FinDuMois => dernier_du_mois(mois),
+            Versement::FinDuMois => Ok(mois.dernier_jour()),
             Versement::FinDuContrat => Ok(fin_periode),
             Versement::Fixe { quantieme, mois_suivant } => {
-                let fin = dernier_du_mois(mois)?;
-                let (an, m) = if !mois_suivant {
-                    (fin.an, fin.mois)
-                } else if fin.mois == 12 {
-                    (fin.an + 1, 1)
-                } else {
-                    (fin.an, fin.mois + 1)
-                };
-                let q = quantieme.min(jours_du_mois(an, m));
-                Jour::nouveau(an, m, q).ok_or_else(|| socle::date::date_impossible(an, m, q))
+                let m = if mois_suivant { mois.suivant() } else { mois };
+                let jour = quantieme.min(m.jours());
+                m.jour(jour).ok_or_else(|| format!("Le {} du mois n'existe pas.", jour))
             }
         }
     }
@@ -143,14 +136,13 @@ impl Versement {
 /// Le dernier jour ou peut etre verse ce que declare la DSN du mois principal `mois` (AAAA-MM) : le dernier jour du
 /// mois suivant (CCH-13 de S21.G00.50.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`, l. 61-62).
 pub fn au_plus_tard_en_dsn(mois: &str) -> Resultat<Jour> {
-    dernier_du_mois(&dernier_du_mois(mois)?.mois_suivant())
+    Ok(Mois::lire(mois)?.suivant().dernier_jour())
 }
 
 /// Le dernier jour ou se regle le salaire d'un artiste de cirque dont le contrat a duree determinee finit le `fin` :
 /// « au plus tard, la 1re semaine du mois suivant la fin dudit contrat » (CCNEAC, art. X.3.5.4) ; le 7, par inference.
 pub fn au_plus_tard_cirque_1285(fin: &Jour) -> Resultat<Jour> {
-    let premier = dernier_du_mois(&format!("{:04}-{:02}", fin.an, fin.mois))?.plus_jours(1)?;
-    premier.plus_jours(6)
+    fin.mois_civil().suivant().premier_jour().plus_jours(6)
 }
 
 /// Le refus d'un versement le `verse` pour `qui`, paye au titre du mois `mois` ; `fin_cirque` : la fin du contrat a duree

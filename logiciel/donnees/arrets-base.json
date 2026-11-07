@@ -1,23 +1,14 @@
 {
-  "_quoi": "Les nomenclatures du bloc « Arrêt de travail - S21.G00.60 » de la norme NEODeS : motif de l'arrêt, motif de la reprise, subrogation. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme, pas des choix d'une compagnie.",
-  "_pourquoi_ici": "Aucune valeur réglementaire n'est écrite dans le code : les codes du bloc 60 se lisent ici (`declarations/src/signalement.rs`, `declarations/src/dsn.rs`, `moteur/src/obligations.rs`), comme ceux de la structure du contrat dans `contrats-base.json`.",
-  "_source": {
-    "titre": "Cahier technique NEODeS 2026.1 (CT2026.1.2 du 24/12/2025), rubriques S21.G00.60.001, .004, .011, .012, p. 265-270",
-    "copie": "atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf (voir son LISEZMOI pour l'adresse et le condensat)",
-    "relu_le": "2026-09-18",
-    "conformite_2027": "Le cahier technique 2027.1.1 du 10/06/2026 ajoute aux motifs d'arrêt « 25 - Potentiel nouveau motif d'arrêt A », une valeur de réserve, non proposée à la saisie."
-  },
+  "quoi": "Les nomenclatures du bloc « Arrêt de travail - S21.G00.60 » de la norme NEODeS : motif de l'arrêt, motif de la reprise, subrogation. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme, pas des choix d'une compagnie.",
+  "note": "Aucune valeur réglementaire n'est écrite dans le code : les codes du bloc 60 se lisent ici, par une seule fonction (`droit::arrets::bloc_60`) ; ses lecteurs : l'origine et le maintien d'un arrêt (`droit::maintien`, `engagement::maintien`), le bulletin (`engagement::imprevus::lignes_du_mois`), le signalement et la DSN (`declarations/src/signalement.rs`), les obligations (`moteur/src/obligations.rs`) et la page des imprévus (`moteur/src/routes/imprevus.rs`), comme ceux de la structure du contrat dans `contrats-base.json`. Texte lu (relu le 2026-09-18) : Cahier technique NEODeS 2026.1 (CT2026.1.2 du 24/12/2025), rubriques S21.G00.60.001, .004, .011, .012, p. 265-270, copie déposée dans atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf (voir son LISEZMOI pour l'adresse et le condensat). Le cahier technique 2027.1.1 du 10/06/2026 ajoute aux motifs d'arrêt « 25 - Potentiel nouveau motif d'arrêt A », une valeur de réserve, non proposée à la saisie.",
   "motifs_arret": {
-    "_rubrique": "S21.G00.60.001",
-    "_ligne_du_bulletin": "`rubrique` : la ligne qui retire du salaire d'un permanent les heures de l'arret (`engagement::imprevus::lignes_du_mois`), nommee d'apres le motif (`rubriques-base.json`). Un motif sans `rubrique` ne se paie pas : le moteur refuse plutot que de nommer l'absence au hasard.",
-    "_regle": "`saisissable: false` ne veut pas dire interdit par la norme : c'est ce que ce logiciel ne propose pas aujourd'hui. Les motifs [FP] sont ceux de la fonction publique ; les « potentiel nouveau motif » sont des valeurs de réserve, sans emploi tant que la norme ne les définit pas.",
     "codes": [
       {
         "code": "01",
         "libelle": "maladie",
         "rubrique": "absence_maladie",
         "saisissable": true,
-        "maintien_legal": true
+        "origine": "maladie"
       },
       {
         "code": "02",
@@ -37,7 +28,6 @@
         "rubrique": "absence_accident_trajet",
         "saisissable": true,
         "date_accident": true,
-        "maintien_legal": true,
         "origine": "trajet"
       },
       {
@@ -46,8 +36,7 @@
         "rubrique": "absence_maladie_professionnelle",
         "saisissable": true,
         "date_accident": true,
-        "maintien_legal": true,
-        "origine": "at_mp"
+        "origine": "maladie_professionnelle"
       },
       {
         "code": "06",
@@ -55,8 +44,7 @@
         "rubrique": "absence_accident_travail",
         "saisissable": true,
         "date_accident": true,
-        "maintien_legal": true,
-        "origine": "at_mp"
+        "origine": "accident_du_travail"
       },
       {
         "code": "07",
@@ -160,7 +148,7 @@
         "libelle": "Potentiel nouveau motif d'arrêt A",
         "saisissable": false,
         "reserve": true,
-        "_norme": "2027.1.1"
+        "note": "Norme 2027.1.1"
       },
       {
         "code": "99",
@@ -169,14 +157,9 @@
         "annulation": true
       }
     ],
-    "_date_accident": "S21.G00.60.012, CCH-11 : obligatoire si et seulement si le motif est 04, 05 ou 06. D'où le drapeau `date_accident`.",
-    "_maintien_legal": "C. trav. L1226-1 : le maintien de salaire (l'indemnité complémentaire) est dû « en cas d'absence au travail justifiée par l'incapacité résultant de maladie ou d'accident » (atelier/reference/sources/code-du-travail/articles-20261015.md, relevé LEGI). Le drapeau `maintien_legal` marque les motifs de la norme qui sont une maladie ou un accident (01, 04, 05, 06) — une INFÉRENCE de ce texte : maternité, paternité, adoption, deuil d'enfant ne sont pas une incapacité. Le moteur ne dit le maintien de la loi (`imprevus::maintien_possible`) et ne demande les jours déjà indemnisés (D1226-4) que pour eux ; un complément versé par la convention se saisit sur tout arrêt d'un contrat payé au mois.",
-    "_origine": "D1226-3 (même relevé) : « les durées d'indemnisation courent à compter du premier jour d'absence si celle-ci est consécutive à un accident du travail ou à une maladie professionnelle, à l'exclusion des accidents de trajet » ; sept jours de carence dans les autres cas. `origine` le lit sur le motif : `at_mp` (05, 06), sans carence ; `trajet` (04), un accident qui garde la sienne. Plus de case « origine » à remplir : le motif la dit.",
-    "_temps_partiel_therapeutique": "CCH-14 : les motifs 15 à 18 sont interdits hors DSN mensuelle et signalement FCTU, et SIG-13 impose alors un bloc « Temps partiel Thérapeutique - S21.G00.66 » que le moteur n'écrit pas. D'où `saisissable: false` tant que le bloc 66 n'existe pas.",
-    "_annulation": "CCH-12 : le motif 99 est interdit hors DSN mensuelle et signalement FCTU. Un signalement d'arrêt se rattrape donc par un annule-et-remplace (type 03), pas par un motif 99."
+    "note": "Rubrique S21.G00.60.001. `rubrique` : la ligne qui retire du salaire d'un permanent les heures de l'arret (`engagement::imprevus::lignes_du_mois`), nommee d'apres le motif (`rubriques-base.json`). Un motif sans `rubrique` ne se paie pas : le moteur refuse plutot que de nommer l'absence au hasard. `saisissable: false` ne veut pas dire interdit par la norme : c'est ce que ce logiciel ne propose pas aujourd'hui. Les motifs [FP] sont ceux de la fonction publique ; les « potentiel nouveau motif » sont des valeurs de réserve, sans emploi tant que la norme ne les définit pas. S21.G00.60.012, CCH-11 : obligatoire si et seulement si le motif est 04, 05 ou 06. D'où le drapeau `date_accident`. Ce qui a causé l'arrêt, quand c'est une maladie ou un accident : `maladie` (01), `trajet` (04), `maladie_professionnelle` (05), `accident_du_travail` (06), lu par `droit::maintien::Origine::du_motif`. C. trav. L1226-1 : le maintien de salaire (l'indemnité complémentaire) est dû « en cas d'absence au travail justifiée par l'incapacité résultant de maladie ou d'accident » (atelier/reference/sources/code-du-travail/articles-20261015.md, relevé LEGI) ; seul un motif qui porte une `origine` ouvre le maintien — une INFÉRENCE de ce texte : maternité, paternité, adoption, deuil d'enfant ne sont pas une incapacité. Le bulletin ne calcule le maintien (`engagement::imprevus::lignes_du_mois`) et ne demande les jours déjà indemnisés (D1226-4) que pour eux. D1226-3 (même relevé) : « les durées d'indemnisation courent à compter du premier jour d'absence si celle-ci est consécutive à un accident du travail ou à une maladie professionnelle, à l'exclusion des accidents de trajet » ; sept jours de carence dans les autres cas (`droit::maintien::legal`). Plus de case « origine » à remplir : le motif la dit. CCH-14 : les motifs 15 à 18 sont interdits hors DSN mensuelle et signalement FCTU, et SIG-13 impose alors un bloc « Temps partiel Thérapeutique - S21.G00.66 » que le moteur n'écrit pas. D'où `saisissable: false` tant que le bloc 66 n'existe pas. CCH-12 : le motif 99 est interdit hors DSN mensuelle et signalement FCTU. Un signalement d'arrêt se rattrape donc par un annule-et-remplace (type 03), pas par un motif 99."
   },
   "motifs_reprise": {
-    "_rubrique": "S21.G00.60.011",
     "codes": [
       {
         "code": "01",
@@ -195,11 +178,11 @@
         "saisissable": true
       }
     ],
-    "_temps_partiel_therapeutique": "CCH-12 : la valeur 02 est interdite hors DSN mensuelle et signalement FCTU."
+    "note": "Rubrique S21.G00.60.011. CCH-12 : la valeur 02 est interdite hors DSN mensuelle et signalement FCTU."
   },
   "subrogation": {
-    "_rubrique": "S21.G00.60.004",
-    "_quoi": "La subrogation est le fait, pour l'employeur, de percevoir les indemnités journalières à la place du salarié — en contrepartie de quoi il maintient le salaire à leur hauteur. Ce n'est pas un code à choisir au hasard : c'est un engagement de l'employeur, et les dates de début et de fin deviennent alors obligatoires (CCH-11 des rubriques .005 à .008), avec l'IBAN et le BIC de la compagnie.",
+    "note": "Rubrique S21.G00.60.004.",
+    "quoi": "La subrogation est le fait, pour l'employeur, de percevoir les indemnités journalières à la place du salarié — en contrepartie de quoi il maintient le salaire à leur hauteur. Ce n'est pas un code à choisir au hasard : c'est un engagement de l'employeur, et les dates de début et de fin deviennent alors obligatoires (CCH-11 des rubriques .005 à .008), avec l'IBAN et le BIC de la compagnie.",
     "codes": [
       {
         "code": "01",

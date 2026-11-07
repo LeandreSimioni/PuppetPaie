@@ -27,7 +27,9 @@ pub fn faute_iban(saisi: &str) -> Option<String> {
     }
     let mut reste: u32 = 0;
     for c in iban.chars().skip(4).chain(iban.chars().take(4)) {
-        let v = c.to_digit(36).unwrap_or(0);
+        let Some(v) = c.to_digit(36) else {
+            return Some("un IBAN ne porte que des lettres et des chiffres".into());
+        };
         reste = if v >= 10 { (reste * 100 + v) % 97 } else { (reste * 10 + v) % 97 };
     }
     if reste != 1 {

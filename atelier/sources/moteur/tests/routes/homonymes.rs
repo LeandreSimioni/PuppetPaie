@@ -35,14 +35,14 @@ fn un_homonyme_ne_porte_rien_de_l_autre() {
     deux["fin"] = json!("2026-11-26");
     deux.as_object_mut().unwrap().remove("numero");
     deux.as_object_mut().unwrap().remove("valide");
-    deux["lignes"] = json!([{"rubrique": "cachet", "quantite": 3, "taux": 160, "dates": ["2026-11-24", "2026-11-25", "2026-11-26"]}]);
+    deux["lignes"] = json!([{"rubrique": "cachet", "quantite": 3, "taux": 160, "lieu": null, "dates": ["2026-11-24", "2026-11-25", "2026-11-26"], "planning": []}]);
     reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "saisie": deux}), jour));
+    reussi(&crate::outils::valider(&c, "2026-11", None, &deux, jour));
     let numeros: Vec<(String, String)> = lire(&c, "engagements/2026-11.json")["engagements"]
         .as_array()
         .unwrap()
         .iter()
-        .map(|e| (e["salarie"].as_str().unwrap().to_string(), e["numero"].as_str().unwrap().to_string()))
+        .map(|e| (e["saisie"]["carte"]["salarie"].as_str().unwrap().to_string(), e["saisie"]["carte"]["numero"].as_str().unwrap().to_string()))
         .collect();
     let numero = |k: &str| numeros.iter().find(|(s, _)| s == k).unwrap().1.clone();
 

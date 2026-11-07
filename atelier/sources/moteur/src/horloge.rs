@@ -54,15 +54,16 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
+use crate::routes::contrats::{AvenantVoulu, ChargeRecu, ChargeSignature, ContratASigner, ContratVise};
 use droit::contexte::Contexte;
 use envois::courriel::{Courriel, ErreurCourriel};
 use socle::date::Jour;
+use socle::mois::Mois;
 use crate::compagnie::depot_acte::{self, Preuve};
 use envois::etats;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::echec::Echec;
 use crate::routes::etapes::Moteur;
 
@@ -70,8 +71,6 @@ use crate::routes::etapes::Moteur;
 pub const QUI_HORLOGE: &str = "horloge";
 /// La memoire de l'horloge, sous la racine de la compagnie.
 pub const FICHIER_HORLOGE: &str = "config/horloge.json";
-/// Les routes de ce module.
-pub const ROUTES: [&str; 1] = ["horloge-rattraper"];
 
 const ORIGINE: &str = "compagnie fictive : joue par l'horloge";
 const QUOI: &str = "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
@@ -158,7 +157,7 @@ impl Courriel for BoiteMuette {
 /// Le mois en lettres : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
     // Une ligne du recit ne se refuse pas pour son mois : un mois hors 01-12 s'ecrit tel quel, jamais janvier.
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
+    socle::mois::Mois::en_clair(mois)
 }
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ...`.
@@ -222,7 +221,7 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
     // La re-verification precede TOUT geste : ce qui suit ne s'execute que dans une compagnie fictive.
     let mut jouer = || envois::journal::dater_pendant(quand, ORIGINE, || d.reverifier().and_then(|_| geste(&ctx)));
     let fait = match instant_du_pas(quand) {
-        Some(t) => socle::temps::pendant(t, jouer),
+        Some(t) => socle::temps::pendant_le_pas_fictif(t, &format!("{} {}", quand, quoi), jouer),
         None => jouer(),
     };
     let dit = match fait {
@@ -239,13 +238,13 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
 /// JOUE. La re-verification precede l'appel. Rend ce que ses retours laissent a faire.
 fn deposer_dsn_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<Vec<String>> {
     d.reverifier()?;
-    Ok(depot_acte::deposer_dsn(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?.suites)
+    Ok(depot_acte::deposer_dsn(ctx, fichier, reel, None, QUI_HORLOGE, false, "")?.suites)
 }
 
 /// JOUE. La re-verification precede l'appel.
 fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
     d.reverifier()?;
-    depot_acte::deposer_dpae(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
+    depot_acte::deposer_dpae(ctx, fichier, reel, None, QUI_HORLOGE, false, "")?;
     Ok(())
 }
 
@@ -259,37 +258,35 @@ fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bo
 fn deposer_les_dsn(
     d: &HorlogeFictive,
     ctx: &Contexte,
-    mois: &str,
-    garder: impl Fn(&envois::depot::Apercu) -> bool,
+    mois: Mois,
+    garder: impl Fn(&declarations::dsn_lue::DsnLue) -> bool,
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
-    let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| valeur_en_texte(&x["chemin"])).collect()).unwrap_or_default();
+    let chemins: Vec<String> = f.dsn.iter().map(|x| x.chemin.clone()).collect();
     let journal = envois::journal::lu(&ctx.racine)?;
-    let lignes: Vec<&Value> = journal.lignes
-        .iter()
-        .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("accepte").is_some_and(vrai))
-        .collect();
+    let lignes: Vec<&envois::journal::Ligne> = envois::journal::filtrer(&journal.lignes, Some(envois::journal::Acte::Dsn), None, false).filter(|l| l.accepte()).collect();
     let mut fait = false;
     for chemin in chemins {
         let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let Ok(octets) = std::fs::read(&chemin) else { continue };
         // LA DEMANDE DE TAUX NE PART QU'AVEC LA DPAE (`depot_acte::deposer_dpae`) : un signalement d'amorcage reste d'un
         // essai ne part pas avec la DSN du mois.
-        if !garder(&envois::depot::lire(&octets)) || envois::depot::lire(&octets).champ("nature").trim() == declarations::amorcage::NATURE {
+        let lue = declarations::dsn_lue::lire(&octets, &nom)?;
+        if !garder(&lue) || lue.nature.as_deref() == Some(declarations::amorcage::NATURE) {
             continue;
         }
-        let empreinte = json!(envois::journal::empreinte(&octets));
+        let empreinte = envois::journal::empreinte(&octets);
         let mut deja = false;
-        for l in lignes.iter().filter(|l| l.get("fichier").and_then(Value::as_str) == Some(nom.as_str())) {
-            let refuse = etats::refuse_par_un_retour(l)?;
-            deja |= (l.get("mode").and_then(Value::as_str) == Some("reel") && !refuse) || (refuse && l.get("empreinte") == Some(&empreinte));
+        for l in lignes.iter().filter(|l| l.fichier() == Some(nom.as_str())) {
+            let refuse = etats::refuse_par_un_retour(l);
+            deja |= (l.reel() && !refuse) || (refuse && l.empreinte() == Some(empreinte.as_str()));
         }
         if deja {
             continue;
         }
         // Un signalement qui ne part pas se nomme : le pas est celui de la DSN du mois.
-        let signalement = envois::depot::lire(&octets).champ("nature").trim() != "01";
+        let signalement = lue.nature_ou_mensuelle() != declarations::dsn_lue::MENSUELLE;
         for reel in [false, true] {
             a_faire.extend(deposer_dsn_joue(d, ctx, &chemin, reel).map_err(|mut e| {
                 if signalement {
@@ -331,23 +328,23 @@ pub fn dernier_rattrapage(racine: &Path, aujourdhui: Option<Jour>) -> R<Vec<Stri
 /// Un geste du calendrier. Chacun regarde, a son instant, ce que le moteur en dit, et ne fait rien si c'est fait.
 enum Geste {
     /// Les engagements du mois qui commencent au plus tard `jusqu_au` se valident.
-    Valider { mois: String, jusqu_au: Jour },
+    Valider { mois: Mois, jusqu_au: Jour },
     /// Les contrats de l'embauche du `debut` partent a la signature.
-    Contrats { mois: String, debut: String },
+    Contrats { mois: Mois, debut: String },
     /// La DPAE de l'embauche du `debut`, et son signalement d'amorcage.
-    Dpae { mois: String, debut: String },
+    Dpae { mois: Mois, debut: String },
     /// Les contrats de l'embauche du `debut` reviennent signes.
-    Signes { mois: String, debut: String },
+    Signes { mois: Mois, debut: String },
     /// L'avenant du contrat (`salarie`, `debut`) part a la signature, puis revient signe.
-    Avenant { mois: String, salarie: String, debut: String, nom: String },
+    Avenant { mois: Mois, salarie: String, debut: Jour, nom: String },
     /// Le signalement d'arret (04) ou de reprise (05) de l'arret de `salarie` au `dernier` jour travaille.
-    Arret { mois: String, salarie: String, dernier: String, cle: &'static str, nature: &'static str },
+    Arret { mois: Mois, salarie: String, dernier: String, cle: crate::obligations::CleDObligation, nature: crate::routes::imprevus::NatureSignalement },
     /// Le signalement de fin du contrat de `salarie` qui finit le `fin`.
-    Fin { mois: String, salarie: String, fin: String },
+    Fin { mois: Mois, salarie: String, fin: String },
     /// La DSN du mois, fabriquee a son echeance.
-    Dsn { mois: String, echeance: Jour },
+    Dsn { mois: Mois, echeance: Jour },
     /// Les documents du mois aux salaries.
-    Documents { mois: String },
+    Documents { mois: Mois },
     /// L'exercice `annee` se clot.
     Cloture { annee: i32 },
     /// L'exercice `annee` s'exporte pour la comptabilite.
@@ -389,30 +386,31 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         memoire.get("annees_faites").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_i64).collect()).unwrap_or_default();
 
     // CE QUI EST DU, chaque pas avec son instant : les mois qui ne sont pas faits, les annees qui ne sont pas finies.
-    let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default();
+    let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     let mut calendrier: Vec<Pas> = Vec::new();
-    let mut echus: Vec<String> = Vec::new();
+    let mut echus: Vec<socle::mois::Mois> = Vec::new();
     {
         let ctx = d.contexte()?;
         // Les mois saisis, et ceux dont la DSN est due sans engagement : ce que le panneau et les rappels reclament.
-        for mois in &crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
-            let premier = socle::date::premier_du_mois(mois).map_err(Echec::from)?;
+        for le_mois in crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
+            let mois = &le_mois.to_string();
+            let premier = le_mois.premier_jour();
             if jour < premier {
                 break;
             }
             // Un mois fait dont la DSN est refusee apres coup (un bilan arrive plus tard) n'est plus fait.
-            if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && !crate::compagnie::etat_dsn::du_mois(&ctx, mois, &Value::Null)?.refusee() {
+            if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && !crate::compagnie::etat_dsn::du_mois(&ctx, socle::mois::Mois::lire(mois)?, None)?.refusee() {
                 continue;
             }
             // Un mois echu dont tout est deja fait (par la personne, avant que l'horloge ne passe) est fait : rien n'est a
             // jouer pour lui.
-            let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
-            if jour >= suivant && mois_fait(&ctx, mois, jour)? {
+            let suivant = le_mois.dernier_jour().plus_jours(1).map_err(Echec::from)?;
+            if jour >= suivant && mois_fait(&ctx, le_mois, jour)? {
                 clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
                 continue;
             }
-            if les_pas_du_mois(&d, &ctx, mois, &mut calendrier)? {
-                echus.push(mois.clone());
+            if les_pas_du_mois(&d, &ctx, le_mois, &mut calendrier)? {
+                echus.push(le_mois);
             }
         }
     }
@@ -439,9 +437,10 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     // refuse se regarde a chaque ouverture ; un signalement qui attend la saisie (`fins_a_signaler`, `a_saisir` : une case
     // de la carte vide) est a la personne, et les rappels le lui disent : le mois se rouvre quand sa saisie change
     // (`empreinte_du_mois`).
-    for mois in &echus {
+    for le_mois in echus {
+        let mois = &le_mois.to_string();
         let ctx = d.contexte()?;
-        if mois_fait(&ctx, mois, jour)? {
+        if mois_fait(&ctx, le_mois, jour)? {
             clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
         } else {
             clos.remove(mois);
@@ -461,7 +460,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         ancien
     };
     let mut sortie = Map::new();
-    sortie.insert("_quoi".into(), json!(QUOI));
+    sortie.insert("quoi".into(), json!(QUOI));
     sortie.insert("le".into(), json!(jour.iso()));
     sortie.insert("mois_faits".into(), Value::Object(clos));
     sortie.insert("annees_faites".into(), json!(annees_faites.iter().collect::<Vec<_>>()));
@@ -480,59 +479,57 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
 /// - le jour de l'echeance de la DSN, la DSN a 10 h, puis les documents a 11 h. Un mois dont la DSN a ete refusee attend
 ///   sa correction : sa DSN et ses documents se regardent a l'instant ou l'horloge joue.
 /// Rend vrai si l'echeance du mois est passee (le mois peut alors etre fait).
-fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &mut Vec<Pas>) -> R<bool> {
+fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, le_mois: Mois, calendrier: &mut Vec<Pas>) -> R<bool> {
     let jour = d.jour;
+    let mois = &le_mois.to_string();
     let jour_iso = jour.iso();
     let debuts: BTreeSet<String> = engagement::stock::objets_du_mois(d.racine, mois)
         .map_err(Echec::from)?
         .iter()
         .filter(|o| !o.importe_seul())
-        .map(|o| engagement::debut_brut(&o.racine, &o.brut))
+        .map(|o| engagement::debut_brut(&o.brut))
         .filter(|debut| debut.starts_with(mois) && **debut <= *jour_iso)
         .collect();
     for debut in debuts {
         let Ok(le_jour) = Jour::lire(&debut) else { continue };
         let j = le(&debut);
-        let m = mois.to_string();
         calendrier.push(Pas {
             quand: format!("{}T05:00:00", debut),
             quoi: format!("engagements de l'embauche du {} validés", j),
-            geste: Geste::Valider { mois: m.clone(), jusqu_au: le_jour },
+            geste: Geste::Valider { mois: le_mois, jusqu_au: le_jour },
         });
         calendrier.push(Pas {
             quand: format!("{}T06:00:00", debut),
             quoi: format!("contrats de l'embauche du {} envoyés à la signature", j),
-            geste: Geste::Contrats { mois: m.clone(), debut: debut.clone() },
+            geste: Geste::Contrats { mois: le_mois, debut: debut.clone() },
         });
         calendrier.push(Pas {
             quand: format!("{}T07:00:00", debut),
             quoi: format!("DPAE de l'embauche du {} envoyée", j),
-            geste: Geste::Dpae { mois: m.clone(), debut: debut.clone() },
+            geste: Geste::Dpae { mois: le_mois, debut: debut.clone() },
         });
         calendrier.push(Pas {
             quand: format!("{}T08:00:00", debut),
             quoi: format!("contrats de l'embauche du {} revenus signés", j),
-            geste: Geste::Signes { mois: m, debut },
+            geste: Geste::Signes { mois: le_mois, debut },
         });
     }
-    if let Ok(apercu) = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois})) {
-        for c in apercu["contrats"].as_array().into_iter().flatten() {
-            let (salarie, debut) = (valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["debut"]));
-            let Some(quand) = revalide_le(ctx, mois, &salarie, &debut) else { continue };
+    if let Ok(apercu) = crate::routes::contrats::signature_apercu(ctx, le_mois) {
+        for c in apercu.contrats {
+            let Some(quand) = revalide_le(ctx, mois, &c.salarie, &c.debut.iso()) else { continue };
             if quand.get(..10).unwrap_or("") > jour_iso.as_str() {
                 continue;
             }
-            let nom = valeur_en_texte(&c["nom"]);
-            calendrier.push(Pas { quand, quoi: String::new(), geste: Geste::Avenant { mois: mois.to_string(), salarie, debut, nom } });
+            calendrier.push(Pas { quand, quoi: String::new(), geste: Geste::Avenant { mois: le_mois, salarie: c.salarie, debut: c.debut, nom: c.nom } });
         }
     }
-    calendrier.extend(signalements_dus(ctx, mois, jour, false));
+    calendrier.extend(signalements_dus(ctx, le_mois, jour, false));
 
-    let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+    let suivant = le_mois.dernier_jour().plus_jours(1).map_err(Echec::from)?;
     if jour < suivant {
         return Ok(false);
     }
-    let fin = socle::date::dernier_du_mois(mois).map_err(Echec::from)?;
+    let fin = le_mois.dernier_jour();
     let valide_le = match crate::interface::compagnies::cree_le(d.racine) {
         Some(c) if c > suivant => c.min(jour),
         _ => suivant,
@@ -540,14 +537,14 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
     calendrier.push(Pas {
         quand: format!("{}T09:00:00", valide_le.iso()),
         quoi: format!("engagements de {} validés", mois_fr(mois)),
-        geste: Geste::Valider { mois: mois.to_string(), jusqu_au: fin },
+        geste: Geste::Valider { mois: le_mois, jusqu_au: fin },
     });
     // Le jour ou la DSN est due (`echeance_dsn`, reporte au jour ouvre) : elle part ce matin-la, avant midi.
     let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(Echec::from)?.jour;
     if jour < echeance {
         return Ok(false);
     }
-    let (quand_dsn, quand_documents) = if crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.refusee() {
+    let (quand_dsn, quand_documents) = if crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(mois)?, None)?.refusee() {
         let maintenant = maintenant_du(jour);
         (maintenant.clone(), maintenant)
     } else {
@@ -556,16 +553,16 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
         let revalide = engagement::stock::objets_du_mois(d.racine, mois)
             .map_err(Echec::from)?
             .iter()
-            .filter_map(|o| o.brut.get("valide").and_then(|v| v.get("le")).and_then(Value::as_str).map(|t| t.chars().take(19).collect::<String>()))
+            .filter_map(|o| o.brut.valide.as_ref().map(|v| v.le.chars().take(19).collect::<String>()))
             .max();
         let documents = format!("{}T11:00:00", echeance.iso());
         (format!("{}T10:00:00", echeance.iso()), revalide.filter(|r| *r > documents).unwrap_or(documents))
     };
-    calendrier.push(Pas { quand: quand_dsn, quoi: format!("DSN de {} déposée", mois_fr(mois)), geste: Geste::Dsn { mois: mois.to_string(), echeance } });
+    calendrier.push(Pas { quand: quand_dsn, quoi: format!("DSN de {} déposée", mois_fr(mois)), geste: Geste::Dsn { mois: le_mois, echeance } });
     calendrier.push(Pas {
         quand: quand_documents,
         quoi: format!("documents de {} envoyés aux salariés", mois_fr(mois)),
-        geste: Geste::Documents { mois: mois.to_string() },
+        geste: Geste::Documents { mois: le_mois },
     });
     Ok(true)
 }
@@ -600,47 +597,46 @@ fn maintenant_du(jour: Jour) -> String {
 fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
     let (quand, quoi) = (p.quand.as_str(), p.quoi.as_str());
     match &p.geste {
-        Geste::Valider { mois, jusqu_au } => valider_les_engagements(d, mois, *jusqu_au, quoi, quand),
+        Geste::Valider { mois, jusqu_au } => valider_les_engagements(d, &mois.to_string(), *jusqu_au, quoi, quand),
         Geste::Contrats { mois, debut } => {
             // Ceux qui ont un courriel partent a la signature ; un contrat sans courriel dans la fiche s'imprime et se
             // remet en main propre : l'impression est son depart.
             let mut imprimes: Vec<Signable> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
                 let (par_courriel, sans): (Vec<Signable>, Vec<Signable>) =
-                    signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut && c.a_envoyer).partition(|c| c.courriel);
+                    signables(ctx, *mois)?.into_iter().filter(|c| c.vise.debut.iso() == *debut && c.a_envoyer).partition(|c| c.courriel);
                 imprimes = sans;
                 if par_courriel.is_empty() {
                     return Ok(false);
                 }
                 // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-                let contrats: Vec<Value> = par_courriel.iter().map(Signable::charge).collect();
-                crate::routes::contrats::demander_signature(ctx, &json!({"mois": mois, "contrats": contrats}), &mut ouvrir)?;
+                let contrats = par_courriel.into_iter().map(|c| c.vise).collect();
+                crate::routes::contrats::demander_signature(ctx, ChargeSignature::des_contrats(*mois, contrats), &mut ouvrir)?;
                 Ok(true)
             });
             if !imprimes.is_empty() {
                 let noms = imprimes.iter().map(|c| c.nom.as_str()).collect::<Vec<_>>().join(", ");
                 let quoi = format!("contrats de l'embauche du {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", le(debut), noms);
                 fait.extend(pas(d, &quoi, quand, |ctx| {
-                    let contrats: Vec<Value> = imprimes.iter().map(Signable::charge).collect();
-                    crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": contrats}), QUI_HORLOGE)?;
+                    let contrats = imprimes.iter().map(|c| c.vise.clone()).collect();
+                    crate::routes::contrats::contrats_imprimer(ctx, ChargeSignature::des_contrats(*mois, contrats), QUI_HORLOGE)?;
                     Ok(true)
                 }));
             }
             fait
         }
         Geste::Dpae { mois, debut } => pas(d, quoi, quand, |ctx| {
-            let a_declarer = Moteur::nouveau(ctx).embauches_a_declarer(Some(mois))?;
-            let attente: Vec<&Value> =
-                a_declarer.as_array().map(|a| a.iter().filter(|e| e.get("debut").and_then(Value::as_str) == Some(debut.as_str())).collect()).unwrap_or_default();
+            let a_declarer = Moteur::nouveau(ctx).embauches_a_declarer(Some(*mois))?;
+            let attente: Vec<_> = a_declarer.iter().filter(|e| e.debut == *debut).collect();
             if attente.is_empty() {
                 return Ok(false);
             }
-            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
-            let crate::routes::depots::Dpae::Ecrite(r) = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))? else {
+            let engagements: Vec<crate::routes::depots::EmbaucheDesignee> = attente.iter().map(|e| crate::routes::depots::EmbaucheDesignee { salarie: e.salarie.clone(), numero: e.numero.to_string() }).collect();
+            let crate::routes::depots::Dpae::Ecrite(r) = crate::routes::depots::dpae(ctx, *mois, Some(&engagements))? else {
                 return Ok(false);
             };
-            let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
+            let fichier = r.chemin;
             // La DPAE emporte la demande de taux de PAS de ses embauches (`depot_acte::deposer_dpae`).
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;
@@ -649,33 +645,33 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
         }),
         // UN CONTRAT REVIENT SIGNE S'IL EST PARTI (par courriel ou imprime) : jamais un retour sans son depart.
         Geste::Signes { mois, debut } => pas(d, quoi, quand, |ctx| {
-            let manquent: Vec<Signable> = signables(ctx, mois)?.into_iter().filter(|c| c.debut == *debut && !c.a_envoyer).collect();
+            let manquent: Vec<Signable> = signables(ctx, *mois)?.into_iter().filter(|c| c.vise.debut.iso() == *debut && !c.a_envoyer).collect();
             if manquent.is_empty() {
                 return Ok(false);
             }
-            for c in &manquent {
-                crate::routes::contrats::contrat_recu_par(ctx, mois, &c.salarie, &c.debut, Some(c.numero.as_str()), true, QUI_HORLOGE)?;
+            for c in manquent {
+                let ContratVise { salarie, debut, numero } = c.vise;
+                crate::routes::contrats::contrat_recu(ctx, &ChargeRecu { mois: *mois, salarie, debut, numero, avenant: None, recu: true }, QUI_HORLOGE, None)?;
             }
             Ok(true)
         }),
         Geste::Avenant { mois, salarie, debut, nom } => {
-            let du_contrat = |ctx: &Contexte| -> R<Option<Value>> {
-                let a = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
-                Ok(a["contrats"].as_array().into_iter().flatten().find(|x| valeur_en_texte(&x["salarie"]) == *salarie && valeur_en_texte(&x["debut"]) == *debut).cloned())
+            let du_contrat = |ctx: &Contexte| -> R<Option<ContratASigner>> {
+                Ok(crate::routes::contrats::signature_apercu(ctx, *mois)?.contrats.into_iter().find(|x| x.salarie == *salarie && x.debut == *debut))
             };
             // La ligne de l'horloge dit ce que le journal dit : parti par courriel, ou imprime et remis en main propre.
             let imprime = std::cell::Cell::new(false);
             let mut fait = pas(d, &format!("avenant du contrat de {} envoyé à la signature", nom), quand, |ctx| {
-                let Some(x) = du_contrat(ctx)?.filter(|x| x.get("en_avenant").is_some_and(vrai)) else {
+                let Some(x) = du_contrat(ctx)?.filter(|x| x.en_avenant) else {
                     return Ok(false);
                 };
-                let numero = valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"]));
-                let voulu = json!({"salarie": salarie, "debut": debut, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }, "mois": mois});
+                let numero = x.numero.as_ref().map(|n| n.to_string());
+                let voulu = AvenantVoulu { salarie: salarie.clone(), debut: *debut, numero, mois: Some(*mois), effet: None, relance: false };
                 // LA BOITE MUETTE, et jamais une autre ; sans courriel dans la fiche, l'avenant s'imprime et se remet en
                 // main propre : l'impression est son depart.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-                if crate::routes::contrats::envoyer_avenants(ctx, std::slice::from_ref(&voulu), &Preuve::de_la_charge(&json!({})), &mut ouvrir).is_err() {
-                    crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "avenants": [voulu]}), QUI_HORLOGE)?;
+                if crate::routes::contrats::envoyer_avenants(ctx, std::slice::from_ref(&voulu), &Preuve::default(), &mut ouvrir).is_err() {
+                    crate::routes::contrats::contrats_imprimer(ctx, ChargeSignature::des_avenants(*mois, vec![voulu]), QUI_HORLOGE)?;
                     imprime.set(true);
                 }
                 Ok(true)
@@ -686,11 +682,18 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let signe = if imprime.get() { "signé, remis en main propre" } else { "revenu signé" };
             fait.extend(pas(d, &format!("avenant du contrat de {} {}", nom, signe), quand, |ctx| {
                 let Some(x) = du_contrat(ctx)? else { return Ok(false) };
-                if !(x.get("avenant_attendu").is_some_and(vrai) && x.get("en_attente").is_some_and(vrai)) {
+                if !(x.avenant_attendu && x.en_attente) {
                     return Ok(false);
                 }
-                let numero = valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"]));
-                crate::routes::contrats::contrat_recu_avec(ctx, mois, salarie, debut, Some(numero.as_str()), true, &x["avenant"]["numero"], QUI_HORLOGE, None)?;
+                let charge = ChargeRecu {
+                    mois: *mois,
+                    salarie: salarie.clone(),
+                    debut: *debut,
+                    numero: x.numero.as_ref().map(|n| n.to_string()),
+                    avenant: x.avenant.as_ref().and_then(|a| a.numero),
+                    recu: true,
+                };
+                crate::routes::contrats::contrat_recu(ctx, &charge, QUI_HORLOGE, None)?;
                 Ok(true)
             }));
             fait
@@ -703,31 +706,31 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let Some(a) = a else { return Ok(false) };
             let encore = crate::obligations::de_l_arret(ctx, &a, &crate::obligations::Suivi::lire(ctx)?, ctx.aujourdhui)?
                 .iter()
-                .any(|o| o["cle"] == json!(cle) && due(o, ctx.aujourdhui).is_some());
+                .any(|o| o.cle == *cle && due(o, ctx.aujourdhui).is_some());
             if !encore {
                 return Ok(false);
             }
             d.reverifier()?;
-            crate::routes::imprevus::route(&HashMap::new(), ctx, "arret-signaler", &json!({"salarie": salarie, "dernier_jour": dernier, "nature": nature}))?;
-            deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == *nature, &mut Vec::new())?;
+            crate::routes::imprevus::signaler_l_arret(ctx, &crate::routes::imprevus::ChargeArretSignaler::de(salarie.clone(), Jour::lire(dernier)?, *nature), None)?;
+            deposer_les_dsn(d, ctx, *mois, |x| x.nature.as_deref() == Some(nature.code()), &mut Vec::new())?;
             Ok(true)
         }),
         Geste::Fin { mois, salarie, fin } => pas(d, quoi, quand, |ctx| {
-            let encore = crate::routes::imprevus::fins_a_signaler(ctx, mois, ctx.aujourdhui)?
+            let encore = crate::routes::imprevus::fins_a_signaler(ctx, &mois.to_string(), ctx.aujourdhui)?
                 .iter()
-                .any(|x| valeur_en_texte(&x["salarie"]) == *salarie && valeur_en_texte(&x["fin"]) == *fin && due(&x["obligation"], ctx.aujourdhui).is_some());
+                .any(|x| valeur_en_texte(&x.salarie) == *salarie && valeur_en_texte(&x.fin) == *fin && due(&x.obligation, ctx.aujourdhui).is_some());
             if !encore {
                 return Ok(false);
             }
             d.reverifier()?;
-            crate::routes::imprevus::route(&HashMap::new(), ctx, "fin-contrat-signaler", &json!({"mois": mois, "salarie": salarie}))?;
-            deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == declarations::fctu::NATURE, &mut Vec::new())?;
+            crate::routes::imprevus::signaler_la_fin(ctx, &crate::routes::imprevus::ChargeFinContratSignaler::de(*mois, salarie.clone()), false)?;
+            deposer_les_dsn(d, ctx, *mois, |x| x.nature.as_deref() == Some(declarations::fctu::NATURE), &mut Vec::new())?;
             Ok(true)
         }),
         Geste::Dsn { mois, echeance } => {
             let mut a_faire: Vec<String> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
-                if crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie() {
+                if crate::compagnie::etat_dsn::du_mois(ctx, *mois, None)?.partie() {
                     return Ok(false);
                 }
                 // LA DSN SE FABRIQUE A SON DEPOT, depuis les engagements valides du mois, DATEE DE SON ECHEANCE quel que
@@ -736,14 +739,14 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 d.reverifier()?;
                 let a_l_echeance = HorlogeFictive { racine: d.racine, jour: (*echeance).min(d.jour) };
                 let ctx_e = a_l_echeance.contexte()?;
-                let fabriquer = || crate::compagnie::depart::fabriquer_dsn(&ctx_e, mois, QUI_HORLOGE);
+                let fabriquer = || crate::compagnie::depart::fabriquer_dsn(&ctx_e, *mois, QUI_HORLOGE);
                 match instant_du_pas(&format!("{}T10:00:00", echeance.iso())) {
                     Some(t) => socle::temps::pendant(t, fabriquer)?,
                     None => fabriquer()?,
                 };
                 // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES, dans l'ordre de `crate::routes::etapes::ordre_de_depot` :
                 // la mensuelle, puis les signalements.
-                deposer_les_dsn(d, ctx, mois, |_| true, &mut a_faire)
+                deposer_les_dsn(d, ctx, *mois, |_| true, &mut a_faire)
             });
             // Ce que le rangement de l'AER jouee laisse a faire se dit, a la date du depot, comme le dit la releve.
             fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(quand), p)));
@@ -755,24 +758,19 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let mut sans: Vec<(String, String)> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
                 // LES DOCUMENTS D'UN MOIS DONT LA DSN N'EST PAS ACCEPTEE ne partent pas : ils suivent sa DSN, jamais avant.
-                if !crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie() {
+                if !crate::compagnie::etat_dsn::du_mois(ctx, *mois, None)?.partie() {
                     return Ok(false);
                 }
-                let bilan = Moteur::nouveau(ctx).bilan_du_mois(mois)?;
-                let a_envoyer = bilan["etapes"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter(|e| e["cle"] == json!(envois::etats::DOCUMENTS))
-                    .flat_map(|e| e["groupes"].as_array().cloned().unwrap_or_default())
-                    .any(|g| g["etat"] == json!("a_faire"));
+                let bilan = Moteur::nouveau(ctx).bilan_du_mois(*mois)?;
+                use crate::routes::etapes::{EtatCase, QuelleEtape};
+                let a_envoyer = bilan.etapes.iter().filter(|e| e.cle == QuelleEtape::Documents).flat_map(|e| &e.groupes).any(|g| g.etat == EtatCase::AFaire);
                 if !a_envoyer {
                     return Ok(false);
                 }
-                sans = crate::routes::documents::sans_courriel(ctx, mois)?;
+                sans = crate::routes::documents::sans_courriel(ctx, &mois.to_string())?;
                 // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-                match crate::routes::documents::envoyer_documents_de(ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
+                match crate::routes::documents::envoyer_documents_de(ctx, &mois.to_string(), &Preuve::default(), QUI_HORLOGE, &mut ouvrir) {
                     Ok(_) => Ok(true),
                     // Un mois sans documents a remettre par courriel.
                     Err(e) if est_une_erreur_d_operation(&e) => Ok(false),
@@ -781,17 +779,18 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             });
             if !sans.is_empty() {
                 let noms = sans.iter().map(|(_, n)| n.as_str()).collect::<Vec<_>>().join(", ");
-                let cles: Vec<&str> = sans.iter().map(|(c, _)| c.as_str()).collect();
-                let quoi = format!("documents de {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", mois_fr(mois), noms);
+                let salaries: Vec<String> = sans.iter().map(|(c, _)| c.clone()).collect();
+                let quoi = format!("documents de {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", mois_fr(&mois.to_string()), noms);
                 fait.extend(pas(d, &quoi, quand, |ctx| {
-                    crate::routes::documents::documents_imprimer(ctx, &json!({"mois": mois, "salaries": cles}), QUI_HORLOGE)?;
+                    let charge = crate::routes::documents::ChargeDocumentsImprimer { mois: *mois, salaries: salaries.clone() };
+                    crate::routes::documents::documents_imprimer(ctx, charge, QUI_HORLOGE)?;
                     Ok(true)
                 }));
             }
             fait
         }
         Geste::Cloture { annee } => pas(d, quoi, quand, |ctx| {
-            let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", annee)));
+            let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.to_string().starts_with(&format!("{}-", annee)));
             if Moteur::nouveau(ctx).exercice_clos(&annee.to_string())? || !a_des_paies {
                 return Ok(false);
             }
@@ -802,7 +801,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             if !Moteur::nouveau(ctx).exercice_clos(&annee.to_string())? || crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &annee.to_string()) {
                 return Ok(false);
             }
-            crate::compagnie::exercice_ecrit::export_compta_route(ctx, &json!({"annee": annee.to_string()}))?;
+            crate::compagnie::exercice_ecrit::export_compta(ctx, &annee.to_string(), 1, 12, true)?;
             Ok(true)
         }),
     }
@@ -818,15 +817,16 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
     pas(d, quoi, quand, |ctx| {
         let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
         let ids = engagement::stock::identites(&objets);
-        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        let le_mois = socle::mois::Mois::lire(mois)?;
+        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or_else(|| engagement::saisie::VueDuMois::vide(le_mois));
         let manques = crate::routes::mois::manques_de_la_saisie(ctx, &vue);
         let mut fait = false;
         for ((o, id), manque) in objets.iter().zip(ids).zip(manques) {
-            if o.est_valide() || o.importe_seul() || manque.is_some() || engagement::debut_brut(&o.racine, &o.brut) > jusqu_au.iso() {
+            if o.est_valide() || o.importe_seul() || manque.is_some() || engagement::debut_brut(&o.brut) > jusqu_au.iso() {
                 continue;
             }
-            let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
-            crate::routes::engagement::route(&HashMap::new(), ctx, "valider-engagement", &json!({"mois": mois, "engagement": id, "saisie": saisie}))?;
+            let charge = crate::routes::engagement::ChargeValider { mois: le_mois, engagement: id };
+            crate::routes::engagement::valider_engagement(ctx, charge)?;
             fait = true;
         }
         Ok(fait)
@@ -835,9 +835,8 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
 
 /// Un contrat de spectacle du mois qui n'est pas revenu signe (`signature-apercu`).
 struct Signable {
-    salarie: String,
-    debut: String,
-    numero: String,
+    /// Le contrat, tel que les routes des contrats le recoivent.
+    vise: ContratVise,
     /// « NOM Prenom ».
     nom: String,
     /// Sa fiche a un courriel : il part a la signature par courriel ; sinon il s'imprime.
@@ -846,32 +845,19 @@ struct Signable {
     a_envoyer: bool,
 }
 
-impl Signable {
-    /// Ce que les routes des contrats recoivent pour lui.
-    fn charge(&self) -> Value {
-        json!({"salarie": self.salarie, "debut": self.debut, "numero": if self.numero.is_empty() { Value::Null } else { json!(self.numero) }})
-    }
-}
-
 /// Les contrats de spectacle du mois qui ne sont pas revenus signes.
-fn signables(ctx: &Contexte, mois: &str) -> R<Vec<Signable>> {
-    let a = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
-    Ok(a["contrats"]
-        .as_array()
-        .map(|c| {
-            c.iter()
-                .filter(|x| !x.get("recu_le").is_some_and(vrai))
-                .map(|x| Signable {
-                    salarie: valeur_en_texte(&x["salarie"]),
-                    debut: valeur_en_texte(&x["debut"]),
-                    nom: valeur_en_texte(&x["nom"]),
-                    courriel: x.get("destinataire").is_some_and(vrai),
-                    numero: valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"])),
-                    a_envoyer: x.get("a_envoyer").is_some_and(vrai) && !x.get("en_avenant").is_some_and(vrai),
-                })
-                .collect()
+fn signables(ctx: &Contexte, mois: Mois) -> R<Vec<Signable>> {
+    Ok(crate::routes::contrats::signature_apercu(ctx, mois)?
+        .contrats
+        .into_iter()
+        .filter(|x| x.recu_le.is_none())
+        .map(|x| Signable {
+            courriel: !x.destinataire.is_empty(),
+            a_envoyer: x.a_envoyer && !x.en_avenant,
+            vise: ContratVise { numero: x.numero.as_ref().map(|n| n.to_string()), salarie: x.salarie, debut: x.debut },
+            nom: x.nom,
         })
-        .unwrap_or_default())
+        .collect())
 }
 
 // ------------------------------------------------------------------ les avenants
@@ -880,24 +866,23 @@ fn signables(ctx: &Contexte, mois: &str) -> R<Vec<Signable>> {
 fn revalide_le(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Option<String> {
     engagement::stock::objets_du_mois(&ctx.racine, mois).ok()?.into_iter().find_map(|o| {
         let b = &*o.brut;
-        let sien = engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie) && engagement::debut_brut(&ctx.racine, &b) == debut;
-        sien.then(|| o.brut.get("valide").and_then(|v| v.get("le")).and_then(Value::as_str).map(|t| t.chars().take(19).collect()))?
+        let sien = b.saisie.carte.salarie.as_deref() == Some(salarie) && engagement::debut_brut(b) == debut;
+        sien.then(|| o.brut.valide.as_ref().map(|v| v.le.chars().take(19).collect()))?
     })
 }
 
 // ------------------------------------------------------------------ les signalements
 
 /// Une obligation que le moteur dit a faire (ou en retard) : sa date butoir, qu'elle soit passee ou non.
-fn a_faire(o: &Value) -> Option<Jour> {
-    let etat = o.get("etat").and_then(Value::as_str)?;
-    if etat != crate::obligations::A_FAIRE && etat != crate::obligations::EN_RETARD {
+fn a_faire(o: &crate::obligations::Obligation) -> Option<Jour> {
+    if o.etat != crate::obligations::A_FAIRE && o.etat != crate::obligations::EN_RETARD {
         return None;
     }
-    Jour::lire(o.get("butoir").and_then(Value::as_str)?).ok()
+    Jour::lire(o.butoir.as_deref()?).ok()
 }
 
 /// Une obligation a faire (`a_faire`) dont la date butoir est passee ou d'aujourd'hui : sa butoir.
-fn due(o: &Value, jour: Jour) -> Option<Jour> {
+fn due(o: &crate::obligations::Obligation, jour: Jour) -> Option<Jour> {
     a_faire(o).filter(|b| *b <= jour)
 }
 
@@ -913,35 +898,37 @@ fn due(o: &Value, jour: Jour) -> Option<Jour> {
 /// pour CSS R. 133-14, II ; norme DSN, chapitre 2, § 2.5.3) peut finir apres l'echeance de la DSN du mois (une fin le
 /// 30/01, signalee jusqu'au 06/02, quand la DSN de janvier est due le 05/02), et un mois fait ne se relit plus. Pas celui
 /// qui attend la saisie : il est a la personne.
-fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour, cloture: bool) -> Vec<Pas> {
-    let du = |o: &Value| if cloture { a_faire(o) } else { due(o, jour) };
+fn signalements_dus(ctx: &Contexte, le_mois: Mois, jour: Jour, cloture: bool) -> Vec<Pas> {
+    let mois = &le_mois.to_string();
+    let du = |o: &crate::obligations::Obligation| if cloture { a_faire(o) } else { due(o, jour) };
     let mut dus = Vec::new();
-    let natures = [("signalement_arret", declarations::signalement::ARRET, "d'arrêt"), ("signalement_reprise", declarations::signalement::REPRISE, "de reprise")];
+    use crate::routes::imprevus::NatureSignalement;
+    let natures = [(crate::obligations::CleDObligation::SignalementArret, NatureSignalement::Arret, "d'arrêt"), (crate::obligations::CleDObligation::SignalementReprise, NatureSignalement::Reprise, "de reprise")];
     let arrets = crate::routes::imprevus::tous_les_arrets(ctx).unwrap_or_default();
     if let Ok(suivi) = crate::obligations::Suivi::lire(ctx) {
         for a in arrets.iter().filter(|a| valeur_en_texte(&a["dernier_jour_travaille"]).starts_with(mois)) {
             let obligations = crate::obligations::de_l_arret(ctx, a, &suivi, jour).unwrap_or_default();
             for (cle, nature, dit) in natures {
-                let Some(butoir) = obligations.iter().find(|o| o["cle"] == json!(cle)).and_then(du) else { continue };
+                let Some(butoir) = obligations.iter().find(|o| o.cle == cle).and_then(du) else { continue };
                 let (salarie, dernier) = (valeur_en_texte(&a["salarie"]), valeur_en_texte(&a["dernier_jour_travaille"]));
                 dus.push(Pas {
                     quand: format!("{}T09:30:00", butoir.iso()),
                     quoi: format!("signalement {} de {} (dernier jour travaillé le {}) déposé", dit, salarie, le(&dernier)),
-                    geste: Geste::Arret { mois: mois.to_string(), salarie, dernier, cle, nature },
+                    geste: Geste::Arret { mois: le_mois, salarie, dernier, cle, nature },
                 });
             }
         }
     }
     for f in crate::routes::imprevus::fins_a_signaler(ctx, mois, jour).unwrap_or_default() {
-        let Some(butoir) = du(&f["obligation"]) else { continue };
-        if cloture && f["a_saisir"].as_array().is_some_and(|a| !a.is_empty()) {
+        let Some(butoir) = du(&f.obligation) else { continue };
+        if cloture && !f.a_saisir.is_empty() {
             continue;
         }
-        let (salarie, fin) = (valeur_en_texte(&f["salarie"]), valeur_en_texte(&f["fin"]));
+        let (salarie, fin) = (valeur_en_texte(&f.salarie), valeur_en_texte(&f.fin));
         dus.push(Pas {
             quand: format!("{}T09:30:00", butoir.iso()),
             quoi: format!("signalement de fin du contrat de {} (fin le {}) déposé", salarie, le(&fin)),
-            geste: Geste::Fin { mois: mois.to_string(), salarie, fin },
+            geste: Geste::Fin { mois: le_mois, salarie, fin },
         });
     }
     dus
@@ -963,7 +950,7 @@ fn empreinte_du_mois(racine: &Path, mois: &str) -> String {
 
 /// UN MOIS FAIT : toutes ses etapes sont vertes (`etapes_restantes`, ce que l'ecran montre) et aucun signalement n'est a
 /// faire que l'horloge puisse ecrire, sa date butoir passee ou non (`signalements_dus`).
-fn mois_fait(ctx: &Contexte, mois: &str, jour: Jour) -> R<bool> {
+fn mois_fait(ctx: &Contexte, mois: socle::mois::Mois, jour: Jour) -> R<bool> {
     Ok(Moteur::nouveau(ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(ctx, mois, jour, true).is_empty())
 }
 
@@ -975,7 +962,7 @@ fn annee_finie(d: &HorlogeFictive, annee: i32) -> R<bool> {
     }
     let ctx = d.contexte()?;
     let a = annee.to_string();
-    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", a))) {
+    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.to_string().starts_with(&format!("{}-", a))) {
         return Ok(true);
     }
     Ok(Moteur::nouveau(&ctx).exercice_clos(&a)? && crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &a))
@@ -983,19 +970,14 @@ fn annee_finie(d: &HorlogeFictive, annee: i32) -> R<bool> {
 
 // ------------------------------------------------------------------ les routes
 
-/// La route de l'horloge : `horloge-rattraper` (`{"aujourdhui"?, "retenir"?}` -> les phrases jouees).
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+/// La route de l'horloge, `horloge-rattraper` (`{"aujourdhui"?, "retenir"?}` -> les phrases jouees).
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let jour = match charge.get("aujourdhui").filter(|v| vrai(v)) {
         Some(v) => Some(Jour::lire(&valeur_en_texte(v)).map_err(Echec::from)?),
         None => None,
     };
-    match nom {
-        "horloge-rattraper" => {
-            let retenir = charge.get("retenir").map_or(true, vrai);
-            Ok(json!(rattraper(&ctx.racine, jour, retenir)?))
-        }
-        autre => Err(Echec::from(format!("route inconnue : {}", autre))),
-    }
+    let retenir = charge.get("retenir").map_or(true, vrai);
+    Ok(json!(rattraper(&ctx.racine, jour, retenir)?))
 }
 
 // ------------------------------------------------------------------ les tests

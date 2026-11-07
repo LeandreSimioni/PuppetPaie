@@ -29,6 +29,7 @@
 //! fil -- le message archive reste celui d'`envoi::en_mime_nomme`, en LF. Une ligne vide precede le point final quand le
 //! message ne finit pas par CRLF (`en_mime_nomme` finit par LF).
 
+use droit::fiche::Lue as _;
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
@@ -558,13 +559,8 @@ pub struct BoiteSimulee {
 
 impl BoiteSimulee {
     /// `entreprise` : la fiche de la compagnie (le signataire donne l'adresse de la boite).
-    pub fn nouvelle(racine: &Path, entreprise: &Value) -> BoiteSimulee {
-        let adresse = entreprise
-            .get("signataire")
-            .and_then(|s| s.get("email"))
-            .and_then(Value::as_str)
-            .filter(|e| !e.is_empty())
-            .unwrap_or("fictive@puppetpaie.invalid");
+    pub fn nouvelle(racine: &Path, entreprise: &droit::fiche::ChampsEntreprise) -> BoiteSimulee {
+        let adresse = entreprise.signataire.dite().map(|s| s.email.texte()).filter(|e| !e.is_empty()).unwrap_or("fictive@puppetpaie.invalid");
         BoiteSimulee { racine: racine.to_path_buf(), compte: adresse.to_lowercase() }
     }
 

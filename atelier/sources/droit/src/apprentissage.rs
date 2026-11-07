@@ -1,22 +1,28 @@
 //! La taxe d'apprentissage : la fiche entreprise dit-elle un motif de non-assujettissement (table MNATA), et vaut-il pour
 //! la periode payee ? Le bareme du contrat, le bordereau et le bloc 44 de la DSN lisent cette meme decision.
 
-use serde_json::Value;
+use std::sync::OnceLock;
 
-use socle::date::en_texte;
-use socle::fichiers::vrai;
+use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::num::Resultat;
 
-fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&Value::Null)
+use crate::fiche::{ChampsEntreprise, Lue};
+use crate::source::forme_notee;
+
+forme_notee! {
+    /// `donnees/mnata-base.json` : la table MNATA de la DSN (S21.G00.44.004), relevee dans les nomenclatures de
+    /// net-entreprises.
+    pub struct TableMnata {
+        pub motifs: Vec<MotifMnata>,
+    }
 }
 
-fn txt(v: &Value) -> String {
-    if vrai(v) {
-        en_texte(v).trim().to_string()
-    } else {
-        String::new()
-    }
+/// Un motif de non-assujettissement : son code et son libelle.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifMnata {
+    pub code: String,
+    pub libelle: String,
 }
 
 /// Le champ de la fiche entreprise qui dit pourquoi la compagnie ne doit pas la taxe d'apprentissage (un code MNATA).
@@ -41,8 +47,9 @@ pub const PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES: (i32, u32) = (2026, 3);
 
 /// La table MNATA livree : (code, libelle).
 pub fn motifs_mnata() -> Resultat<Vec<(String, String)>> {
-    let t = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("mnata-base.json"))?;
-    Ok(g(&t, "motifs").as_array().map(Vec::as_slice).unwrap_or_default().iter().map(|m| (txt(g(m, "code")), txt(g(m, "libelle")))).collect())
+    static CACHE: OnceLock<FormeGardee<TableMnata>> = OnceLock::new();
+    let t = forme_en_cache(&CACHE, "mnata-base.json", "La table MNATA livrée ne se lit pas : le signaler au développeur.", Ok)?;
+    Ok(t.motifs.iter().map(|m| (m.code.trim().to_string(), m.libelle.trim().to_string())).collect())
 }
 
 /// Ou la fiche entreprise dit le motif de non-assujettissement a la taxe d'apprentissage.
@@ -52,8 +59,8 @@ pub fn champ_du_motif() -> String {
 
 /// Le motif MNATA que dit la fiche entreprise, avec son libelle, lu dans la table livree : `None` quand la fiche n'en dit
 /// pas ; refus quand il n'est pas dans la table (la DSN n'admet que ses valeurs, CRE-11 de 44.004).
-pub fn motif_de_la_fiche(ent: &Value) -> Resultat<Option<(String, String)>> {
-    let motif = txt(g(ent, CHAMP_MOTIF_TAXE_APPRENTISSAGE));
+pub fn motif_de_la_fiche(ent: &ChampsEntreprise) -> Resultat<Option<(String, String)>> {
+    let motif = ent.taxe_apprentissage_motif_non_assujettissement.code();
     if motif.is_empty() {
         return Ok(None);
     }
@@ -77,11 +84,8 @@ de la DSN (S21.G00.44.004 : {}). {}. Rien n'est ecrit.",
 /// bordereau de chaque mois (`dsn::lignes_bordereau`, `dsn::lignes_regularisees`), le solde d'avril
 /// (`dsn::solde_taxe_apprentissage`) et le bloc 44 de decembre (`blocs`) lisent cette meme decision : le fichier des
 /// organismes garde ses lignes 992/993, comme ses lignes qui dependent du statut ou de l'effectif.
-pub fn taxe_apprentissage_non_due(ent: &Value, an: i32) -> Resultat<bool> {
-    Ok(match motif_de_la_fiche(ent)? {
-        Some((code, _)) => !(code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES),
-        None => false,
-    })
+pub fn taxe_apprentissage_non_due(ent: &ChampsEntreprise, an: i32) -> Resultat<bool> {
+    Ok(motif_de_la_fiche(ent)?.is_some_and(|(code, _)| !(code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES)))
 }
 
 /// La taxe d'apprentissage des salaires de la periode d'emploi `an`-`mois` est-elle due ? Non quand la fiche dit un
@@ -90,10 +94,7 @@ pub fn taxe_apprentissage_non_due(ent: &Value, an: i32) -> Resultat<bool> {
 /// et la seule : le bareme du contrat (`bareme::bareme_taxe_apprentissage` : la ligne du bulletin et la cotisation
 /// individuelle 130 du bloc 81) et le bordereau (`dsn::lignes_bordereau`, `dsn::lignes_regularisees` : CTP 992 et 993)
 /// la lisent ici, pour que les trois faces disent la meme chose.
-pub fn taxe_apprentissage_non_due_au_mois(ent: &Value, an: i32, mois: u32) -> Resultat<bool> {
-    Ok(match motif_de_la_fiche(ent)? {
-        Some((code, _)) => !(code == MNATA_ASSOCIATIONS && (an, mois) >= PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES),
-        None => false,
-    })
+pub fn taxe_apprentissage_non_due_au_mois(ent: &ChampsEntreprise, an: i32, mois: u32) -> Resultat<bool> {
+    Ok(motif_de_la_fiche(ent)?.is_some_and(|(code, _)| !(code == MNATA_ASSOCIATIONS && (an, mois) >= PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES)))
 }
 

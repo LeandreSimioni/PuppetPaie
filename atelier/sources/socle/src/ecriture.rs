@@ -5,26 +5,101 @@
 //! ligne LF ; les flottants sous leur forme la plus courte qui revient au meme nombre, l'exposant signe sur deux
 //! chiffres (`1e+16`, `1e-05`) et la decimale gardee (`100.0`). Un entier lu hors de 64 bits devient un flottant a la
 //! lecture (pas d'`arbitrary_precision`) : il s'ecrit alors comme le flottant qu'il est devenu.
+//!
+//! C'est un des trois modules du BORD (`forme` lit ; `ecriture` et `json_ascii` ecrivent) : ce qui s'ecrit est une forme
+//! (`serde::Serialize`), que le module seul met en JSON.
 
 use std::path::Path;
 
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::num::Resultat;
 
+/// La forme `v` en valeur JSON, pour l'ecrire. Toute forme du logiciel s'ecrit : ses `Serialize` sont ceux de serde
+/// (derives), et les cles de ses tables sont des textes, des nombres ou des variantes unitaires. Une forme que serde
+/// n'ecrirait pas est un defaut du logiciel : le moteur s'arrete en la nommant.
+pub fn en_valeur<T: Serialize + ?Sized>(v: &T) -> Value {
+    match serde_json::to_value(v) {
+        Ok(valeur) => valeur,
+        Err(e) => unreachable!("une forme du logiciel ne s'écrit pas en JSON ({}) : {}", std::any::type_name::<T>(), e),
+    }
+}
+
 /// Le JSON de `v`, indente de `indent`, sous la forme du module.
-pub fn json_indente(v: &Value, indent: usize) -> String {
+pub fn json_indente<T: Serialize + ?Sized>(v: &T, indent: usize) -> String {
     let mut s = String::new();
-    ecrire(v, indent, 0, &mut s);
+    ecrire(&en_valeur(v), indent, 0, &mut s);
     s
 }
 
 /// Le JSON de `v` sur une ligne : separateurs `, ` et
 /// `: `, cles triees (par point de code), non-ASCII laisse tel quel.
-pub fn json_trie(v: &Value) -> String {
+pub fn json_trie<T: Serialize + ?Sized>(v: &T) -> String {
     let mut s = String::new();
-    ecrire_trie(v, &mut s);
+    ecrire_trie(&en_valeur(v), &mut s);
     s
+}
+
+/// Le JSON de `v` sur une ligne, serre, tel que serde l'ecrit : ce qu'un refus porte a part (`echec::avec`), que
+/// `echec::phrase_de` sait retirer ; jamais un fichier.
+pub fn json_en_ligne<T: Serialize + ?Sized>(v: &T) -> String {
+    // Toute forme du logiciel s'ecrit (`en_valeur`).
+    match serde_json::to_string(v) {
+        Ok(texte) => texte,
+        Err(e) => unreachable!("une forme du logiciel ne s'écrit pas en JSON ({}) : {}", std::any::type_name::<T>(), e),
+    }
+}
+
+/// LA FORME `v` ECRITE SANS CE QUI NE CHANGE RIEN A CE QU'ELLE DIT, pour la comparer ou en tirer une empreinte : les cles
+/// triees, un nombre ecrit comme un flottant (`180` et `180.0` sont le meme taux : la page ecrit l'un, un fichier
+/// l'autre), un nombre ecrit en texte comme ce nombre.
+pub fn canonique<T: Serialize + ?Sized>(v: &T) -> String {
+    canonique_de(&en_valeur(v))
+}
+
+/// `canonique`, sans les listes vides : une ligne sans `planning` et une ligne au planning vide disent la meme chose.
+pub fn comparable<T: Serialize + ?Sized>(v: &T) -> String {
+    fn sans_vides(v: &Value) -> Value {
+        match v {
+            Value::Object(m) => Value::Object(m.iter().filter(|(_, x)| !x.as_array().is_some_and(Vec::is_empty)).map(|(k, x)| (k.clone(), sans_vides(x))).collect()),
+            Value::Array(a) => Value::Array(a.iter().map(sans_vides).collect()),
+            autre => autre.clone(),
+        }
+    }
+    canonique_de(&sans_vides(&en_valeur(v)))
+}
+
+/// Un texte qui ecrit un nombre decimal : un `-` au plus, en tete, un `.` au plus, des chiffres, au moins un.
+fn nombre_en_texte(t: &str) -> bool {
+    let corps = match t.strip_prefix('-') {
+        Some(c) => c,
+        None => t,
+    };
+    corps.bytes().any(|c| c.is_ascii_digit()) && corps.bytes().all(|c| c.is_ascii_digit() || c == b'.') && corps.bytes().filter(|c| *c == b'.').count() <= 1
+}
+
+fn canonique_de(v: &Value) -> String {
+    match v {
+        Value::Object(m) => {
+            let mut cles: Vec<&String> = m.keys().collect();
+            cles.sort();
+            let corps: Vec<String> = cles.iter().map(|k| format!("{}:{}", Value::String((*k).clone()), canonique_de(&m[*k]))).collect();
+            format!("{{{}}}", corps.join(","))
+        }
+        Value::Array(a) => format!("[{}]", a.iter().map(canonique_de).collect::<Vec<_>>().join(",")),
+        Value::Number(n) => match n.as_f64() {
+            Some(f) => format!("{:?}", f),
+            None => n.to_string(),
+        },
+        // Un nombre ecrit en texte : un signe au plus, en tete, un point au plus, et au moins un chiffre ; un tel texte se
+        // lit toujours en flottant.
+        Value::String(t) if nombre_en_texte(t) => match t.parse::<f64>() {
+            Ok(f) => format!("{:?}", f),
+            Err(e) => unreachable!("{} s'écrit en nombre et ne se lit pas : {}", t, e),
+        },
+        autre => autre.to_string(),
+    }
 }
 
 fn ecrire_trie(v: &Value, s: &mut String) {
@@ -72,7 +147,10 @@ fn ecrire(v: &Value, indent: usize, niveau: usize, s: &mut String) {
         Value::Number(n) => match (n.as_i64(), n.as_u64()) {
             (Some(i), _) => s.push_str(&i.to_string()),
             (None, Some(u)) => s.push_str(&u.to_string()),
-            _ => s.push_str(&repr_flottant(n.as_f64().unwrap_or(0.0))),
+            _ => match n.as_f64() {
+                Some(f) => s.push_str(&repr_flottant(f)),
+                None => s.push_str(&n.to_string()),
+            },
         },
         Value::String(t) => chaine(t, s),
         Value::Array(a) if a.is_empty() => s.push_str("[]"),
@@ -137,9 +215,8 @@ pub fn repr_flottant(x: f64) -> String {
     }
     // `{:e}` donne les chiffres les plus courts : `1.2345e-5`.
     let e = format!("{:e}", x.abs());
-    let (mantisse, exposant) = e.split_once('e').unwrap_or((&e, "0"));
+    let (mantisse, exp) = scientifique(&e);
     let chiffres: String = mantisse.chars().filter(|c| *c != '.').collect();
-    let exp: i32 = exposant.parse().unwrap_or(0);
     let chiffres = pair_a_egalite(x.abs(), chiffres, exp);
     let n = chiffres.len() as i32;
     let decpt = exp + 1; // x = 0.CHIFFRES * 10^decpt
@@ -160,6 +237,18 @@ pub fn repr_flottant(x: f64) -> String {
     format!("{}{}", signe, corps)
 }
 
+/// Un flottant ecrit en notation scientifique (`{:e}`, `1.2345e-5`) : sa mantisse et son exposant. `{:e}` ecrit
+/// toujours les deux ; un texte sans exposant est sa propre mantisse, a l'exposant 0.
+pub fn scientifique(e: &str) -> (&str, i32) {
+    match e.split_once('e') {
+        Some((mantisse, exposant)) => match exposant.parse() {
+            Ok(n) => (mantisse, n),
+            Err(e) => unreachable!("`{{:e}}` écrit un exposant entier, pas {} : {}", exposant, e),
+        },
+        None => (e, 0),
+    }
+}
+
 /// Quand la valeur exacte tombe pile entre deux ecritures de meme longueur
 /// (`...403.25` : `.2` et `.3`), la forme ecrite prend la paire (`.2`), la ou Rust prend la
 /// superieure : on rend la paire, si elle revient au meme flottant.
@@ -171,10 +260,10 @@ fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
     }
     let mut dessous = chiffres.clone().into_bytes();
     dessous[n - 1] -= 1;
-    let dessous = String::from_utf8(dessous).unwrap_or_default();
+    let dessous: String = dessous.into_iter().map(char::from).collect();
     // La valeur exacte, chiffre par chiffre : `DESSOUS` puis `5` puis des zeros.
     let exact = format!("{:.800e}", x);
-    let exact: String = exact.split_once('e').map(|(m, _)| m).unwrap_or("").chars().filter(|c| *c != '.').collect();
+    let exact: String = scientifique(&exact).0.chars().filter(|c| *c != '.').collect();
     let egalite = exact.len() > n && exact.starts_with(&dessous) && exact.as_bytes()[n] == b'5' && exact[n + 1..].bytes().all(|c| c == b'0');
     if !egalite {
         return chiffres;
@@ -192,11 +281,13 @@ fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
 
 /// Ecrit `donnees` dans `chemin` : cree le dossier, ecrit en
 /// LF, le JSON suivi d'un saut de ligne.
-pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()> {
+pub fn ecrire_json<T: Serialize + ?Sized>(chemin: &Path, donnees: &T, indent: usize) -> Resultat<()> {
     if let Some(dossier) = chemin.parent() {
         std::fs::create_dir_all(dossier).map_err(|e| crate::echec::du_disque(&dossier, &e))?;
     }
-    let mut texte = json_indente(donnees, indent);
+    let donnees = en_valeur(donnees);
+    let mut texte = String::new();
+    ecrire(&donnees, indent, 0, &mut texte);
     texte.push('\n');
     // ATOMIQUE : le fichier s'ecrit a cote puis prend sa place d'un coup. `std::fs::write` tronque d'abord,
     // puis ecrit : un lecteur arrive entre les deux (l'etat du mois se refait dans le fil de la fenetre, `etat_garde::
@@ -208,7 +299,7 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
     let provisoire = provisoire(chemin);
     std::fs::write(&provisoire, texte).map_err(|e| crate::echec::du_disque(&provisoire, &e))?;
     std::fs::rename(&provisoire, chemin).map_err(|e| crate::echec::du_disque(&chemin, &e))?;
-    crate::fichiers::ecrit_pendant_le_geste(chemin, donnees);
+    crate::forme::change_pendant_le_geste(chemin);
     Ok(())
 }
 
@@ -217,17 +308,17 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
 pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
     static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let n = N.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let nom: String = chemin.file_name().iter().map(|n| n.to_string_lossy()).collect();
     chemin.with_file_name(format!("{}.{}-{}.tmp", nom, std::process::id(), n))
 }
 
 
-/// Efface `chemin` s'il existe : le geste qui l'avait lu ne le voit plus (`fichiers::ecrit_pendant_le_geste`).
+/// Efface `chemin` s'il existe : le geste qui l'avait lu le relit (`forme::change_pendant_le_geste`).
 pub fn effacer(chemin: &Path) -> Resultat<()> {
     match std::fs::remove_file(chemin) {
         Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(crate::echec::du_disque(&chemin, &e)),
         _ => {}
     }
-    crate::fichiers::efface_pendant_le_geste(chemin);
+    crate::forme::change_pendant_le_geste(chemin);
     Ok(())
 }

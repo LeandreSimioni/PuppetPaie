@@ -550,10 +550,10 @@ function fichesImportees(fiches, titre) {
     const etat = pastilleDeLEtat(f.pastille);
     // Ce que le moteur dit de la fiche : d'où elle vient, ce qu'elle reçoit, ce qu'une pièce disait autrement.
     const luDans = f.lu_dans_dit ? `<div class="acte-dernier">${echapper(f.lu_dans_dit)}</div>` : "";
-    const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
-      `<div class="acte-dernier"><b>${echapper(champ)}</b> ${echapper(e.dit || "")}</div>`).join("");
-    const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) =>
-      `<div class="acte-dernier"><b>${echapper(champ)}</b> — ${echapper(e.dit || "")}</div>`).join("");
+    const completes = (f.completer || []).map((e) =>
+      `<div class="acte-dernier"><b>${echapper(e.champ)}</b> ${echapper(e.dit || "")}</div>`).join("");
+    const ecarts = (f.ecarts || []).map((e) =>
+      `<div class="acte-dernier"><b>${echapper(e.champ)}</b> — ${echapper(e.dit || "")}</div>`).join("");
     // UNE VALEUR FAUSSE DES PIÈCES se dit, avec le libellé de sa case ; une
     // case vide n'est pas une faute (ce qu'un acte exige, « Pour démarrer »
     // le dit après l'import).
@@ -741,7 +741,7 @@ async function ecrireImportation() {
  *     champ 27 » ;
  *   - les structures se saisissent case par case (`structureDecrite`), une case
  *     par valeur, un « + » pour une liste. Les clefs qu'on ne montre pas
- *     (`_note`, `nom_aem`...) sont relues telles quelles a l'enregistrement
+ *     (`note`, `nom_aem`...) sont relues telles quelles a l'enregistrement
  *     — voir `lireFormulaire` : on ne perd pas ce qu'on n'affiche pas ;
  *   - ce que la machine DEDUIT ne se saisit pas : le SIREN et le NIC sont
  *     les 9 et les 5 chiffres du SIRET, poses en cases cachees (CACHES) ;
@@ -787,7 +787,7 @@ const SECTIONS_FICHE = {
       "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     // Le contact de la médecine du travail interne ne se montre que si le code du
-    // service de santé au travail vaut MT01 (`si` de champs-base.json) ; la DSN
+    // service de santé au travail vaut MT999 (`si` de champs-base.json) ; la DSN
     // l'écrit alors en S20.G00.07 de type 17.
     ["Qui signe, qui répond", ["signataire", "declarant_dsn", "contact_sante_travail"]],
     ["Paiement des cotisations", ["banque"]],
@@ -805,13 +805,12 @@ const SECTIONS_FICHE = {
     // Chaque case suit ce qui la commande : les fériés chômés
     // et la prévoyance ne se montrent qu'avec des permanents, la date
     // d'adhésion qu'avec un syndicat, le CSE qu'en CCNEAC, l'exemption
-    // CASC-SVP qu'en 3090, l'article 45 qu'au cinéma.
+    // CASC-SVP qu'en 3090.
     ["Avancé — cas particuliers", ["jours_feries_chomes", "plafond_temps_partiel",
       "deduction_forfaitaire_option",
       "prevoyance_permanents", "sante_permanents", "subrogation_ij",
       "organisation_patronale", "organisation_patronale_depuis",
       "representation_personnel", "casc_svp_exemptee",
-      "prevoyance_techniciens_3097",
       "cinquante_salaries_et_plus",
       "taxe_apprentissage_motif_non_assujettissement",
       "code_urssaf", "retraite_complementaire", "etablissements"],
@@ -1083,7 +1082,7 @@ async function peindreCoutAnnee() {
   if (!el) return;
   const an = anneeDuJour();
   const ligne = (r, annee) => {
-    const d = r && (r[el.dataset.cote] || {})[el.dataset.cle];
+    const d = r && (r[el.dataset.cote] || {})[el.dataset.coutDe];
     if (!d || (!d.bulletins && !Number(d.prevu))) return "";
     return `<div><b>${annee}</b> : ${echapper(d.phrase)}</div>`;
   };
@@ -1359,7 +1358,7 @@ function enteteSalarie(fiche) {
         ${fiche.matricule_dit ? `<span class="discret">— ${echapper(fiche.matricule_dit)}</span>` : ""}</h2>
       <button type="button" class="secondaire petit" id="config-exporter">Exporter ses documents</button>
     </div>
-    <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
+    <div class="cout-annee" data-cote="salaries" data-cout-de="${echapper(fiche.cle)}"></div>
     <!-- SES IMPRÉVUS : ses arrêts et ses absences, passés et en
          cours, ce qui en est parti, et la porte « Imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>

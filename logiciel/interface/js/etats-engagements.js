@@ -76,7 +76,7 @@ async function boitePieces(ligne, acte) {
   const mois = document.getElementById("mois").value;
   let r, lu;
   try {
-    r = await api("pieces-parties", { salarie: ligne.salarie, debut: ligne.debut, numero: ligne.numero });
+    r = await api("pieces-parties", { salarie: ligne.salarie, numero: ligne.numero });
     lu = await api("etat-par-engagement", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
   // Le moteur rend, avec le carré (`carres[].pieces`), ce que le détail montre : la phrase sans pièce, l'encart d'un
@@ -276,20 +276,19 @@ function brancherValidation(div, ligne) {
   brancherRetirer(div);
 }
 
-/** « Valider l'engagement », UN GESTE : la carte part au moteur telle qu'elle est (`valider-engagement` l'écrit, puis la
- *  valide), sans attendre l'enregistrement automatique. Il lui manque un fait : le moteur dit lequel, et n'écrit rien
- *  (l'enregistrement automatique garde la carte en saisie). */
+/** « Valider l'engagement » : ce qui a changé sur la carte s'écrit d'abord, case par case, sans attendre
+ *  l'enregistrement automatique ; puis le brouillon écrit se valide (`valider-engagement`, son identité). Il lui manque
+ *  un fait : le moteur dit lequel, et la carte reste en saisie. */
 async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
-  const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
-  if (!charge) { dire((ETAT.aides || {}).qui_engage, "erreur"); return; }
-  // Une écriture automatique de cette carte déjà en route se finit d'abord : son identité en vient.
-  await ENREGISTREMENT;
-  if (div.dataset.engagement) charge.engagement = JSON.parse(div.dataset.engagement);
+  const mois = document.getElementById("mois").value;
+  if (!carteAEcrire(div, mois)) { dire((ETAT.aides || {}).qui_engage, "erreur"); return; }
   try {
-    const r = await api("valider-engagement", charge);
-    div.dataset.engagement = JSON.stringify(r.engagement);
-    div._ecrite = JSON.stringify({ ...charge, engagement: r.engagement });
+    await aSonTour(async () => {
+      const attente = ecrituresEnAttente().find(([d]) => d === div);
+      if (attente) await ecrireLaCarte(div, attente[1], mois);
+    });
+    const r = await aSonTour(() => api("valider-engagement", { mois, engagement: JSON.parse(div.dataset.engagement) }));
     dire(r.phrase);
   } catch (e) { dire(e.message, "erreur"); }
   await rafraichirActions();
@@ -309,7 +308,7 @@ function brancherRetirer(div) {
     clearTimeout(MINUTEUR_SAISIE);
     await enregistrerSaisie(true);
     if (!div.dataset.engagement) { div.remove(); rafraichirApercu(); dire((ETAT.aides || {}).engagement_retire); return; }
-    const charge = { mois, engagement: JSON.parse(div.dataset.engagement) };
+    const charge = { mois, engagement: JSON.parse(div.dataset.engagement), confirme: false };
     try {
       let r = await api("retirer-engagement", charge);
       if (r.avertissement) {
@@ -334,7 +333,7 @@ function boiteNonActif(phrase) {
         <button class="primaire" id="r-non-actif">Le rendre non actif</button>
       </div>`, () => resoudre(false));
     document.getElementById("r-garder").onclick = () => { fermerBoite(); resoudre(false); };
-    document.getElementById("r-non-actif").onclick = () => { fermerBoite(); resoudre(true); };
+    document.getElementById("r-non-actif").onclick = () => { resoudre(true); fermerBoite(); };
   });
 }
 
@@ -366,13 +365,28 @@ function ouvrirEnModification(div) {
   if (!div._ligne || !div._ligne.valide) return;
   div.classList.add("en-modification");
   fermerEdition(div, false);
+  // Ce que la carte montre à son ouverture : ce qu'on y change se dit case par case depuis lui (`changementsOuverts`).
+  div._ouverte = JSON.stringify(carteOuverte(div));
   peindreEtats();
+}
+
+/** Ce que montre une carte ouverte pour être modifiée. */
+function carteOuverte(div) {
+  LIRE_LES_MODIFICATIONS = true;
+  try { return engagementDuBloc(div, document.getElementById("mois").value) || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
+}
+
+/** CE QU'ON A CHANGÉ SUR UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE, case par case depuis son ouverture : les changements que
+ *  « Modifier l'engagement » écrit, et que l'aperçu et le montant visé calculent avant. */
+function changementsOuverts(div) {
+  return changementsDeCases(JSON.parse(div._ouverte || "{}"), carteOuverte(div));
 }
 
 /** Referme la carte telle qu'elle est enregistrée : le mois se relit, ce qu'on y a tapé s'efface. */
 async function refermerLaCarte(div) {
   const mois = document.getElementById("mois").value;
   div.classList.remove("en-modification");
+  div._ouverte = undefined;
   clearTimeout(MINUTEUR_SAISIE);
   await enregistrerSaisie(true);
   await chargerMois(mois, true);
@@ -382,15 +396,15 @@ async function annulerLaModification(div) {
   await refermerLaCarte(div);
 }
 
-/* « MODIFIER L'ENGAGEMENT » : la page envoie ce que la carte ouverte montre ; le moteur dit si rien n'a changé
- * (la carte se referme), écrit ce qui a changé, ou rend son avertissement quand ce qui est parti le demande. La page
- * le montre tel quel ; « Annuler » revient à la carte avec ce qu'on y a tapé, la confirmation renvoie la demande. */
+/* « MODIFIER L'ENGAGEMENT » : la page envoie ce qu'on a changé sur la carte ouverte, case par case ; le moteur dit si
+ * rien n'a changé (la carte se referme), écrit ce qui a changé, ou rend son avertissement quand ce qui est parti le
+ * demande. La page le montre tel quel ; « Annuler » revient à la carte avec ce qu'on y a tapé, la confirmation renvoie
+ * la demande. */
 async function modifierLaCarte(div) {
   const mois = document.getElementById("mois").value;
-  let saisie;
-  LIRE_LES_MODIFICATIONS = true;
-  try { saisie = engagementDuBloc(div, mois) || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
-  const charge = { mois, engagement: JSON.parse(div.dataset.engagement), saisie };
+  const changements = changementsOuverts(div);
+  if (!changements.length) { await refermerLaCarte(div); return; }
+  const charge = { mois, engagement: JSON.parse(div.dataset.engagement), changements, confirme: false, jour: null };
   try {
     let r = await api("modifier-engagement", charge);
     while (r && r.avertissement) {
@@ -421,7 +435,7 @@ function boiteAvertissement(a) {
     document.getElementById("av-non").onclick = () => fermerBoite();
     document.getElementById("av-oui").onclick = () => {
       const jour = document.getElementById("av-jour");
-      repondre({ jour: jour ? jour.value : null });
+      repondre({ jour: jour && jour.value ? Number(jour.value) : null });
       fermerBoite();
     };
   });

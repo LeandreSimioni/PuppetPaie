@@ -48,7 +48,7 @@ function ouvrirGeste(action, mois, seulement, sur = {}) {
     case "attestation-declare": return boiteObligationFaite(sur.objet || {}, sur.obligation || {});
     case "cloture": return boiteCloture(c.annee);
     case "export-compta": return lancerExportCompta(c.annee);
-    case "revue-spectacles": return boiteRevueSpectacles(sur);
+    case "revue-spectacles": return boiteRevueSpectacles(sur, c);
   }
 }
 
@@ -709,8 +709,9 @@ async function boiteSignature(mois, seulement) {
 /** LES CONTRATS EN ATTENTE : un contrat ou un avenant parti, pas revenu
  *  signé. Le moteur dit, pour chacun, où il en est (`pastille`),
  *  et ses gestes, route et charge : « Reçu signé » (`recu`, pour tous : ce
- *  qui part par courriel peut revenir signé sur papier) et « Relancer »
- *  (`relancer`, parti par courriel, boîte posée). Une note se défait : le
+ *  qui part par courriel peut revenir signé sur papier) et « Relancer » ou
+ *  « Envoyer par courriel » (`relancer`, boîte posée : parti par courriel, ou
+ *  imprimé). Une note se défait : le
  *  moteur rend de quoi l'annuler (`annuler`) et la phrase qui la dit. */
 async function boiteContratsEnAttente(mois, fait) {
   let a;
@@ -733,7 +734,7 @@ async function boiteContratsEnAttente(mois, fait) {
           <span class="gestes-contrat">
             <button class="primaire petit a-recu" data-i="${i}">Reçu signé</button>
             ${c.relancer ? `<button class="secondaire petit a-relancer" data-i="${i}"
-              >Relancer</button>` : ""}
+              >${echapper(c.relancer.bouton)}</button>` : ""}
           </span>
         </div>`).join("")}
     </div>`}
@@ -766,7 +767,7 @@ async function boiteContratsEnAttente(mois, fait) {
       const c = contrats[Number(b.dataset.i)];
       const mdp = await demanderMotDePasse(c.relancer.pourquoi, { envoi: true });
       if (!mdp) return;
-      const rendre = occupe(b, "Relance…");
+      const rendre = occupe(b, "…");
       try {
         const r = await api(c.relancer.route, { ...c.relancer.charge, motdepasse: mdp });
         fermerBoite();

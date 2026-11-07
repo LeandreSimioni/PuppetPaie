@@ -15,13 +15,13 @@
 //!   (`tout_salarie`), que la convention la donne a tout salarie qui a droit au maintien.
 
 use crate::natures::Nature;
-use socle::fichiers::vrai;
-use socle::num::{dec_avec_echelle, div, Decimal, Resultat};
-use serde_json::Value;
+use crate::clauses;
+use socle::num::{div, Decimal, Resultat};
 
-/// Ce qui a cause l'arret, lu sur son motif (S21.G00.60.001 : 01 maladie, 04 trajet, 05 maladie professionnelle, 06
-/// accident du travail).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Ce qui a cause l'arret, quand c'est une maladie ou un accident : le champ `origine` d'un motif S21.G00.60.001 de
+/// `arrets-base.json` (`crate::arrets`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Origine {
     Maladie,
     AccidentDuTravail,
@@ -30,25 +30,10 @@ pub enum Origine {
 }
 
 impl Origine {
-    /// L'origine d'un motif d'arret (`arrets-base.json`), ou `None` pour un motif qui n'appelle pas de maintien.
-    pub fn du_motif(code: &str) -> Option<Origine> {
-        match code {
-            "01" => Some(Origine::Maladie),
-            "04" => Some(Origine::Trajet),
-            "05" => Some(Origine::MaladieProfessionnelle),
-            "06" => Some(Origine::AccidentDuTravail),
-            _ => None,
-        }
-    }
-
-    /// Le mot qui la nomme dans `couvre` d'une clause d'accident du travail.
-    fn mot(self) -> &'static str {
-        match self {
-            Origine::Maladie => "maladie",
-            Origine::AccidentDuTravail => "accident_du_travail",
-            Origine::MaladieProfessionnelle => "maladie_professionnelle",
-            Origine::Trajet => "trajet",
-        }
+    /// L'origine d'un motif d'arret (`arrets-base.json`), ou `None` pour un motif qui n'appelle pas de maintien (ou
+    /// que la norme ne connait pas).
+    pub fn du_motif(code: &str) -> Resultat<Option<Origine>> {
+        Ok(crate::arrets::motif_d_arret(code)?.and_then(|m| m.origine))
     }
 
     /// L'accident du travail et la maladie professionnelle : pas de carence legale (D1226-3), et l'indemnite journaliere
@@ -138,75 +123,68 @@ pub fn legal(nature: &Nature, anciennete_mois: Decimal, origine: Origine) -> Res
 
 // ------------------------------------------------------------------ la convention
 
-fn get<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&Value::Null)
+fn manque(ou: &str, cle: &str) -> String {
+    socle::echec::livree(ou, cle)
 }
 
-fn nombre(v: &Value, k: &str, ou: &str) -> Resultat<Decimal> {
-    match v.get(k) {
-        Some(x) if !x.is_null() => dec_avec_echelle(x).map_err(|_| socle::echec::livree(ou, k)),
-        _ => Err(socle::echec::livree(ou, k)),
-    }
-}
-
-fn entier(v: &Value, k: &str, ou: &str) -> Resultat<i64> {
-    use rust_decimal::prelude::ToPrimitive;
-    nombre(v, k, ou)?.trunc().to_i64().ok_or_else(|| socle::echec::livree(ou, k))
-}
-
-fn tranche(t: &Value, ou: &str) -> Resultat<Tranche> {
-    let taux = nombre(t, "taux", ou)?;
-    let duree = if get(t, "pendant_ij").as_bool() == Some(true) {
-        Duree::PendantLesIndemnites
-    } else if t.get("mois").is_some() {
-        Duree::Mois(entier(t, "mois", ou)?)
-    } else {
-        Duree::Jours(entier(t, "jours", ou)?)
-    };
-    Ok(Tranche { duree, taux })
-}
-
-fn tranches(v: &Value, ou: &str) -> Resultat<Vec<Tranche>> {
-    v.as_array().ok_or_else(|| format!("{} : les tranches ne sont pas une liste.", ou))?.iter().map(|t| tranche(t, ou)).collect()
-}
-
-/// La section de la convention qui vaut pour cette origine : `accident_du_travail` quand elle couvre l'origine (`couvre` ;
-/// sans lui, l'accident du travail et la maladie professionnelle), sauf passe `comme_maladie_apres_mois` d'anciennete ;
-/// `maladie` sinon (une maladie, un accident « non professionnel »).
-fn section<'a>(sec: &'a Value, origine: Origine, anciennete_mois: Decimal) -> Resultat<(&'a Value, bool)> {
-    let at = get(sec, "accident_du_travail");
-    if vrai(at) {
-        let couvre = match at.get("couvre").and_then(Value::as_array) {
-            Some(l) => l.iter().any(|x| x.as_str() == Some(origine.mot())),
-            None => origine.professionnelle(),
-        };
-        let apres = get(at, "comme_maladie_apres_mois");
-        let devenu_maladie = !apres.is_null() && anciennete_mois >= dec_avec_echelle(apres)?;
-        if couvre && !devenu_maladie {
-            return Ok((at, true));
-        }
-    }
-    Ok((get(sec, "maladie"), false))
+fn tranches(l: &[clauses::TrancheDeMaintien], ou: &str) -> Resultat<Vec<Tranche>> {
+    l.iter()
+        .map(|t| {
+            let duree = match (t.pendant_ij, t.mois, t.jours) {
+                (Some(true), _, _) => Duree::PendantLesIndemnites,
+                (_, Some(m), _) => Duree::Mois(m),
+                (_, None, Some(j)) => Duree::Jours(j),
+                (_, None, None) => return Err(manque(ou, "jours")),
+            };
+            Ok(Tranche { duree, taux: t.taux.0 })
+        })
+        .collect()
 }
 
 /// Ce que la convention `idcc` garantit pour un arret de cette origine a cette anciennete (au premier jour de l'absence) ;
-/// `None` quand elle ne prevoit rien (la loi seule s'applique).
-pub fn conventionnel(idcc: &Value, anciennete_mois: Decimal, origine: Origine) -> Resultat<Option<Droit>> {
-    let Some(conv) = crate::clauses::releve(idcc)? else { return Ok(None) };
-    let sec = get(&conv, "maintien_de_salaire");
-    let (s, at) = section(sec, origine, anciennete_mois)?;
-    if !vrai(s) {
-        return Ok(None);
-    }
-    let nom = crate::clauses::nom(idcc);
-    let article = socle::date::en_texte(get(s, "article"));
-    let ou = format!("clauses-conventionnelles-base.json, {}, art. {}", nom, article);
-    // Sans minimum ecrit, l'accident du travail garde l'annee de L1226-1 : l'extension de ces clauses se fait « sous
-    // reserve du respect des dispositions des articles L. 1226-1, D. 1226-1 et D. 1226-2 » (3090, 11.4 ; 2642, VIII.3).
-    let minimum = match s.get("anciennete_mois_minimum") {
-        Some(m) if !m.is_null() => dec_avec_echelle(m)?,
-        _ if at => Decimal::from(12),
-        _ => Decimal::ZERO,
+/// `None` quand elle ne prevoit rien (la loi seule s'applique). La clause de l'accident du travail vaut quand elle couvre
+/// l'origine (`couvre`, les origines que l'article nomme), sauf passe
+/// `comme_maladie_apres_mois` d'anciennete ; celle de la maladie sinon (une maladie, un accident « non professionnel »).
+pub fn conventionnel(idcc: &str, anciennete_mois: Decimal, origine: Origine) -> Resultat<Option<Droit>> {
+    let Some(sec) = clauses::releve(idcc)?.and_then(|c| c.maintien_de_salaire) else { return Ok(None) };
+    let accident = sec.accident_du_travail.filter(|at| {
+        at.couvre.contains(&origine) &&at.comme_maladie_apres_mois.is_none_or(|apres| anciennete_mois < apres.0)
+    });
+    let nom = clauses::nom(idcc);
+    // (article, minimum d'anciennete, base, carence, plafond net, subrogation, tranches)
+    let (article, minimum, base, carence, plafond_net, subrogation, liste) = match (accident, sec.maladie) {
+        (Some(at), _) => {
+            let ou = format!("clauses-conventionnelles-base.json, {}, art. {}", nom, at.article);
+            let mut tr = at.tranches.as_slice();
+            if let Some(deux_ans) = at.tranches_deux_ans.as_deref().filter(|t| !t.is_empty() && anciennete_mois >= Decimal::from(24)) {
+                tr = deux_ans;
+            }
+            if let Some(apres) = at.tranches_apres.as_ref().filter(|a| anciennete_mois > a.anciennete_mois.0) {
+                tr = apres.tranches.as_slice();
+            }
+            let liste = tranches(tr, &ou)?;
+            let minimum = at.anciennete_mois_minimum.0;
+            (at.article, minimum, at.base, at.carence_jours, at.plafond_net == Some(true), at.subrogation, Ok(liste))
+        }
+        (None, Some(m)) => {
+            let ou = format!("clauses-conventionnelles-base.json, {}, art. {}", nom, m.article);
+            let annees = div(anciennete_mois, Decimal::from(12));
+            let mut lignes: Vec<&clauses::LigneDeMaintien> = m.par_anciennete.iter().collect();
+            lignes.sort_by_key(|l| l.anciennete_annees_min.0);
+            let liste = match lignes.into_iter().filter(|l| annees >= l.anciennete_annees_min.0).last() {
+                None => Err(format!("{} (art. {}) : aucune tranche a cette anciennete.", nom, m.article)),
+                Some(l) => match l.tranches.as_deref() {
+                    Some(t) if !t.is_empty() => Ok(tranches(t, &ou)?),
+                    _ => Ok(vec![
+                        Tranche { duree: Duree::Jours(l.jours_90.ok_or_else(|| manque(&ou, "jours_90"))?), taux: Decimal::from(90) },
+                        Tranche { duree: Duree::Jours(l.jours_66.ok_or_else(|| manque(&ou, "jours_66"))?), taux: Decimal::new(6666, 2) },
+                    ]),
+                },
+            };
+            let minimum = m.anciennete_mois_minimum.0;
+            (m.article, minimum, m.base, m.carence_jours, m.plafond_net == Some(true), m.subrogation, liste)
+        }
+        (None, None) => return Ok(None),
     };
     if anciennete_mois < minimum {
         return Ok(Some(Droit::PasDu(format!(
@@ -217,59 +195,20 @@ pub fn conventionnel(idcc: &Value, anciennete_mois: Decimal, origine: Origine) -
             socle::texte::virgule(anciennete_mois.round_dp(1))
         ))));
     }
-    let liste = if at {
-        let mut tr = get(s, "tranches");
-        if vrai(get(s, "tranches_deux_ans")) && anciennete_mois >= Decimal::from(24) {
-            tr = get(s, "tranches_deux_ans");
-        }
-        let apres = get(s, "tranches_apres");
-        if vrai(apres) && anciennete_mois > nombre(apres, "anciennete_mois", &ou)? {
-            tr = get(apres, "tranches");
-        }
-        tranches(tr, &ou)?
-    } else {
-        let annees = div(anciennete_mois, Decimal::from(12));
-        let mut lignes: Vec<&Value> = get(s, "par_anciennete").as_array().map_or_else(Vec::new, |a| a.iter().collect());
-        let mut cles = Vec::new();
-        for l in &lignes {
-            cles.push(nombre(l, "anciennete_annees_min", &ou)?);
-        }
-        let mut ordre: Vec<usize> = (0..lignes.len()).collect();
-        ordre.sort_by(|a, b| cles[*a].cmp(&cles[*b]));
-        lignes = ordre.into_iter().map(|i| lignes[i]).collect();
-        let mut ligne: Option<&Value> = None;
-        for l in lignes {
-            if annees >= nombre(l, "anciennete_annees_min", &ou)? {
-                ligne = Some(l);
-            }
-        }
-        let Some(l) = ligne else {
-            return Ok(Some(Droit::PasDu(format!("{} (art. {}) : aucune tranche a cette anciennete.", nom, article))));
-        };
-        if vrai(get(l, "tranches")) {
-            tranches(get(l, "tranches"), &ou)?
-        } else {
-            vec![
-                Tranche { duree: Duree::Jours(entier(l, "jours_90", &ou)?), taux: Decimal::from(90) },
-                Tranche { duree: Duree::Jours(entier(l, "jours_66", &ou)?), taux: Decimal::new(6666, 2) },
-            ]
-        }
-    };
-    let base = match get(s, "base").as_str() {
-        Some("net") => Base::Net,
-        Some("brut") => Base::Brut,
-        _ => return Err(socle::echec::livree(&ou, "base")),
+    let tranches = match liste {
+        Ok(t) => t,
+        Err(pas_du) => return Ok(Some(Droit::PasDu(pas_du))),
     };
     Ok(Some(Droit::Du(Regime {
         texte: format!("{} (art. {})", nom, article),
-        base,
-        carence: match s.get("carence_jours") {
-            Some(c) if !c.is_null() => entier(s, "carence_jours", &ou)?,
-            _ => 0,
+        base: match base {
+            clauses::BaseDuMaintien::Brut => Base::Brut,
+            clauses::BaseDuMaintien::Net => Base::Net,
         },
-        tranches: liste,
-        plafond_net: get(s, "plafond_net").as_bool() == Some(true),
-        subrogation: get(s, "subrogation").as_str() == Some("tout_salarie"),
+        carence,
+        tranches,
+        plafond_net,
+        subrogation: subrogation == Some(clauses::Subrogation::ToutSalarie),
     })))
 }
 

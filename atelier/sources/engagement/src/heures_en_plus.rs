@@ -7,16 +7,16 @@
 //! fiscale. Un contrat d'usage n'en a pas : ses heures sont ses lignes. Textes : `logiciel/donnees/permanents-base.json`,
 //! `heures_en_plus`, qui les cite.
 
-use serde_json::{json, Value};
+use droit::fiche::Lue;
+use socle::forme::NombreLu;
 
 use crate::calcul::{LigneBrut, LigneCotisation};
 use crate::conges::{avertir, flot, info, qui};
+use crate::saisie::Carte;
 use crate::Avis;
 use droit::contexte::Contexte;
-use socle::date::en_texte;
-use socle::fichiers::vrai;
 use socle::texte::{euros, virgule};
-use socle::num::{dec_avec_echelle, eur2, Decimal, Resultat};
+use socle::num::{dec_f64, eur2, Decimal, Resultat};
 
 /// Les faits du mois, sur la carte d'un salarie paye au mois.
 pub const HEURES_SUPPLEMENTAIRES: &str = "heures_supplementaires";
@@ -44,7 +44,7 @@ pub fn faits_appeles(ctx: &Contexte, partiel: bool) -> Resultat<Vec<&'static str
     if partiel {
         return Ok(vec![HEURES_COMPLEMENTAIRES]);
     }
-    let idcc = ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
+    let idcc = ctx.entreprise.idcc.texte();
     Ok(if droit::heures_en_plus::paliers_conventionnels(&idcc)? {
         vec![HEURES_SUPPLEMENTAIRES]
     } else {
@@ -52,19 +52,17 @@ pub fn faits_appeles(ctx: &Contexte, partiel: bool) -> Resultat<Vec<&'static str
     })
 }
 
-fn heures(e: &Value, k: &str) -> Resultat<Decimal> {
-    match e.get(k).filter(|x| vrai(x)) {
-        Some(h) => Ok(dec_avec_echelle(h)?.max(Decimal::ZERO)),
-        None => Ok(Decimal::ZERO),
-    }
+/// Les heures d'un fait de la carte, zero s'il n'est pas dit ou s'il est negatif.
+fn heures(x: &Option<NombreLu>) -> Resultat<Decimal> {
+    crate::conges::dec_ou(x.as_ref(), Decimal::ZERO).map(|h| h.max(Decimal::ZERO))
 }
 
 /// LES LIGNES DES HEURES EN PLUS DU MOIS de la saisie `e` d'un contrat paye au mois de `salaire` pour `quotite` heures
 /// par mois, a temps `partiel` ou non : une ligne par majoration, au taux horaire du contrat majore. INFERENCE, ecrite
 /// comme telle : le taux horaire est le salaire mensuel du contrat sur ses heures par mois ; le BOSS (§ 310) y ajoute les
 /// primes qui sont la contrepartie du travail, que la carte ne distingue pas des autres.
-pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, quotite: Decimal, partiel: bool) -> Resultat<(Vec<Value>, Vec<Avis>)> {
-    let (sup, a_50, comp) = (heures(e, HEURES_SUPPLEMENTAIRES)?, heures(e, HEURES_SUPPLEMENTAIRES_A_50)?, heures(e, HEURES_COMPLEMENTAIRES)?);
+pub(crate) fn lignes(ctx: &Contexte, e: &Carte, mois: &str, salaire: Decimal, quotite: Decimal, partiel: bool) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>)> {
+    let (sup, a_50, comp) = (heures(&e.heures_supplementaires)?, heures(&e.heures_supplementaires_a_50)?, heures(&e.heures_complementaires)?);
     if sup.is_zero() && comp.is_zero() && a_50.is_zero() {
         return Ok((Vec::new(), Vec::new()));
     }
@@ -86,12 +84,12 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
     if quotite.is_zero() {
         return Err(format!("{} : ses heures par mois sont nulles ; le taux horaire de ses heures en plus ne se calcule pas.", qui(ctx, e)));
     }
-    let idcc = ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
+    let idcc = ctx.entreprise.idcc.texte();
     let (rubrique, reparties) = if partiel {
         (HEURE_COMPLEMENTAIRE, droit::heures_en_plus::complementaires(&idcc, comp, quotite)?)
     } else {
-        let salarie = en_texte(e.get("salarie").ok_or_else(|| socle::fichiers::absent("salarie"))?);
-        let deja = if droit::heures_en_plus::paliers_conventionnels(&idcc)? || droit::clauses::releve(&idcc)?.is_some_and(|c| c.get("heures_supplementaires").is_some()) {
+        let salarie = crate::conges::salarie_de(e)?;
+        let deja = if droit::heures_en_plus::paliers_conventionnels(&idcc)? || droit::clauses::releve(&idcc)?.is_some_and(|c| c.heures_supplementaires.is_some()) {
             crate::conges::heures_supplementaires_des_mois_anterieurs(ctx, mois, &salarie)?
         } else {
             Decimal::ZERO
@@ -102,11 +100,13 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
     let mut out = Vec::new();
     for p in &reparties.paliers {
         let taux = (horaire * (Decimal::ONE_HUNDRED + p.majoration) / Decimal::ONE_HUNDRED).round_dp(4);
-        out.push(json!({
-            "rubrique": rubrique,
-            "quantite": flot(p.heures),
-            "taux": flot(taux),
-            "precision": format!("majorées de {} %", virgule(p.majoration.normalize())),
+        out.push(crate::LignePaie::Composee(crate::ligne::Composee {
+            rubrique: rubrique.to_string(),
+            quantite: dec_f64(flot(p.heures))?,
+            taux: dec_f64(flot(taux))?,
+            heures: None,
+            precision: Some(format!("majorées de {} %", virgule(p.majoration.normalize()))),
+            dates: Vec::new(),
         }));
     }
     let mut avis = vec![info(format!(
@@ -148,7 +148,7 @@ pub(crate) struct Suites {
 ///   autres cotisations salariales, a leur taux moyen sur le brut, laissent apres la reduction ; la limite annuelle de
 ///   7 500 EUR se compte sur ce net, dans l'annee civile, chez l'employeur (`deja`).
 pub(crate) fn apres_les_cotisations(
-    ctx: &Contexte, bar: &Value, lb: &[LigneBrut], lignes: &[LigneCotisation], brut: Decimal, tot_pat: Decimal, deja: impl FnOnce() -> Resultat<Decimal>,
+    ctx: &Contexte, bar: &droit::forme_bareme::Pile, lb: &[LigneBrut], lignes: &[LigneCotisation], brut: Decimal, tot_pat: Decimal, deja: impl FnOnce() -> Resultat<Decimal>,
 ) -> Resultat<Option<Suites>> {
     let siennes: Vec<&LigneBrut> = lb.iter().filter(|l| l.code == HEURE_SUPPLEMENTAIRE || l.code == HEURE_COMPLEMENTAIRE).collect();
     let remuneration = siennes.iter().fold(Decimal::new(0, 2), |a, l| a + l.montant);
@@ -161,14 +161,14 @@ pub(crate) fn apres_les_cotisations(
     let mut avis = Vec::new();
 
     // La reduction salariale.
-    let vieillesse = sal(&|l| l.famille == "RETRAITE");
+    let vieillesse = sal(&|l| l.famille.as_deref() == Some("RETRAITE"));
     let taux = (vieillesse / brut * Decimal::ONE_HUNDRED).min(droit::heures_en_plus::taux_maximum_de_reduction()?).round_dp(2);
-    let de_base = sal(&|l| l.id == "vieil_plaf" || l.id == "vieil_deplaf");
+    let de_base = sal(&|l| l.est("vieil_plaf") || l.est("vieil_deplaf"));
     let reduction = eur2(remuneration * taux / Decimal::ONE_HUNDRED).min(de_base).max(Decimal::new(0, 2));
     let genre = if supplementaires.is_zero() { "complémentaires" } else { "supplémentaires" };
     let mut out = vec![LigneCotisation {
-        id: REDUCTION.into(),
-        famille: crate::calcul::FAMILLE_ALLEGEMENTS.into(),
+        id: Some(REDUCTION.into()),
+        famille: Some(crate::calcul::FAMILLE_ALLEGEMENTS.into()),
         libelle: format!("Réduction de cotisations salariales sur heures {}", genre),
         base: remuneration,
         taux_pat: None,
@@ -188,8 +188,8 @@ pub(crate) fn apres_les_cotisations(
         deduction = eur2(supplementaires * droit::heures_en_plus::deduction_par_heure(au_moins_20)?).min(tot_pat.max(Decimal::new(0, 2)));
         if !deduction.is_zero() {
             out.push(LigneCotisation {
-                id: DEDUCTION.into(),
-                famille: crate::calcul::FAMILLE_ALLEGEMENTS.into(),
+                id: Some(DEDUCTION.into()),
+                famille: Some(crate::calcul::FAMILLE_ALLEGEMENTS.into()),
                 libelle: "Déduction patronale sur heures supplémentaires".into(),
                 base: supplementaires,
                 taux_pat: None,
@@ -202,10 +202,16 @@ pub(crate) fn apres_les_cotisations(
     }
 
     // L'exoneration d'impot : le net des heures.
-    let abattement = dec_avec_echelle(bar.get("abattement_csg").ok_or_else(|| socle::fichiers::absent("abattement_csg"))?)?;
-    let taux_csg = lignes.iter().find(|l| l.id == "csg_ded").and_then(|l| l.taux_sal).map(socle::num::dec_f64).transpose()?.unwrap_or(Decimal::ZERO);
+    let abattement = bar.abattement_csg;
+    // La CSG deductible que la paie retient (une paie sans CSG n'en deduit rien) ; sa ligne porte son taux.
+    let taux_csg = lignes
+        .iter()
+        .filter(|l| l.est("csg_ded"))
+        .take(1)
+        .map(|l| socle::num::dec_f64(l.taux_sal.ok_or("la ligne de CSG déductible n'a pas de taux salarial")?))
+        .sum::<Resultat<Decimal>>()?;
     let csg_deductible = eur2(remuneration * abattement * taux_csg / Decimal::ONE_HUNDRED);
-    let autres = sal(&|l| !matches!(l.id.as_str(), "csg_ded" | "csg_crds_nd" | "mutuelle"));
+    let autres = sal(&|l| !(l.est("csg_ded") || l.est("csg_crds_nd") || l.est("mutuelle")));
     let leurs_cotisations = eur2(autres * remuneration / brut);
     let net = (remuneration - csg_deductible - (leurs_cotisations - reduction).max(Decimal::ZERO)).max(Decimal::new(0, 2));
     let deja = deja()?;

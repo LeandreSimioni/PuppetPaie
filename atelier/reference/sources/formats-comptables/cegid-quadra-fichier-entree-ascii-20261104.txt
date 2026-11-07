@@ -1,0 +1,277 @@
+                                                           Fichier d'entrée ASCII dans QuadraCOMPTA
+                                                • Nom du fichier : Libre
+                                                • Longueur d'enreg. : Variable, se terminant par un "Return"
+                                                • Les zones marquées de "*" sont à fournir obligatoirement, les autres peuvent être
+                                                  renseignées à blanc.
+
+
+Enregistrements Écritures comptables
+                                Libellé                                                                    Position    Longueur
+                         *Type = M                                                                           1            1
+                         *Numéro de compte                                                                   2            8
+                         *Code journal sur 2 caract. (obligatoire même si renseigné en 111 sur 3)           10            2
+                         *N° folio (à initialiser à "000" si pas de folio)                                  12            3
+                         *Date écriture (JJMMAA)                                                            15            6
+                          Code libellé                                                                      21            1
+                          Libellé libre                                                                     22            20
+                        * Sens Débit/Crédit (D/C)                                                           42            1
+                        * Montant en centimes signé (position 43=signe)                                     43            13
+                          Compte de contrepartie                                                            56            8
+                          Date échéance (JJMMAA)                                                            64            6
+                          Code lettrage                                                                     70            2
+                          Code statistiques                                                                 72            3
+                          N° de pièce sur 5 caractères maximum                                              75            5
+                          Code affaire                                                                      80            10
+                          Quantité 1                                                                        90            10
+                          Numéro de pièce jusqu'à 8 caractères                                              100           8
+                          Code devise (FRF ou EUR, Espace = FRF, ou Devise)                                 108           3
+ QC Windows seulement * Code journal sur 3 caractères                                                       111           3
+                          Flag Code TVA géré dans l'écriture = O (oui)                                      114           1
+                          Code TVA                              =0à9                                        115           1
+                          Méthode de calcul TVA                 = D (Débits) ou E (Encaissements)           116           1
+                          Libellé écriture sur 30 caract. (blanc si renseigné en 22 sur 20 caract.)         117           30
+ QC Windows seulement     Code TVA sur 2 caractères                                                         147           2
+                          N° de pièce alphanumérique sur 10 caract.                                         149           10
+                                                                                                 Réservé    159           10
+ QC Windows seulement     Montant dans la devise (en centimes signés position 169=signe)                    169           13
+      QC Windows          Pièce jointe à l'écriture, nom du fichier sur 8 caractères + extension sur 3      182           12
+  Importation seulement
+                          caractères – Cf. Remarque
+ QC Windows seulement     Quantité 2                                                                        194           10
+                          NumUniq                                                                           204           10
+ QC Windows
+ Exportation seulement
+                          Code opérateur                                                                    214            4
+                          Date système                                                                      218           14
+                          Numéro de pièce (*)                                                               232           20
+                          (*) prioritaire. Si non renseigné, prise en compte de la position 149.
+                          Si position 149 non renseignée, prise en compte de la position 100
+                          Si position 100 non renseignée, prise en compte de la position 75
+
+   •    Remarque sur l'import des "Pièces jointes" aux écritures dans le dossier comptable : les fichiers sont à localiser
+        au même endroit que le fichier ASCII à importer.
+
+   •    Il est possible aussi de gérer des enregistrements de type Y pour renseigner n'importe quel champ d'une écriture
+        comptable dans la table Ecritures de la base Qcompta.mdb. L'enregistrement de type Y doit suivre
+        immédiatement l'enregistrement de type M dans le fichier ascii et respecter la structure suivante :
+
+        Y;Nom_du_champ=valeur;Nom_du_champ=valeur;…
+
+
+
+
+QC_ASC.doc – Mise à jour 2023                                                                                                  1/5
+   Enregistrement          Libellé                                                                          Position   Longueur
+      Compte             * Type = C                                                                            1          1
+                         * Numéro de compte                                                                    2          8
+                           Libellé                                                                             10         30
+                           Clé alpha (facultatif)                                                              40         7
+                           Montant débit N-1                                                                   47         13
+                           Montant crédit N-1                                                                  60         13
+                           Montant débit N-2                                                                   73         13
+                           Montant crédit N-2                                                                  86         13
+                         * Compte collectif                                                                    99         8
+                           Adresse Rue 1                                                                      107         30
+                           Adresse Rue 2                                                                      137         30
+                           Adresse Ville                                                                      167         30
+                           Téléphone                                                                          197         20
+                           Flag "Mise à jour compte si existant" : blanc = Pas de Maj                         217         1
+                                1= Maj complète ;
+                                2 = Maj partielle : (clé alpha, intitulé, adresse, collectif, RIB)
+                                3 = Maj partielle (clé alpha + adresse)
+                      * Type de compte (C/F/G)                                                                218        1
+                        Compte à centraliser (O/N)                                                            219        1
+                        Domiciliation bancaire                                                                220        30
+                        Numéro de pièce                                                                       232        20
+                        RIB                                                                                   250        30
+                        Mode de règlement sur 2 positions                                                     280        2
+                        Nombre de jours d'échéance (2 positions maximum)                                      282        2
+                        Terme échéance le xx                                                                  284        2
+                        Départ calcul échéance le xx                                                          286        2
+ QC Windows seulement   Code TVA sur 2 caractères                                                             288        2
+                        Compte de contrepartie                                                                290        8
+                        Nombre de jours d'échéances (jusqu'à 3 positions)                                     298        3
+                        Flag "TVA/encaissement" ou "TVA décaissement".                                        301        1
+                        Fax                                                                                   302        20
+                        Mode de règlement sur 4 positions                                                     322        4
+                        Groupe 4                                                                              326        8
+                        SIRET                                                                                 334        14
+                        Edit M2                                                                               348        1
+                        Profession                                                                            349        30
+                        Pays                                                                                  379        50
+                        Code journal de trésorerie                                                            429        3
+                        Personne morale                                                                       432        1
+                        Bon à payer                                                                           433        1
+                        IBAN                                                                                  434        4
+                        BIC (code Swift)                                                                      438        11
+                        Code imputation frais (13=bénéficiaire, 14=émetteur et bénéficiaire, 15=émetteur)     449        2
+                        Numéro du mandat de prélèvement SEPA                                                  451        3
+
+   •    Il est possible aussi de gérer des enregistrements de type X pour renseigner n'importe quel champ d'un compte
+        existant dans la table comptes de la base Qcompta.mdb. L'enregistrement de type X doit respecter la structure
+        suivante :
+
+        XNuméro_du_compte_sur_8;Nom_du_champ=Valeur;Nom_du_champ=Valeur;…
+
+
+
+
+QC_ASC.doc – Mise à jour 2023                                                                                                 2/5
+Enregistrement Règlements Tiers
+                        Libellé                                                                 Position     Longueur
+                      * Type = R                                                                   1            1
+                        Date échéance (JJMMAA)                                                     2            6
+                        Montant échéance                                                           8            13
+                        Mode de règlement sur 2 positions                                         21            2
+                        Code journal banque                                                       23            2
+                        Référence tiré                                                            25            10
+                        RIB du tiré                                                               35            23
+                        Domiciliation bancaire                                                    58            20
+ QC Windows seulement   Code journal banque (blanc si renseigné en 23 sur 2 caract.)              78            3
+ QC Windows seulement   N° de compte d'origine                                                    81            8
+ QC Windows seulement   Mode de règlement sur 4 positions                                         89            4
+ QC Windows seulement   Bon à payer                                                               93            1
+                        IBAN                                                                      94            4
+                        BIC                                                                       98            11
+                        Numéro du mandat de prélèvement SEPA                                      109           3
+   •    Les enregistrements de type R doivent suivre immédiatement l'enregistrement de type M (écriture comptable)
+        correspondant.
+   •    Il est possible aussi de gérer des enregistrements de type Z pour renseigner n'importe quel champ d'une ligne
+        de tiers dans la table Ecritures de la base Qcompta.mdb. L'enregistrement de type Z doit suivre immédiatement
+        l'enregistrement de type R dans le fichier ascii et respecter la structure suivante :
+
+        Z;Nom_du_champ=valeur;Nom_du_champ=valeur;…
+
+Enregistrements centres analytiques
+                        Libellé                                                                 Position     Longueur
+                    * Type d'enreg. = A                                                            1            1
+                    * Code                                                                         2            10
+                        Intitulé                                                                  12            30
+                        Rue 1                                                                     42            30
+                        Rue 2                                                                     72            30
+                        Ville                                                                     102           30
+                        Type (D)direct / (I)ndirect                                               142           1
+                        Clé de repartition                                                        143           10
+
+Enregistrements natures analytiques
+                        Libellé                                                                 Position     Longueur
+                    * Type d'enreg. = N                                                            1            1
+                    * Code                                                                         2            10
+                        Intitulé                                                                  12            30
+
+Enregistrements lignes analytiques
+                        Libellé                                                                 Position     Longueur
+                      * Type = I                                                                   1            1
+                        % de la répartition                                                        2            5
+                        Montant répartition                                                        7            13
+                        Code centre                                                               20            10
+ QC Windows seulement   Code nature                                                               30            10
+   •    Les enregistrements de type I doivent suivre l'enregistrement de type M (écriture comptable) correspondant.
+
+Enregistrements Désignations étrangères (QuadraCompta Windows uniquement)
+                    * Type = D                                                                    1             1
+                    * S=Désignation Spécifique, C=Désignation Commune (vide=S)                    2             1
+                    * Numéro de compte                                                            3             8
+                    * Code Langue                                                                 11            3
+                       Libellé                                                                    14            30
+
+
+
+QC_ASC.doc – Mise à jour 2023                                                                                        3/5
+                                                   Fichier séquentiel d'entrée ASCII dans QuadraIMMO
+
+
+
+Le 1er enregistrement qui correspond aux constantes du dossier, n'est pas obligatoire si le dossier comptable existe
+déjà.
+                                                                 Position   Longueur                  Format
+ID                                                                  1           2       Taper ID
+Nom dossier                                                         3           30
+Ad1                                                                 33          30
+Ad2                                                                 63          30
+CP Ville                                                            93          30
+Siret                                                              123          20
+Rcom                                                               143          6
+NAF (APE)                                                          149          4
+Début exercice N                                                   153          6       JJMMAA
+Fin exercice N                                                     159          6       JJMMAA
+Début exercice N-1                                                 165          6       JJMMAA
+Fin exercice N-1                                                   171          6       JJMMAA
+Nombre de mois N                                                   177          2
+Nombre de mois N-1                                                 179          2
+
+
+
+Structure des enregistrements obligatoires (un par immobilisation) se terminant par un retour chariot :
+                                                                 Position   Longueur                  Format
+N° de compte                                                        1           8
+N° d’immobilisation                                                 9           5       Ex : 00001
+Libellé de l’immobilisation                                         14          30
+Libellé 2 de l’immobilisation                                       44          30
+Date d’acquisition                                                  74          6       JJMMAA
+Date de mise en service                                             80          6       JJMMAA
+Valeur HT (Montant en centimes).                                    86          13      Ex : 2002,50 donne
+                                                                                        0000000200250)
+Etat de l’immobilisation                                            99          1       E = En cours A=Amortie, C=Cédée,
+                                                                                        R=Rebutée
+Quantité achetée : Montant en unité                                100          5       Ex : 00100 par défaut mettre 00001
+Durée d’amortissement ECONOMIQUE                                   105          3       Nombre d’année. Ex : 20 mettre 020
+Nombre d’année déjà amorties ECONOMIQUE                            108          3
+Somme des amortissements antérieurs ECONOMIQUE                     111          13      Idem valeur HT
+Type d’amortissement ECONOMIQUE                                    124          1       L = Lin. / D = Dégr. / N = Non
+                                                                                        amortissable
+Taux linéaire ECONOMIQUE                                           125          5       Si 5 % mettre 00500
+Coefficient dégressif ECONOMIQUE                                   130          3       Si 2,5 mettre 025 / Si 2 mettre 020
+Date de cession                                                    133          6       JJMMAA
+Prix de cession                                                    139          13      Idem valeur HT
+Dotation                                                           152          13      Idem valeur HT
+Type d’amortissement FISCAL                                        165          1       L = Lin. / D = Dégr.
+
+QC_ASC.doc – Mise à jour 2023                                                                                            4/5
+                                                              Position   Longueur                 Format
+Durée d’amortissement FISCAL                                    166         3
+Taux linéaire FISCAL                                            169         5       Ex : 5 % = 00500 / 33,33 = 03333
+Coefficient dégressif FISCAL                                    174         3       Si 2,5 mettre 025 / Si 2 mettre 020
+Nombre d’année déjà amorties FISCAL                             177         3
+Somme des amortissements antérieurs FISCAL                      180         13      Idem valeur HT
+Dotation FISCALE                                                193         13      Idem valeur HT
+Libellé Fournisseur                                             206         30
+Soumis à Taxe Professionnelle                                   236         1       O/N (mettre O par déf.)
+BASE Taxe Professionnelle                                       237         13      Idem valeur HT
+Maximum Fiscal                                                  250         13      Idem valeur HT
+Service                                                         263         5
+Montant TVA                                                     268         13      Idem valeur HT
+Coefficient dégressif ECONOMIQUE (avec 2 décimales)             281         3       Si 2,25 mettre 225
+Coefficient dégressif FISCAL (avec 2 décimales)                 284         3       Si 2,25 mettre 225
+DFI (dossier soumis au régime agricole) - Montant de la DFI     287         13      Idem valeur HT
+(déduction fiscale pour investissement)
+DFI - Amortissement antérieur                                   300         13      Idem valeur HT
+DFI - Dotation de la DFI                                        313         13      Idem valeur HT
+Bureau                                                          326         10
+Famille                                                         336         10
+Centre analytique                                               346         10
+Nature analytique                                               356         10
+Numéro d'ensemble                                               366         6
+Zone libre 1                                                    372         10
+Zone libre 2                                                    382         10
+Zone libre 3                                                    392         10
+VNC                                                             402         13      Idem valeur HT
+(Véhicule) Immatriculation                                      415         10
+(Véhicule) Date d'immatriculation                               425         6       JJMMAA
+(Véhicule) Date de mise en service                              431         6       JJMMAA
+(Véhicule) Date de cession                                      437         6       JJMMAA
+(Véhicule) Taux d'émission carbonne                             443         4       Si 98, mettre 0098
+(Véhicule) Puissance fiscale en CV                              447         3       Si 7 CV, mettre 007
+(Véhicule) Supercarburant / GPL                                 450         1       O/N
+(Véhicule) Non polluant                                         451         1       O/N
+(Véhicule) Hybrique                                             452         1       O/N
+Base d'amortissement                                            453         13      Idem valeur HT
+Compte fournisseur                                              466         8
+Code TVA                                                        474         2
+Taux de TVA                                                     476         5       Ex : 5 % = 00500 / 33,33 = 03333
+
+
+
+
+QC_ASC.doc – Mise à jour 2023                                                                                      5/5
+

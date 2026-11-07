@@ -46,6 +46,7 @@ type R<T> = Result<T, Echec>;
 const FORMAT: u64 = 4;
 
 use crate::routes::catalogue::{Acte, Fiche, ILLISIBLE, MOIS};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::Ecran;
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -54,7 +55,7 @@ const ECRAN: Ecran = Ecran::Lecture;
 /// Les routes que l'etat d'un mois sert, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "mois",
+        route: Route::Mois,
         geste: "Lire tout l'écran d'un mois d'un coup : engagements, étapes, imprévus.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -66,7 +67,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "etat-par-engagement",
+        route: Route::EtatParEngagement,
         geste: "Lire l'état de chaque engagement du mois : ses carrés DPAE, Contrat, Documents.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -78,7 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "etat-du-mois",
+        route: Route::EtatDuMois,
         geste: "Lire les quatre étapes du mois : DPAE, Contrats, DSN, Documents.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -97,11 +98,11 @@ pub const ROUTES: &[Fiche] = &[
 /// routes, et rendues telles quelles (resultat ou refus).
 /// Les arrets n'y sont plus : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
 /// du journal non plus : elle se montre dans l'Historique, avec les envois et leurs retours.
-const LECTURES: [(&str, bool); 4] = [
-    ("saisie", true),
-    ("contrats-en-cours", true),
-    ("fins-de-contrat", true),
-    ("imprevus", true),
+const LECTURES: [(Route, bool); 4] = [
+    (Route::Saisie, true),
+    (Route::ContratsEnCours, true),
+    (Route::FinsDeContrat, true),
+    (Route::Imprevus, true),
 ];
 
 /// La cle de l'etat garde de l'OUVERTURE dans la file : a cote des mois, jamais confondue avec eux.
@@ -111,14 +112,14 @@ pub const OUVERTURE: &str = "ouverture";
 /// rendue telle quelle (resultat ou refus), au format d'une reponse de la page. Ce qui vit dans la memoire de la fenetre
 /// (la veille, la mise a jour) et ce que l'ecran ne garde pas (`journal/signalements.json`) se lit a chaque ouverture,
 /// a cote (`interface/api.rs`).
-const LECTURES_OUVERTURE: [(&str, &str); 7] = [
-    ("etat", "{}"),
-    ("mois-a-ouvrir", "{}"),
-    ("echeancier", "{}"),
-    ("rappels", "{}"),
-    ("pour-demarrer", "{}"),
-    ("conseils-resume", "{}"),
-    ("conseil-du-jour", r#"{"decalage": 0}"#),
+const LECTURES_OUVERTURE: [(Route, &str); 7] = [
+    (Route::Etat, "{}"),
+    (Route::MoisAOuvrir, "{}"),
+    (Route::Echeancier, "{}"),
+    (Route::Rappels, "{}"),
+    (Route::PourDemarrer, "{}"),
+    (Route::ConseilsResume, "{}"),
+    (Route::ConseilDuJour, r#"{"decalage": 0}"#),
 ];
 
 /// Le fichier de l'etat de l'OUVERTURE, a la racine de la compagnie : le seul etat qui s'ecrit.
@@ -247,23 +248,23 @@ fn garde(racine: &Path, empreinte: &str) -> Option<Value> {
 
 /// Une route du moteur, faite dans ce processus, rendue comme la page la recoit (`{"ok", "resultat"}` ou
 /// `{"ok": false, "erreur": {"type", "message", ...}}`).
-fn lecture(o: &HashMap<String, String>, route: &str, charge: Value) -> Value {
-    let entree = json!({"route": route, "charge": charge}).to_string();
-    let rep = crate::routes::commande(o, &entree).unwrap_or_else(|m| json!({"ok": false, "erreur": m}));
+fn lecture(o: &HashMap<String, String>, route: Route, charge: Value) -> Value {
+    let rep = crate::routes::servir_la_route(o, route, &charge);
     crate::interface::api::en_page(crate::interface::api::depuis_reponse(rep))
 }
 
 /// Les lectures de l'ecran de `mois` (`LECTURES`, puis l'apercu de la saisie enregistree).
-fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
+fn lectures(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Value {
     let mut l = Map::new();
     for (route, du_mois) in LECTURES {
         let charge = if du_mois { json!({ "mois": mois }) } else { json!({}) };
-        l.insert(route.to_string(), lecture(o, route, charge));
+        l.insert(route.nom().to_string(), lecture(o, route, charge));
     }
     // L'APERCU : ce que la page demande des qu'un mois s'affiche (`calculerApercu`), sur la saisie qu'elle vient de lire
-    // (`{"mois": mois}`, le mois enregistre) ; la page ne le redemande que quand on modifie la saisie.
-    if l.get("saisie").and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
-        l.insert("apercu".into(), lecture(o, "apercu", json!({"mois": mois})));
+    // (`{"mois": mois}`, le mois enregistre), quand le mois a une saisie ; la page ne le redemande que quand on modifie
+    // la saisie.
+    if engagement::stock::a_une_saisie(&ctx.racine, mois).unwrap_or(false) {
+        l.insert(Route::Apercu.nom().into(), lecture(o, Route::Apercu, json!({"mois": mois})));
     }
     Value::Object(l)
 }
@@ -280,7 +281,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
             // L'OUVERTURE : les lectures de la page qui s'ouvre (`LECTURES_OUVERTURE`), telles quelles.
             let mut l = Map::new();
             for (route, charge) in LECTURES_OUVERTURE {
-                l.insert(route.to_string(), lecture(o, route, serde_json::from_str(charge).unwrap_or_else(|_| json!({}))));
+                l.insert(route.nom().to_string(), lecture(o, route, serde_json::from_str(charge).unwrap_or_else(|_| json!({}))));
             }
             json!({
                 "format": FORMAT,
@@ -290,8 +291,8 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
                 "lectures": l,
             })
         } else {
-            let lus = lectures(o, mois);
-            let mut deux = crate::routes::etapes::lire_ensemble(ctx, &["etat-par-engagement", "etat-du-mois"], &charge)?.into_iter();
+            let lus = lectures(o, ctx, mois);
+            let mut deux = crate::routes::etapes::lire_ensemble(ctx, &[Route::EtatParEngagement, Route::EtatDuMois], &charge)?.into_iter();
             let (par_engagement, du_mois) = (deux.next().unwrap_or(Value::Null), deux.next().unwrap_or(Value::Null));
             json!({
                 "format": FORMAT,
@@ -355,43 +356,47 @@ fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
     Ok(du_mois)
 }
 
+/// `etat-par-engagement` tel que la route et l'ecran de `mois` le rendent, d'un seul endroit : chaque engagement, ce que
+/// disent ses carres, la ligne de sa frise, et la phrase du mois.
+fn par_engagement(etat: &Value, brut: &Value) -> Value {
+    let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
+    let phrases: Vec<String> = etat["engagements"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|e| {
+            let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().chain(std::iter::once(&e["versions"])).filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
+            format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
+        })
+        .collect();
+    let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", socle::mois::Mois::en_clair(brut.as_str().unwrap_or_default())) } else { format!("Engagements du mois : {}.", n) };
+    json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) })
+}
+
 /// Tout l'ecran de `mois`, tel que la page le lit (`chargerMois`) : `lectures`, une entree par route, au format d'une
 /// reponse de la page.
 fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
     use crate::interface::api::{en_page, Refus};
     let mut l = etat.get("lectures").and_then(Value::as_object).cloned().unwrap_or_default();
-    l.insert("etat-par-engagement".into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))));
+    l.insert(Route::EtatParEngagement.nom().into(), en_page(Ok(par_engagement(etat, brut))));
     l.insert(
-        "etat-du-mois".into(),
+        Route::EtatDuMois.nom().into(),
         en_page(du_mois(racine, etat).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))),
     );
     // La phrase de l'ecran du mois : celle de ses etapes (`etat-du-mois`).
-    let phrase = l.get("etat-du-mois").and_then(|e| e["resultat"]["phrase"].as_str()).unwrap_or("").to_string();
+    let phrase = l.get(Route::EtatDuMois.nom()).and_then(|e| e["resultat"]["phrase"].as_str()).unwrap_or("").to_string();
     json!({ "phrase": phrase, "mois": brut, "lectures": l })
 }
 
 /// `etat-par-engagement`, `etat-du-mois` et `mois`, servis par l'etat du mois : pour les deux premiers, le meme JSON que
 /// `routes::etapes`.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let (brut, mois) = crate::routes::etapes::mois_de(charge)?;
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
+    let le_mois = crate::routes::etapes::mois_de(charge)?;
+    let (brut, mois) = (json!(le_mois), le_mois.to_string());
     let etat = lire(o, ctx, &mois)?;
     match nom {
-        "etat-par-engagement" => {
-            let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
-            // Chaque engagement, ce que disent ses carres, et la ligne de sa frise.
-            let phrases: Vec<String> = etat["engagements"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|e| {
-                    let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().chain(std::iter::once(&e["versions"])).filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
-                    format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
-                })
-                .collect();
-            let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", engagement::libelle_mois(&mois)) } else { format!("Engagements du mois : {}.", n) };
-            Ok(json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
-        }
-        "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
+        Route::EtatParEngagement => Ok(par_engagement(&etat, &brut)),
+        Route::Mois => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),
     }
 }
@@ -417,7 +422,7 @@ pub fn servir(racine: &Path, cle: &str, jour: &str) -> Option<(Value, bool)> {
 
 /// Les mois dont l'etat se tient a jour : ceux que la saisie a touches, et le mois du jour.
 fn mois_suivis(racine: &Path, jour: &str) -> Vec<String> {
-    let mut mois = engagement::stock::mois_saisis(racine).unwrap_or_default();
+    let mut mois = engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     if jour.len() >= 7 {
         mois.push(jour[..7].to_string());
     }
@@ -431,16 +436,9 @@ fn mois_a_ouvrir(ouverture: &Value, jour: &str) -> String {
     ouverture
         .pointer("/lectures/mois-a-ouvrir/resultat/mois")
         .and_then(Value::as_str)
-        .filter(|m| socle::date::mois_valide(m))
+        .filter(|m| socle::mois::Mois::lire(m).is_ok())
         .map(String::from)
         .unwrap_or_else(|| jour.get(..7).unwrap_or_default().to_string())
-}
-
-/// Le mois `m` decale de `pas` mois.
-fn voisin(m: &str, pas: i32) -> Option<String> {
-    let (a, n): (i32, i32) = (m.get(..4)?.parse().ok()?, m.get(5..7)?.parse().ok()?);
-    let t = a * 12 + n - 1 + pas;
-    Some(format!("{:04}-{:02}", t.div_euclid(12), t.rem_euclid(12) + 1))
 }
 
 type Rendu = Result<Value, (Option<&'static str>, String)>;
@@ -697,7 +695,7 @@ impl FileDesEtats {
         }
         let o = &self.o;
         let _code = socle::fichiers::code_fige();
-        let _geste = socle::fichiers::geste();
+        let _geste = socle::forme::geste();
         let refaire = || {
             let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
@@ -733,7 +731,7 @@ impl FileDesEtats {
         }
         let o = &self.o;
         let _code = socle::fichiers::code_fige();
-        let _geste = socle::fichiers::geste();
+        let _geste = socle::forme::geste();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             crate::compagnie::administrateur::tableau_compagnie(&ctx)
@@ -788,7 +786,7 @@ impl FileDesEtats {
             if let Some(a) = e.affiche.clone() {
                 premiers.push(a.clone());
                 for pas in [-1, 1] {
-                    if let Some(v) = voisin(&a, pas).filter(|v| suivis.contains(v)) {
+                    if let Some(v) = socle::mois::Mois::lire(&a).and_then(|m| m.plus(pas)).ok().map(|m| m.to_string()).filter(|v| suivis.contains(v)) {
                         premiers.push(v);
                     }
                 }
@@ -835,7 +833,7 @@ impl FileDesEtats {
     /// `perime`, et refait aussitot, devant tous les autres. `attendre` (la page qui veut l'etat frais) ou aucun etat
     /// garde : l'etat frais, une fois refait.
     pub fn ecran(&self, mois: &str, attendre: bool) -> R<Value> {
-        if !socle::date::mois_valide(mois) {
+        if !socle::mois::Mois::lire(mois).is_ok() {
             return Err(Echec { classe: Some("ErreurOperation"), message: format!("Mois illisible : {}.", mois) });
         }
         self.verrou().affiche = Some(mois.to_string());
@@ -888,7 +886,7 @@ impl FileDesEtats {
         match self.verrou().en_cours.clone() {
             Some(c) if c == OUVERTURE => "Lecture de la compagnie : sa configuration, ses échéances, ses rappels…".into(),
             Some(c) if c == TABLEAU => "Tableau des déclarations de la compagnie…".into(),
-            Some(m) => format!("Calcul de {}…", socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee)),
+            Some(m) => format!("Calcul de {}…", socle::mois::Mois::en_clair(&m)),
             None => "Préparation de l'écran…".into(),
         }
     }
@@ -975,49 +973,5 @@ impl FileDesEtats {
     fn fermer(&self) {
         self.verrou().arretee = true;
         self.signal.notify_all();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Un fil qui ne tourne pas : on lui demande son prochain travail a la main (`Fil::choisir`).
-    fn immobile() -> Arc<Fil> {
-        Arc::new(Fil { etat: Mutex::new(EtatDuFil::default()), reveil: Condvar::new() })
-    }
-
-    fn suite(fil: &Fil, n: usize) -> Vec<(String, String)> {
-        let mut g = fil.verrou();
-        (0..n)
-            .filter_map(|_| Fil::choisir(&mut g).map(|(f, cle, _)| (f.racine.file_name().unwrap().to_string_lossy().into_owned(), cle)))
-            .collect()
-    }
-
-    /// UN FIL POUR TOUTES LES COMPAGNIES : la compagnie devant d'abord, tout son travail ; puis les autres,
-    /// une cle chacune a son tour, dans l'ordre ou la fenetre les a donnees. Rien ne se fait deux fois.
-    #[test]
-    fn la_compagnie_ouverte_passe_devant_et_les_autres_se_servent_chacune_son_tour() {
-        let fil = immobile();
-        let (a, b, c) = (fil.file(Path::new("/x/a"), None), fil.file(Path::new("/x/b"), None), fil.file(Path::new("/x/c"), None));
-        for f in [&a, &b, &c] {
-            f.demander(OUVERTURE, false);
-            f.demander("2026-09", false);
-        }
-        let paire = |c: &str, k: &str| (c.to_string(), k.to_string());
-        assert_eq!(
-            suite(&fil, 3),
-            vec![paire("a", OUVERTURE), paire("b", OUVERTURE), paire("c", OUVERTURE)],
-            "les ouvertures de toutes d'abord, chacune son tour"
-        );
-        // On ouvre c : tout son travail passe devant celui des autres.
-        c.demander("2026-08", false);
-        fil.devant(Some(&c));
-        assert_eq!(suite(&fil, 2), vec![paire("c", "2026-09"), paire("c", "2026-08")]);
-        assert_eq!(suite(&fil, 3), vec![paire("a", "2026-09"), paire("b", "2026-09")], "puis les autres ; rien deux fois");
-        // Une compagnie fermee (`arreter`) ne se sert plus.
-        a.demander("2026-07", false);
-        a.arreter();
-        assert!(suite(&fil, 1).is_empty());
     }
 }

@@ -9,12 +9,14 @@
 //! introuvable, valeur absente, usage ou format hors norme) sont des
 //! `ValueError`/`KeyError`, ici `Echec::Autre`.
 
+use droit::fiche::Lue as _;
 use serde_json::Value;
 
 use droit::contexte::{aujourdhui, Contexte};
-use socle::date::{d, en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{d, en_texte, repr_valeur, vrai};
 use crate::dsn::{self, Arret, Fichier, LOGICIEL, VERSION};
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use socle::fichiers::repr;
 use socle::num::Resultat;
 
 pub const ARRET: &str = "04";
@@ -47,42 +49,14 @@ fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
     v.get(k).unwrap_or(&NUL)
 }
 
-/// `v[k]` : la cle doit exister (`KeyError`).
-fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
-}
-
 fn s(v: &Value, k: &str) -> String {
     en_texte(g(v, k))
 }
 
-fn nomenclatures() -> Resultat<std::sync::Arc<Value>> {
-    json_en_cache(&dossier_du_code().join("arrets-base.json"))
-}
-
-/// Les codes de `arrets-base.json[quoi]`, dans l'ordre du fichier.
-fn codes(quoi: &str) -> Resultat<Vec<Value>> {
-    let n = nomenclatures()?;
-    Ok(n[quoi]["codes"].as_array().cloned().unwrap_or_default())
-}
-
-fn code<'a>(liste: &'a [Value], c: &Value) -> Option<&'a Value> {
-    let c = c.as_str()?;
-    liste.iter().find(|x| x["code"].as_str() == Some(c))
-}
-
-fn code_subrogation_oui() -> Resultat<String> {
-    for c in codes("subrogation")? {
-        if c["libelle"].as_str() == Some("oui") {
-            return Ok(en_texte(&c["code"]));
-        }
-    }
-    Err(socle::echec::livree("arrets-base.json", "subrogation"))
-}
-
+/// L'arret est-il subroge ? Son code de subrogation est le « oui » de la norme (`droit::arrets::Bloc60`).
 pub fn avec_subrogation(a: &Arret) -> Resultat<bool> {
     let sub = if vrai(g(&a.v, "subrogation")) { s(&a.v, "subrogation") } else { String::new() };
-    Ok(sub == code_subrogation_oui()?)
+    Ok(sub == droit::arrets::bloc_60()?.subrogation_oui()?)
 }
 
 fn nature_inconnue(nature: &str) -> String {
@@ -99,8 +73,8 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
     if nature != ARRET && nature != REPRISE {
         return impossible(nature_inconnue(nature));
     }
-    let motifs = codes("motifs_arret")?;
-    let motif = match code(&motifs, g(v, "motif")) {
+    let bloc = droit::arrets::bloc_60()?;
+    let motif = match bloc.motifs_arret.code(g(v, "motif").as_str().unwrap_or_default()) {
         Some(m) => m.clone(),
         None => {
             return impossible(format!(
@@ -110,9 +84,9 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
         }
     };
     let m_s = s(v, "motif");
-    let libelle = en_texte(g(&motif, "libelle"));
+    let libelle = motif.libelle.clone();
 
-    if vrai(g(&motif, "annulation")) {
+    if motif.annulation == Some(true) {
         return impossible(
             "Le motif « 99 - annulation » est interdit dans un signalement d'arret ou de reprise (CCH-12). Un \
 signalement deja depose se reprend par un annule-et-remplace : meme salarie, meme contrat, type 03, et \
@@ -120,7 +94,7 @@ l'identifiant du dernier envoi valide."
                 .into(),
         );
     }
-    if vrai(g(&motif, "temps_partiel_therapeutique")) {
+    if motif.temps_partiel_therapeutique == Some(true) {
         return impossible(format!(
             "Le motif {} (temps partiel therapeutique) est interdit dans un signalement (CCH-14) : il ne se \
 declare qu'en DSN mensuelle ou en FCTU, et impose un bloc « Temps partiel Therapeutique - S21.G00.66 » que le \
@@ -128,7 +102,7 @@ moteur n'ecrit pas.",
             m_s
         ));
     }
-    if vrai(g(&motif, "reserve")) {
+    if motif.reserve == Some(true) {
         return impossible(format!(
             "Le motif {} est une valeur de reserve de la norme : elle n'a pas encore de sens declare.",
             m_s
@@ -157,7 +131,7 @@ jour que l'avis prescrit, le dernier jour travaillé est la veille ou ce jour m�
             fin_prev.jj_mm_aaaa()
         ));
     }
-    let dernier = engagement::imprevus::dernier_jour_declare(v)?;
+    let dernier = engagement::imprevus::dernier_jour_declare(&a.forme()?)?;
     if dernier > fin_prev {
         return impossible(format!(
             "Dernier jour travaille ({}) posterieur a la fin previsionnelle de l'arret ({}) -- CCH-12.",
@@ -174,7 +148,7 @@ contrat-la qui est suspendu.",
         ));
     }
 
-    if vrai(g(&motif, "date_accident")) {
+    if motif.date_accident == Some(true) {
         if !vrai(g(v, "date_accident")) {
             return impossible(format!(
                 "Motif {} ({}) : la date de l'accident ou de la premiere constatation (S21.G00.60.012) est \
@@ -206,11 +180,11 @@ et a maintenir le salaire."
                     .into(),
             );
         }
-        let subs = codes("subrogation")?;
-        if code(&subs, g(v, "subrogation")).is_none() {
+        let subs = &bloc.subrogation.codes;
+        if bloc.subrogation.code(g(v, "subrogation").as_str().unwrap_or_default()).is_none() {
             let liste: Vec<String> = subs
                 .iter()
-                .map(|c| format!("{} ({})", en_texte(&c["code"]), en_texte(&c["libelle"])))
+                .map(|c| format!("{} ({})", c.code, c.libelle))
                 .collect();
             return impossible(format!(
                 "Subrogation {} : la norme ne connait que {}.",
@@ -286,8 +260,7 @@ reprise.",
         }
     }
     if vrai(g(v, "reprise_motif")) {
-        let reprises = codes("motifs_reprise")?;
-        let mr = match code(&reprises, g(v, "reprise_motif")) {
+        let mr = match bloc.motifs_reprise.code(g(v, "reprise_motif").as_str().unwrap_or_default()) {
             Some(m) => m,
             None => {
                 return impossible(format!(
@@ -296,7 +269,7 @@ reprise.",
                 ))
             }
         };
-        if vrai(g(mr, "temps_partiel_therapeutique")) {
+        if mr.temps_partiel_therapeutique == Some(true) {
             return impossible(format!(
                 "Le motif de reprise {} (temps partiel therapeutique) est interdit dans un signalement -- \
 CCH-12.",
@@ -397,9 +370,10 @@ annule-et-remplace (type 03)."
     }
 
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
-    let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
+    let arret = a.forme()?;
+    let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&arret)?)?;
     let ent = &ctx.entreprise;
-    let salarie = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
+    let fiche = engagement::imprevus::fiche_du_salarie(ctx, &arret)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -418,14 +392,14 @@ annule-et-remplace (type 03)."
     f.ecrire_la_version()?;
     f.add("S10.G00.00.007", "01");
     f.add("S10.G00.00.008", "01");
-    f.add_v("S10.G00.01.001", req(ent, "siren")?)?;
-    f.add_v("S10.G00.01.002", req(ent, "nic")?)?;
-    f.add_v("S10.G00.01.003", req(ent, "raison_sociale")?)?;
-    f.add_v("S10.G00.01.004", req(ent, "adresse")?)?;
-    f.add_v("S10.G00.01.005", req(ent, "code_postal")?)?;
-    f.add_v("S10.G00.01.006", req(ent, "commune")?)?;
+    f.add_case("S10.G00.01.001", &ent.siren, "siren")?;
+    f.add_case("S10.G00.01.002", &ent.nic, "nic")?;
+    f.add_case("S10.G00.01.003", &ent.raison_sociale, "raison_sociale")?;
+    f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
+    f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
+    f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent.complement_adresse);
     dsn::contact_emetteur(&mut f, ent)?;
-    let decl = req(ent, "declarant_dsn")?;
 
     // ---------------------------------------------------------- S20 declar.
     f.add("S20.G00.05.001", nature);
@@ -436,49 +410,47 @@ annule-et-remplace (type 03)."
         f.add("S20.G00.05.006", r);
     }
     f.add("S20.G00.05.007", constitution.jjmmaaaa());
-    f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
-    f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
-    f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    crate::dsn::contact_chez_le_declare(&mut f, ent)?;
 
     // ------------------------------------------------------ S21 entreprise
-    f.add_v("S21.G00.06.001", req(ent, "siren")?)?;
-    f.add_v("S21.G00.06.002", req(ent, "nic")?)?;
+    f.add_case("S21.G00.06.001", &ent.siren, "siren")?;
+    f.add_case("S21.G00.06.002", &ent.nic, "nic")?;
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = droit::bareme::entreprise_du_salarie(ent, &salarie)?;
-    f.add_v("S21.G00.11.001", req(&etab, "nic")?)?;
-    f.add_v("S21.G00.11.003", req(&etab, "adresse")?)?;
-    f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;
-    f.add_v("S21.G00.11.005", req(&etab, "commune")?)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, &fiche)?;
+    f.add_case("S21.G00.11.001", &etab.nic, "nic")?;
+    f.add_case("S21.G00.11.003", &etab.adresse, "adresse")?;
+    f.add_case("S21.G00.11.004", &etab.code_postal, "code_postal")?;
+    f.add_case("S21.G00.11.005", &etab.commune, "commune")?;
+    f.add_complement("S21.G00.11.006", &etab.complement_adresse);
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;
-    let jour = engagement::imprevus::dernier_jour_declare(&a.v)?;
-    for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
-            continue;
-        }
-        f.add_v("S21.G00.15.001", req(ad, "libelle")?)?;
-        f.add_v("S21.G00.15.002", req(ad, "delegataire")?)?;
-        f.add_v("S21.G00.15.005", req(ad, "reference")?)?;
+    let jour = engagement::imprevus::dernier_jour_declare(&arret)?;
+    for ad in orgs.adhesions_prevoyance.iter().filter(|ad| ad.en_vigueur(&jour, &jour)) {
+        f.add("S21.G00.15.001", &ad.libelle);
+        f.add("S21.G00.15.002", &ad.delegataire);
+        f.add("S21.G00.15.005", &ad.reference);
     }
 
     // ------------------------------------------------------- S21 individu
-    crate::ntt::poser_nir(&mut f, &salarie)?;
-    f.add_v("S21.G00.30.002", req(&salarie, "nom")?)?;
-    f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
-    f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
-    f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &salarie, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
+    crate::ntt::poser_nir(&mut f, &fiche)?;
+    f.add_case("S21.G00.30.002", &fiche.nom, "nom")?;
+    f.add_case("S21.G00.30.004", &fiche.prenom, "prenom")?;
+    f.add("S21.G00.30.006", fiche.date_naissance.exigee("date_naissance")?.jjmmaaaa());
+    f.add_case("S21.G00.30.019", &fiche.code_salarie, "code_salarie")?;
+    crate::ntt::poser_ntt(&mut f, ent, &fiche,crate::changements_individu::derniere_declaree(ctx, &fiche, &engagement::imprevus::dernier_jour_declare(&arret)?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());
     f.add_v("S21.G00.40.009", g(&a.v, "contrat_numero"))?;
-    f.add_v("S21.G00.40.019", req(&etab, "siret")?)?;
+    f.add_case("S21.G00.40.019", &etab.siret, "siret")?;
 
-    let banque = req(ent, "banque")?;
-    if nature != REPRISE && vrai(g(&a.v, "subrogation")) && avec_subrogation(a)? && !(vrai(g(banque, "iban")) && vrai(g(banque, "bic"))) {
+    if ent.banque.is_none() {
+        return Err(socle::fichiers::absent("banque").into());
+    }
+    let banque = ent.banque.dite();
+    if nature != REPRISE && vrai(g(&a.v, "subrogation")) && avec_subrogation(a)? && !banque.is_some_and(|b| b.iban.remplie().is_some() && b.bic.remplie().is_some()) {
         return impossible(
             "Subrogation demandee : l'IBAN et le BIC de la compagnie (S21.G00.60.007 et .008) sont obligatoires \
 -- CCH-11. Ils se lisent dans la fiche entreprise, ils ne se saisissent pas dans l'arret."
@@ -496,24 +468,15 @@ annule-et-remplace (type 03)."
     Ok(texte)
 }
 
-/// Les motifs pour lesquels un signalement DSN ne nait pas (`sauf_motifs.codes`) : ceux que la DSN ne couvre pas.
-pub fn sauf_motifs(o: &Value) -> Vec<String> {
-    o.get("sauf_motifs").and_then(|s| s.get("codes")).and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default()
-}
-
 /// L'avertissement d'un signalement de nature `nature` (04 ou 05) dont le motif n'est pas couvert par la DSN
 /// (`sauf_motifs.avertissement`) : la norme l'admet, le moteur ne le refuse pas (regle 7), il dit que l'Assurance Maladie
 /// ne le traite pas et ce qui se fait a la place. `None` pour un motif couvert. Appele par `verifier`.
 pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String>, String> {
-    let cle = match nature {
-        ARRET => "signalement_arret",
-        REPRISE => "signalement_reprise",
+    let base = crate::obligations::base()?;
+    let o = match nature {
+        ARRET => base.obligations.signalement_arret,
+        REPRISE => base.obligations.signalement_reprise,
         _ => return Ok(None),
     };
-    let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
-    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| socle::echec::livree("obligations-base.json", cle))?;
-    if !sauf_motifs(o).iter().any(|m| m == motif) {
-        return Ok(None);
-    }
-    Ok(o["sauf_motifs"].get("avertissement").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string))
+    Ok(o.sauf_motifs.filter(|s| s.codes.iter().any(|m| m == motif)).map(|s| s.avertissement).filter(|t| !t.is_empty()))
 }

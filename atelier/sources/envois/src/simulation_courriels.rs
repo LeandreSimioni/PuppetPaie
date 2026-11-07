@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use mailparse::{parse_mail, MailHeaderMap, ParsedMail};
-use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use crate::courriel::{BoiteSimulee, Courriel, ErreurCourriel};
@@ -301,9 +300,45 @@ fn adresses(m: &ParsedMail, champ: &str) -> String {
     vus.join(", ")
 }
 
+/// Une piece jointe d'un courriel joue : son nom et son nombre de pages.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PieceJouee {
+    pub nom: Option<String>,
+    pub pages: usize,
+}
+
+/// Le bouton d'un courriel joue : la reponse toute ecrite qu'il ouvre (son sujet, son corps).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct BoutonJoue {
+    pub sujet: String,
+    pub corps: String,
+}
+
+/// Un courriel joue, tel que la page le montre : son fichier, de qui, a qui, son sujet, ses corps texte et HTML, ses
+/// pieces, s'il renvoie un contrat contresigne, et son bouton.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CourrielJoue {
+    pub nom: String,
+    pub de: String,
+    pub a: String,
+    pub sujet: String,
+    pub texte: String,
+    pub html: String,
+    pub pieces: Vec<PieceJouee>,
+    pub contresigne: bool,
+    pub bouton: Option<BoutonJoue>,
+}
+
+/// Les courriels joues, et le dernier fichier lu (d'ou la page repart).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CourrielsJoues {
+    pub courriels: Vec<CourrielJoue>,
+    pub dernier: String,
+}
+
 /// Les courriels joues de la compagnie fictive ecrits apres `apres` (un nom de fichier ; "" : tous), tels que la page
 /// les montre.
-pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
+pub fn courriels_joues(racine: &Path, apres: &str) -> CourrielsJoues {
     let (mut sortie, mut dernier) = (vec![], String::new());
     for (nom, octets) in courriels(racine) {
         dernier = nom.clone();
@@ -316,26 +351,26 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
         let en_tete = |c: &str| m.headers.get_first_value(c).unwrap_or_default();
         let b = bouton(&fs);
         let est_multipart = m.ctype.mimetype.starts_with("multipart/") && m.ctype.mimetype != "multipart/alternative";
-        let pieces: Vec<Value> = fs
+        let pieces: Vec<PieceJouee> = fs
             .iter()
             .filter(|f| est_multipart && !(f.ctype.mimetype.starts_with("text/") && nom_de_fichier(f).is_none()))
-            .map(|f| json!({"nom": nom_de_fichier(f), "pages": pages(f)}))
+            .map(|f| PieceJouee { nom: nom_de_fichier(f), pages: pages(f) })
             .collect();
         // Le courriel qui renvoie au signataire son contrat contresigne : sa piece en est l'exemplaire.
-        let contresigne = pieces.iter().any(|p| p["nom"].as_str().is_some_and(|n| n.ends_with(crate::releve_signatures::SUFFIXE_CONTRESIGNE)));
-        sortie.push(json!({
-            "nom": nom,
-            "de": adresses(&m, "From"),
-            "a": adresses(&m, "To"),
-            "sujet": en_tete("Subject"),
-            "texte": corps(&fs, "plain"),
-            "html": corps(&fs, "html"),
-            "pieces": pieces,
-            "contresigne": contresigne,
-            "bouton": b.map(|(s, c)| json!({"sujet": s, "corps": c})),
-        }));
+        let contresigne = pieces.iter().any(|p| p.nom.as_deref().is_some_and(|n| n.ends_with(crate::releve_signatures::SUFFIXE_CONTRESIGNE)));
+        sortie.push(CourrielJoue {
+            nom,
+            de: adresses(&m, "From"),
+            a: adresses(&m, "To"),
+            sujet: en_tete("Subject"),
+            texte: corps(&fs, "plain"),
+            html: corps(&fs, "html"),
+            pieces,
+            contresigne,
+            bouton: b.map(|(sujet, corps)| BoutonJoue { sujet, corps }),
+        });
     }
-    json!({"courriels": sortie, "dernier": dernier})
+    CourrielsJoues { courriels: sortie, dernier }
 }
 
 

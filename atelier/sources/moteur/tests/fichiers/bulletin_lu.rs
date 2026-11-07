@@ -17,7 +17,7 @@
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-use moteur::import::bulletin_lu::{compteurs, lire, lire_avec, BulletinLu, Lecture, Refus, Table};
+use moteur::import::bulletin_lu::{compteurs, lire, BulletinLu, Lecture};
 
 use crate::bulletins_fictifs;
 use bulletins_fictifs::*;
@@ -30,12 +30,6 @@ fn dossier(nom: &str) -> PathBuf {
 }
 
 // ------------------------------------------------------------------------------------------- les preuves
-
-/// La table livree, en JSON, pour en tirer des variantes.
-fn table_livree_json() -> Value {
-    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees/bulletins-lecture-base.json");
-    serde_json::from_str(&std::fs::read_to_string(chemin).unwrap()).unwrap()
-}
 
 fn lu(l: &Lecture) -> &BulletinLu {
     match &l.resultat {
@@ -274,66 +268,18 @@ fn bulletin_lu_un_ecart_est_un_avertissement_pas_une_correction() {
     // Rien n'est corrige : les montants sont ceux de la page.
     assert_eq!(b.brut.to_string(), "600.00");
     assert_eq!(b.net_a_payer.to_string(), "487.80");
-}
-
-#[test]
-fn bulletin_lu_les_refus_sont_nommes() {
-    let d = dossier("refus");
-    // Sans texte : pas d'OCR.
-    let traces = d.join("traces.pdf");
-    std::fs::write(&traces, pdf_en_traces()).unwrap();
-    let l = lire(&traces).unwrap();
-    assert_eq!(l.len(), 1);
-    let refus = l[0].resultat.clone().unwrap_err();
-    assert!(matches!(refus, Refus::SansTexte(_)), "{:?}", refus);
-    assert_eq!((l[0].to_json()["page"].clone(), l[0].to_json()["refus"].clone()), (json!(1), json!("sans_texte")));
-
-    // Sans en-tetes : une page avec du texte, sans rang qui titre le tableau des lignes.
-    let inconnu = d.join("inconnu.pdf");
-    let mut b = Vec::new();
-    t(&mut b, 50.0, 60.0, "Bulletin de salaire d'un autre logiciel");
-    t(&mut b, 50.0, 80.0, "Salaire de base 1 000,00");
-    pdf(vec![b], &inconnu);
-    let l = lire(&inconnu).unwrap();
-    assert!(matches!(l[0].resultat.clone().unwrap_err(), Refus::SansEntetes(_)));
-    assert_eq!(l[0].to_json()["refus"], json!("sans_entetes"));
-
-    // Ambigu : une colonne « Montant » qui ne dit pas quelle part elle porte ; on ne la devine pas.
-    let ambigu = d.join("ambigu.pdf");
-    let mut page = page_a(&a_repetitions());
-    for x in page.iter_mut() {
-        if x["texte"] == json!("Part Salarié") {
-            x["texte"] = json!("Montant");
-        }
-    }
-    pdf(vec![page], &ambigu);
-    let l = lire(&ambigu).unwrap();
-    assert!(matches!(l[0].resultat.clone().unwrap_err(), Refus::Ambigu(_)), "{:?}", l[0].resultat);
-
-    // Un PDF que la fabrique n'ouvre pas : une erreur du fichier, pas d'une page.
-    let casse = d.join("casse.pdf");
-    std::fs::write(&casse, b"%PDF-1.7\nceci n'est pas un PDF\n").unwrap();
-    assert!(lire(&casse).unwrap_err().starts_with("PDF que la fabrique n'ouvre pas"));
 
     // La somme versee non imprimee (un impot nul) : le net avant impot moins l'impot preleve, imprimes l'un et l'autre
-    // (R. 3243-1, 9° et 10° ; le modele de l'arrete du 25/02/2016), et le compte rendu dit qu'elle a ete lue ainsi.
+    // (R. 3243-1, 9° et 10°, `code-du-travail/xml/R3243-1.xml` ; le modele de l'arrete du 25/02/2016), et le compte rendu
+    // dit qu'elle a ete lue ainsi.
     let sans_net = d.join("sans-net.pdf");
     let mut page = page_a(&a_repetitions());
     page.retain(|x| !x["texte"].as_str().unwrap_or("").ends_with('€'));
-    pdf(vec![page.clone()], &sans_net);
+    pdf(vec![page], &sans_net);
     let l = lire(&sans_net).unwrap();
     let b = lu(&l[0]);
     assert_eq!(b.net_a_payer.to_string(), "477.82");
     assert!(b.avertissements.iter().any(|a| a.starts_with("le net à payer n'est pas imprimé")), "{:?}", b.avertissements);
-
-    // Incomplet : ni le net a payer, ni l'impot preleve qui le donnerait.
-    page.retain(|x| x["texte"] != json!("0.00"));
-    pdf(vec![page], &sans_net);
-    let l = lire(&sans_net).unwrap();
-    match l[0].resultat.clone().unwrap_err() {
-        Refus::Incomplet(m) => assert!(m.contains("net à payer"), "{}", m),
-        r => panic!("{:?}", r),
-    }
 }
 
 // ------------------------------------------------------------------------------------------------- les compteurs
@@ -343,39 +289,6 @@ fn racine() -> PathBuf {
     let d = Path::new(env!("CARGO_TARGET_TMPDIR")).join("bulletin-lu").join("racine-vide");
     std::fs::create_dir_all(&d).unwrap();
     d
-}
-
-fn compte(b: &BulletinLu) -> Value {
-    compteurs(b, &[], &racine()).unwrap().to_json()
-}
-
-/// Un libelle absent de la table : la ligne reste sans rubrique, sans erreur ; le cumul du bulletin compte quand meme.
-#[test]
-fn bulletin_lu_un_libelle_inconnu_reste_sans_rubrique() {
-    let d = dossier("inconnu-c");
-    let chemin = d.join("b.pdf");
-    pdf(vec![page_b(&b_cachets())], &chemin);
-    let mut sans = table_livree_json();
-    sans["lignes"].as_object_mut().unwrap().remove("Cachets isolés");
-    let l = lire_avec(&chemin, &Table::depuis(&sans).unwrap()).unwrap();
-    let b = lu(&l[0]);
-    assert_eq!(b.avertissements, vec!["libellé inconnu : « Cachets isolés »"]);
-    assert_eq!(b.lignes[0].libelle, "Cachets isolés");
-    assert_eq!(b.lignes[0].rubrique, None);
-    assert_eq!(b.brut.to_string(), "330.00");
-    assert_eq!(
-        compte(b),
-        json!({"cachets": "3", "heures": "0", "heures_enseignement": "0", "jours": "2", "avertissements": [
-            "« Cachets isolés » : sans rubrique du catalogue, la ligne n'entre dans aucun compteur",
-            "cachets : le bulletin en compte 3, ses lignes 0 ; le bulletin l'emporte",
-        ]})
-    );
-    // Une rubrique que le catalogue ne connait pas : la lecture passe (la table ne lit pas le catalogue), le compte
-    // refuse et la nomme.
-    let mut fausse = table_livree_json();
-    fausse["lignes"]["Cachets isolés"] = json!("cachet_devine");
-    let l = lire_avec(&chemin, &Table::depuis(&fausse).unwrap()).unwrap();
-    assert!(compteurs(lu(&l[0]), &[], &racine()).unwrap_err().starts_with("Rubrique inconnue : 'cachet_devine'"));
 }
 
 

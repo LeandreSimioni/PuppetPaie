@@ -1,5 +1,5 @@
 {
-  "_quoi": "LA PARTIE NORMATIVE des organismes et des contrats de la DSN, la meme pour toute compagnie du spectacle vivant : les organismes que la DSN paie (bloc S21.G00.20), les CTP Urssaf (bloc 23), le bloc 08 d'un mois sans individu, et les CONTRATS que chaque convention exige (`contrats`). Ce qui est propre a une compagnie -- la reference de ses contrats chez l'organisme, l'organisme qu'elle a choisi quand la branche n'en designe pas -- se saisit dans Configuration > Organismes et contrats (`moteur/src/compagnie/organismes.rs`), qui ne l'ecrit que dans config/organismes.json. Tout le reste se compose a la date lue, avec la CASC-SVP et les contributions de branche du bareme (`droit/src/organismes.rs`). Le compte France Travail se lit dans la fiche Entreprise (`france_travail_dossier_recouvrement`) ; le taux AT/MP dans le bareme du mois declare.",
+  "quoi": "LA PARTIE NORMATIVE des organismes et des contrats de la DSN, la même pour toute compagnie du spectacle vivant : les organismes que la DSN paie (bloc S21.G00.20), les CTP Urssaf (bloc 23), le bloc 08 d'un mois sans individu, et les CONTRATS que chaque convention exige (`contrats`). Lue par sa forme (`droit::organismes::Base`). Ce qui est propre à une compagnie -- la référence de ses contrats chez l'organisme, l'organisme qu'elle a choisi quand la branche n'en désigne pas -- se saisit dans Configuration › Organismes et contrats et s'écrit dans config/organismes.json. Tout le reste se compose à la date lue, avec la CASC-SVP et les contributions de branche du barème (`droit::organismes::composer`). Le compte France Travail se lit dans la fiche Entreprise (`france_travail_dossier_recouvrement`) ; le taux AT/MP dans le barème du mois déclaré.",
   "versements": [
     {
       "siret": "77567608300030",
@@ -7,302 +7,224 @@
       "nom": "Caisse des Congés Spectacles",
       "objet": "la cotisation de congés payés des intermittents",
       "jour_de_paiement": 25,
-      "codes81": [
-        "066"
-      ],
-      "_source_nom": "Table IVO des nomenclatures DSN, « Caisse des Congés spectacles » (atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt, l. 492) ; Audiens, « Pour les Congés Spectacles > 77567608300030 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md). Objet : code 066 « Cotisation caisse de congés spectacles » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 232).",
-      "_source_jour_de_paiement": "Audiens, dossier DSN : « L'échéance de paiement pour Audiens est pour un mois M, le 25 du mois M+1. Cette date est automatiquement retenue pour les paiements retraite et Congés Spectacles » (atelier/reference/sources/audiens-dsn/). La DSN n'écrit pas de date pour elle (S21.G00.20.011 : « Congés spectacles (AUDIENS) : non concerné ») : le 25 se dit dans la boîte de dépôt (`ordres_paiement.rs`)."
+      "codes81": ["066"],
+      "note": "La DSN n'écrit pas de date de paiement pour la caisse (S21.G00.20.011 : « Congés spectacles (AUDIENS) : non concerné ») : le 25 se dit dans la boîte de dépôt (`ordres_paiement`).",
+      "source": {"sources": [
+        {"fichier": "atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt", "emetteur": "gip_mds", "citation": "IVO;77567608300030;Caisse des Congés spectacles"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "066 - Cotisation caisse de congés spectacles"},
+        {"fichier": "atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md", "emetteur": "audiens", "citation": "Pour les Congés Spectacles > 77567608300030"},
+        {"fichier": "atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md", "emetteur": "audiens", "citation": "L’échéance de paiement pour Audiens est pour un mois M, le 25 du mois M+1. Cette date est automatiquement retenue pour les paiements retraite et Congés Spectacles"}
+      ], "raisonnement": "Le SIRET de la caisse est celui que la table des organismes de la norme et Audiens donnent ; elle reçoit la cotisation 066 ; Audiens dit son échéance, le 25 du mois qui suit."}
     },
     {
       "siret": "13000548100010",
       "libelle": "FRANCE TRAVAIL",
       "nom": "France Travail",
       "objet": "l'assurance chômage et l'AGS des intermittents",
-      "codes81": [
-        "040",
-        "048",
-        "041",
-        "018:chomage"
-      ],
-      "_source_nom": "Table IVO des nomenclatures DSN, « FRANCE TRAVAIL » (atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt, l. 974). Objet : codes 040 « Cotisation AC : assurance chômage », 041 « Cotisation AC majorée », 048 « Cotisation AGS : assurance garantie des salaires » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 209-220). Sa date de paiement (S21.G00.20.011) est écrite par `dsn.rs`.",
-      "_libelle_coolpaie": "Bordereau France Travail",
-      "_libelle": "Libelle verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. Codes 040/048/041 : contribution chomage, AGS. La reference CS00012345 est un compte Cinema Spectacle France Travail."
+      "codes81": ["040", "048", "041", "018:chomage"],
+      "note": "Sa date de paiement (S21.G00.20.011) est écrite par la DSN (`dsn::fabriquer`), à l'échéance de la DSN.",
+      "source": {"sources": [
+        {"fichier": "atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt", "emetteur": "gip_mds", "citation": "IVO;13000548100010;FRANCE TRAVAIL"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "040 - Cotisation AC : assurance chômage sur rémunérations brutes après déduction"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "041 - Cotisation AC majorée 1"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "048 - Cotisation AGS : assurance garantie des salaires"}
+      ]}
     },
     {
       "siret": "44832375800038",
       "libelle": "Retraite complementaire",
       "nom": "Audiens Retraite",
       "adresse": "74 rue Jean Bleuzen, 92177 Vanves Cedex",
-      "_source_adresse": "Groupe Audiens, pied de page de sa fiche des taux de la retraite complémentaire 2026 : « Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex » (atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt, l. 48). INFÉRENCE : l'adresse du groupe est celle de sa caisse de retraite et de son institution de prévoyance, que le contrat écrit nomme (code du travail L. 1242-12, 8°).",
       "objet": "la retraite complémentaire Agirc-Arrco",
       "jour_de_paiement": 25,
-      "_source_nom": "Audiens, « Pour la retraite Audiens > 44832375800038 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; table IVO, « AUDIENS », famille AAR (tables-organismes-20260924.txt, l. 480). Objet : codes 131 « Cotisation régime unifié Agirc-Arrco » et 105 (bloc-S21.G00.81.txt, l. 269, 287).",
-      "_source_jour_de_paiement": "Audiens, dossier DSN : le 25 du mois M+1, « automatiquement retenue pour les paiements retraite et Congés Spectacles » (atelier/reference/sources/audiens-dsn/). La DSN n'écrit pas de date (S21.G00.20.011 : « AGIRC-ARRCO : non concerné »).",
-      "codes81": [
-        "131",
-        "132",
-        "106",
-        "105"
-      ],
-      "_libelle_coolpaie": "Versement Audiens",
-      "_note": "Audiens est le groupe de retraite complementaire du spectacle : les deux noms designent le meme organisme. Code 131 = cotisation regime unifie Agirc-Arrco, 132 = cotisation Apec, 106 = reduction generale (part retraite). Le 105 (<< y compris Apec >>) ne s'ecrit plus que pour regulariser une periode anterieure a 2025 (cahier technique 2026.1 p. 302, atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt lignes 79-81) : il reste ici pour cette regularisation (`dsn::codes_du_versement`)."
+      "codes81": ["131", "132", "106", "105"],
+      "note": "Audiens est le groupe de retraite complémentaire du spectacle. 131 : la cotisation du régime unifié Agirc-Arrco ; 132 : la cotisation Apec ; 106 : la réduction générale, part retraite. Le 105 ne s'écrit plus que pour régulariser une période antérieure à 2025 (`dsn::codes_du_versement`). La DSN n'écrit pas de date de paiement (S21.G00.20.011 : « AGIRC-ARRCO : non concerné »). INFÉRENCE : l'adresse du groupe est celle de sa caisse de retraite, que le contrat écrit nomme (code du travail L. 1242-12, 8°).",
+      "source": {"sources": [
+        {"fichier": "atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt", "emetteur": "gip_mds", "citation": "IVO;44832375800038;AUDIENS;AAR"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "131 - Cotisation régime unifié Agirc-Arrco"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "132 - Cotisation Apec"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "106 - Réduction générale des cotisations patronales de retraite complémentaire"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "AGIRC-ARRCO : \"105\" (pour régularisation des périodes antérieures à 2025)"},
+        {"fichier": "atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md", "emetteur": "audiens", "citation": "Pour la retraite Audiens > 44832375800038"},
+        {"fichier": "atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md", "emetteur": "audiens", "citation": "L’échéance de paiement pour Audiens est pour un mois M, le 25 du mois M+1. Cette date est automatiquement retenue pour les paiements retraite et Congés Spectacles"},
+        {"fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt", "emetteur": "audiens", "citation": "Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex"}
+      ], "raisonnement": "Le SIRET est celui que la table des organismes de la norme et Audiens donnent ; ses codes de cotisation sont ceux d'Agirc-Arrco dans la norme ; Audiens dit son échéance et l'adresse du groupe."}
     },
     {
       "siret": "P0983",
       "libelle": "AUDIENS PREVOYANCE",
       "nom": "Audiens Santé Prévoyance",
       "adresse": "74 rue Jean Bleuzen, 92177 Vanves Cedex",
-      "_source_adresse": "Voir `_source_adresse` d'Audiens Retraite : la même adresse du groupe (audiens-fp-taux-repartition-retraite-2026.txt, l. 48), inférence écrite comme telle.",
       "objet": "la prévoyance et la santé",
       "jour_de_paiement": 25,
-      "codes81": [
-        "059"
-      ],
-      "_libelle_coolpaie": "Versement Prevoyance / Sante",
-      "_source_nom": "P0983 est Audiens Santé Prévoyance, pas l'AFDAS. Audiens : « Pour Audiens Santé Prévoyance > P0983 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; tables PREV et IVO des nomenclatures DSN, « AUDIENS PREVOYANCE » (dsn-nomenclatures/tables-organismes-20260924.txt, l. 32 et 625, famille CTI, institution de prévoyance). Le code 059 qu'il porte est « Cotisation individuelle Prévoyance-Assurance-Mutuelle » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 228). L'AFDAS est l'OPCO (table OPCO, code 02) : la contribution formation part à l'Urssaf par ses CTP.",
-      "_source_jour_de_paiement": "Audiens, dossier DSN : le 25 du mois M+1, date qui « doit être renseignée dans le bloc paiement à destination d'Audiens Santé Prévoyance (P0983) » : `dsn.rs` l'écrit en S21.G00.20.011. L'échéance trimestrielle (moins de onze salariés, sur option) n'est pas modélisée (atelier/reference/sources/audiens-dsn/LISEZ-MOI.md)."
+      "codes81": ["059"],
+      "note": "P0983 est Audiens Santé Prévoyance (institution de prévoyance, famille CTI), pas l'AFDAS : l'AFDAS est l'OPCO, et la contribution formation part à l'Urssaf par ses CTP. Le 25 s'écrit en S21.G00.20.011 (`dsn::fabriquer`). L'échéance trimestrielle (moins de onze salariés, sur option) n'est pas modélisée. INFÉRENCE : l'adresse du groupe est celle de son institution de prévoyance, que le contrat écrit nomme (code du travail L. 1242-12, 8°).",
+      "source": {"sources": [
+        {"fichier": "atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt", "emetteur": "gip_mds", "citation": "PREV;P0983;AUDIENS PREVOYANCE"},
+        {"fichier": "atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt", "emetteur": "gip_mds", "citation": "IVO;P0983;AUDIENS PREVOYANCE;CTI"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle"},
+        {"fichier": "atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md", "emetteur": "audiens", "citation": "Pour Audiens Santé Prévoyance > P0983"},
+        {"fichier": "atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md", "emetteur": "audiens", "citation": "doit être renseignée dans le bloc paiement à destination d’Audiens Santé Prévoyance (P0983)"},
+        {"fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt", "emetteur": "audiens", "citation": "Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex"}
+      ], "raisonnement": "Le code est celui que les tables de la norme et Audiens donnent ; il reçoit la cotisation 059 ; Audiens dit que la date du 25 s'écrit dans son bloc de paiement, et l'adresse du groupe."}
     },
     {
       "siret": "78861779300013",
       "libelle": "URSSAF",
       "nom": "Urssaf",
       "objet": "les cotisations et contributions sociales du bordereau Urssaf",
-      "_source_nom": "Table IVO des nomenclatures DSN, famille URS (tables-organismes-20260924.txt, l. 952, « Urssaf Ile-de-France ») : une Urssaf par région, d'où le nom générique ; c'est l'organisme du bordereau S21.G00.22.",
-      "codes81": [
-        "049",
-        "074",
-        "075",
-        "102",
-        "130",
-        "128",
-        "907",
-        "072",
-        "079",
-        "018:urssaf",
-        "040:urssaf",
-        "048:urssaf"
-      ],
-      "_montant": "CALCULE : le bordereau Urssaf (22.005, recopie en 20.005) est la somme des lignes 23, chacune valorisee a la table des CTP de l'Urssaf et arrondie a l'euro (documents/src/bordereau.rs). Rejoue sur les 75 DSN de CoolPaie : 74 au centime.",
-      "_libelle_coolpaie": "Bordereau Urssaf",
-      "_libelle": "Libelle verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. C'est cet organisme qui porte le bordereau S21.G00.22 et les CTP S21.G00.23, notions propres a l'URSSAF.",
-      "_chomage_des_permanents": "Les cles 040:urssaf et 048:urssaf sont le chomage et l'AGS d'un SALARIE PERMANENT : meme code de cotisation qu'un intermittent (040, 048), mais recouvres par l'Urssaf et non par France Travail. C'est le bareme qui pose la cle (par_nature.permanent.cotisations_dsn), et la reduction generale suit le meme chemin (018:urssaf porte alors ses deux parts)."
+      "codes81": ["049", "074", "075", "102", "130", "128", "907", "072", "079", "018:urssaf", "040:urssaf", "048:urssaf"],
+      "note": "Une Urssaf par région, d'où le nom générique : c'est l'organisme du bordereau (S21.G00.22) et des CTP (S21.G00.23), et la DSN le reconnaît à son libellé « URSSAF ». Son montant se CALCULE : la somme des lignes 23, chacune valorisée à la table des CTP de l'Urssaf et arrondie à l'euro (`declarations::bordereau`). Les clés 040:urssaf et 048:urssaf sont le chômage et l'AGS d'un salarié PERMANENT, même code de cotisation qu'un intermittent, recouvrés par l'Urssaf et non par France Travail ; le barème pose la clé (`par_nature.permanent.cotisations_dsn`), et la réduction générale suit le même chemin (018:urssaf).",
+      "source": {"sources": [
+        {"fichier": "atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt", "emetteur": "gip_mds", "citation": "IVO;78861779300013;Urssaf Ile-de-France;URS"},
+        {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt", "emetteur": "gip_mds", "citation": "049 - Cotisation Allocation de logement (FNAL)"}
+      ]}
     }
   ],
   "sans_individu": {
-    "_source": "Cahier technique NEODeS 2026.1, section 2.4 (p. 64-67) et rubrique S20.G00.08.001 (p. 140), lu le 15/09/2026. Un mois sans aucun salarie se declare en 'normale sans individu' (S20.G00.05.002 = 02, S10.G00.00.008 = 02 'envoi neant'). Seuls S10, S20, S90, S21.G00.06 et S21.G00.11 sont admis, plus, pour nos organismes : 15 (prevoyance), 20 (tous), 22 et 23 (Urssaf). S20.G00.08 nomme les organismes precedemment destinataires qui n'ont plus d'individu rattache ce mois-ci : AGIRC-ARRCO 88, France Travail 93, Conges spectacles 97 (l'Urssaf et l'organisme complementaire n'y figurent pas).",
-    "absence_de_rattachement": [
-      "88",
-      "93",
-      "97"
+    "quoi": "Un mois sans aucun salarié se déclare en « normale sans individu » ; S20.G00.08 nomme les organismes précédemment destinataires qui n'ont plus d'individu rattaché ce mois-ci : Agirc-Arrco 88, France Travail 93, Congés Spectacles 97. L'Urssaf et l'organisme complémentaire n'y figurent pas (`dsn::fabriquer`).",
+    "absence_de_rattachement": ["88", "93", "97"],
+    "source": {"sources": [
+      {"fichier": "atelier/reference/norme-dsn/texte/bloc-S20.G00.08.txt", "emetteur": "gip_mds", "citation": "AGIRC ARRCO : 88"},
+      {"fichier": "atelier/reference/norme-dsn/texte/bloc-S20.G00.08.txt", "emetteur": "gip_mds", "citation": "FRANCE TRAVAIL : 93"},
+      {"fichier": "atelier/reference/norme-dsn/texte/bloc-S20.G00.08.txt", "emetteur": "gip_mds", "citation": "Caisse de congés spectacles : 97"},
+      {"fichier": "atelier/reference/norme-dsn/texte/bloc-S20.G00.08.txt", "emetteur": "gip_mds", "citation": "Organisme complémentaire : non concerné"}
+    ]}
+  },
+  "ctp_urssaf": {
+    "quoi": "La table des CTP Urssaf du bordereau (bloc S21.G00.23) : chaque ligne, son assiette agrégée du mois (ou son montant, `montant`) arrondie à l'euro (`dsn::lignes_bordereau`). Chaque code se lit dans la table des CTP de l'Urssaf.",
+    "note": "Une ligne marquée `statut` (artiste, technicien) ou `nature` (permanent, intermittent) ne s'écrit que si son assiette, ou son montant, n'est pas nulle. Sous le qualifiant 921 (« Assiette plafonnée »), une population porte son assiette PLAFONNÉE : `brut_artiste` sous 312/921 lit la somme des `brut_plafonne` des artistes (le brut de chaque contrat dans la limite de son plafond, celui du bulletin et de la base 02), `brut_x115_artiste` sous 334/921 celle des `brut_x115_plafonne` ; de même pour les techniciens (100 et 332) ; `t1_permanent` est déjà plafonné. C'est le qualifiant qui dit plafonnée, pas la clé ; une clé qui n'a pas de forme plafonnée refuse sous 921 (`dsn::valeur_ctp`). Une ligne marquée `taux_at` porte le taux AT/MP (S21.G00.23.003) du barème du mois déclaré, 70 % pour l'artiste (`dsn::taux_at_du_ctp`) : il ne se recopie pas ici.",
+    "source": {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.23.txt", "emetteur": "gip_mds", "citation": "921 - Assiette plafonnée"},
+    "lignes": [
+      {"code": "027", "qualifiant": "920", "assiette": "brut",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'027';CONTRIBUTION AU DIALOGUE SOCIAL"}},
+      {"code": "260", "qualifiant": "920", "assiette": "csg",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'260';CSG CRDS REGIME GENERAL"}},
+      {"code": "312", "qualifiant": "920", "assiette": "brut_artiste", "taux_at": "bareme", "statut": "artiste",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'312';ARTISTES CAS GENERAL ABATTEMENT 30%;ARTISTES 30%;A;10.82;9.38;0.0;2026-01-01"}},
+      {"code": "312", "qualifiant": "921", "assiette": "brut_artiste", "statut": "artiste",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'312';ARTISTES CAS GENERAL ABATTEMENT 30%;ARTISTES 30%;A;10.82;9.38;0.0;2026-01-01"}},
+      {"code": "334", "qualifiant": "921", "assiette": "brut_x115_artiste", "statut": "artiste", "effectif_sous": 50,
+        "note": "FNAL des artistes, plafonné, sous cinquante salariés. `effectif_sous` : la ligne ne s'écrit que si le seuil n'est pas franchi (config/effectifs.json, cinq années consécutives : `dsn::Seuils`).",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'334';FNAL ARTISTES PLAFONNE;FNAL ARTISTE PLAF;E;0.07"},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "Effectif de moins de 50 salariés : 0,07 % dans la limite du plafond"},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "CTP 334 : FNAL artistes plafonné"}
+        ]}},
+      {"code": "316", "qualifiant": "920", "assiette": "brut_x115_artiste", "statut": "artiste", "effectif_au_moins": 50,
+        "note": "FNAL des artistes, sur la totalité, à partir de cinquante salariés, sur le brut majoré de 11,5 % (CSS L. 243-1-3 ; barème, `seuils_effectif.fnal.au_dela` : brut_x115). INFÉRENCE : il remplace le 334, la page de l'Urssaf donnant un seul taux par tranche d'effectif.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'316';FNAL ARTISTES TOTALITE;FNAL ARTISTES TOTAL;E;;0.35;;2012-01-01"},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "Effectif 50 salariés et plus : 0,35 %"},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "CTP 316 : FNAL artistes totalité"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "316;FNAL ARTISTES TOTALITE;E;2021-01-01;03;;049"}
+        ]}},
+      {"code": "432", "qualifiant": "920", "assiette": "brut_artiste", "statut": "artiste",
+        "note": "Le complément d'allocations familiales au taux abattu des ARTISTES, sur le brut des artistes intermittents (`brut_artiste`, sans les techniciens) : un technicien intermittent relève du 430.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'432';COMPLEMENT AF ABATT. 30 %;COMPLT AF ABATT.30 %;E;;1.26"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "Ce CTP artistes est à utiliser si la Réduction proportionnelle du taux de cotisations d’allocations familiales n’est pas applicable"},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "Seuls les artistes du spectacle sont concernés par l’application des taux réduits. Les techniciens ne sont pas concernés."}
+        ]}},
+      {"code": "636", "qualifiant": "920", "assiette": "brut_artiste", "statut": "artiste",
+        "note": "Le complément maladie au taux abattu des ARTISTES, sur le brut des artistes intermittents (`brut_artiste`, sans les techniciens) : un technicien intermittent relève du 635.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'636';COMPLEMENT MALADIE ABATT. 30%;COMPLT MALADIE 30%;E;;4.2"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "Ce CTP est à utiliser en cas de versement du complément de cotisation maladie à taux réduit pour les artistes."},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "Seuls les artistes du spectacle sont concernés par l’application des taux réduits. Les techniciens ne sont pas concernés."}
+        ]}},
+      {"code": "983", "qualifiant": "920", "assiette": "brut_intermittent", "nature": "intermittent",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'983';CFP INTERMITTENTS DU SPECTACLE;CFP INTERMITTENTS;E;;2.0"}},
+      {"code": "992", "qualifiant": "920", "assiette": "ta_principale",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'992';TA PRINCIPALE HORS ALSACE MOSELLE"}},
+      {"code": "100", "qualifiant": "920", "assiette": "brut_technicien", "taux_at": "bareme", "statut": "technicien",
+        "note": "Le régime général, cas général, du technicien intermittent, au taux AT/MP plein de la compagnie.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'100';RG CAS GENERAL;CAS GENER;A;15.45;13.26;0.0;2026-01-01"}},
+      {"code": "100", "qualifiant": "921", "assiette": "brut_technicien", "statut": "technicien",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'100';RG CAS GENERAL;CAS GENER;A;15.45;13.26;0.0;2026-01-01"}},
+      {"code": "635", "qualifiant": "920", "assiette": "brut_technicien", "statut": "technicien",
+        "note": "Le complément maladie au taux plein : le nominatif d'un technicien intermittent déclare 907 à 6,00 (barème, `par_statut.technicien`), le taux abattu (636) étant celui des artistes seuls.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'635';COMPLEMENT COTISATION MALADIE;MALADIE TAUX PLEIN;E;;6.0"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "635;COMPLEMENT COTISATION MALADIE;E;2021-01-01;03;01;907"},
+          {"fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt", "emetteur": "urssaf", "citation": "Seuls les artistes du spectacle sont concernés par l’application des taux réduits. Les techniciens ne sont pas concernés."}
+        ]}},
+      {"code": "430", "qualifiant": "920", "assiette": "brut_technicien", "statut": "technicien",
+        "note": "Le complément d'allocations familiales au taux plein : le nominatif d'un technicien intermittent déclare 102 à 1,80 (barème, `par_statut.technicien`), le taux abattu (432) étant celui des artistes seuls.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'430';COMPLEMENT COTISATION AF;AF TAUX PLEIN;E;;1.8"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "430;COMPLEMENT COTISATION AF;E;2021-01-01;03;01;102"}
+        ]}},
+      {"code": "332", "qualifiant": "921", "assiette": "brut_x115_technicien", "statut": "technicien",
+        "note": "Le FNAL plafonné des techniciens intermittents, sur le brut majoré de 11,5 %.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'332';FNAL PLAFONNE;FNAL PLAFONNE;E;0.1"}},
+      {"code": "671", "qualifiant": "921", "montant": "reduction_generale_urssaf", "statut": "technicien",
+        "note": "La réduction générale des intermittents, dont l'assurance chômage n'est pas recouvrée par l'Urssaf : un montant de cotisation en euros (23.005), positif. Sa régularisation : le CTP 801.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'671';REDUCTION GENERALE SANS CHOMAGE;REDUC GEN SANS CHOM;F;100.0;;;2026-01-01"}},
+      {"code": "100", "qualifiant": "920", "assiette": "brut_permanent", "taux_at": "bareme", "nature": "permanent",
+        "note": "Le régime général, cas général, du permanent : l'assiette déplafonnée, et le taux AT/MP notifié à l'établissement.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'100';RG CAS GENERAL;CAS GENER;A;15.45;13.26;0.0;2026-01-01"}},
+      {"code": "100", "qualifiant": "921", "assiette": "t1_permanent", "nature": "permanent",
+        "note": "Le régime général, cas général, assiette plafonnée : la tranche 1 du mois, le plafond de la Sécurité sociale de la période, proratisé quand le contrat ne couvre pas tout le mois.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'100';RG CAS GENERAL;CAS GENER;A;15.45;13.26;0.0;2026-01-01"}},
+      {"code": "635", "qualifiant": "920", "assiette": "brut_permanent", "nature": "permanent",
+        "note": "Le complément maladie : le CTP 100 porte 7,00 % de maladie, l'ancien taux réduit, et ce complément fait le taux plein (BOSS, COT_AM_SS_METROP). La même décomposition que pour les artistes (636).",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'635';COMPLEMENT COTISATION MALADIE;MALADIE TAUX PLEIN;E;;6.0"}},
+      {"code": "430", "qualifiant": "920", "assiette": "brut_permanent", "nature": "permanent",
+        "note": "Le complément d'allocations familiales : le CTP 100 porte 3,45 %, ce complément fait le taux plein (BOSS, COT_AF_SS_METROP). L'équivalent non abattu du 432.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'430';COMPLEMENT COTISATION AF;AF TAUX PLEIN;E;;1.8"}},
+      {"code": "332", "qualifiant": "921", "assiette": "t1_x115_permanent", "nature": "permanent",
+        "note": "Le FNAL plafonné, sous cinquante salariés (BOSS, COT_FNAL_49_METROP). Son assiette est la tranche 1, pas le brut : c'est ce que « plafonné » veut dire. Majorée de 11,5 % pour un permanent que l'employeur déclare à la caisse des Congés Spectacles -- un CDD de moins de douze mois d'un artiste (CSS L. 243-1-3 ; seule la part plafonnée : lettre circulaire Acoss 2013-019, annexe 1, R2 ; atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md) --, la tranche 1 nue pour les autres.",
+        "source": {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'332';FNAL PLAFONNE;FNAL PLAFONNE;E;0.1"}},
+      {"code": "772", "qualifiant": "920", "assiette": "chomage_permanent", "nature": "permanent",
+        "note": "L'assurance chômage du permanent, que l'Urssaf recouvre ; celle d'un intermittent part à France Travail (codes 040 et 048), d'où la réduction générale d'un intermittent « sans chômage ». Son assiette, `chomage_permanent`, est la somme des bases 07 des permanents : le brut dans la limite de quatre plafonds de la Sécurité sociale de la période (règlement général d'assurance chômage du 15/11/2024, art. 49 ; C. trav. L. 5422-9), la même que le bulletin et le nominatif (040).",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'772';CONTRIBUTIONS ASSURANCE CHOMAGE U2;CONTRIB ASSU CHOMAGE;E;;4.0;;2025-01-05"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "772;CONTRIBUTIONS ASSURANCE CHOMAGE U2;E;2020-01-01;07;;040"}
+        ]}},
+      {"code": "937", "qualifiant": "920", "assiette": "chomage_permanent", "nature": "permanent",
+        "note": "L'AGS du permanent, sur l'assiette du chômage, `chomage_permanent` (C. trav. L. 3253-18 : l'AGS est assise sur les rémunérations qui servent au calcul des contributions d'assurance chômage). Les dates de la table des CTP s'écrivent AAAA-JJ-MM : 0,25 % depuis le 01/07/2024.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "937;COTISATIONS AGS CAS GENERAL U2;E;2021-01-01;07;;048"}
+        ]}},
+      {"code": "959", "qualifiant": "920", "assiette": "cfp_permanent", "nature": "permanent",
+        "note": "La contribution à la formation professionnelle des entreprises de moins de onze salariés (C. trav. L. 6331-1) ; un intermittent relève du 983. Le CTP des entreprises de onze salariés et plus (971) n'est pas dans cette table. L'assiette `cfp_permanent` est la somme des 81.003 de la cotisation 128 des permanents : le brut, majoré de 11,5 % pour un contrat déclaré à la caisse des Congés Spectacles (atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md ; `dsn::ctp_urssaf`).",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'959';CFP ENTREPRISE < 11 SALARIES;CFP ENTREPRISE < 11;E;;0.55"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "959;CFP ENTREPRISES < 11 SALARIES;E;2022-01-01;03;;128"}
+        ]}},
+      {"code": "987", "qualifiant": "920", "assiette": "cpf_cdd", "nature": "permanent",
+        "note": "La contribution CPF-CDD des CDD de droit commun qui l'ouvrent (ni saisonniers, ni contrats aidés ; le CDDU relève de L. 6331-55). L'assiette `cpf_cdd` est la somme des 81.003 de la cotisation 129 que leur nominatif déclare (`dsn::ctp_urssaf`).",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'987';CONTRIBUTION CPF CDD;CONTRIB. CPF CDD;E;;1.0"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "987;CONTRIBUTION CPF-CDD;E;2022-01-01;03;;129"}
+        ]}},
+      {"code": "668", "qualifiant": "921", "montant": "reduction_generale_permanent", "nature": "permanent",
+        "note": "La réduction générale d'un salarié dont l'Urssaf recouvre AUSSI l'assurance chômage : le pendant du 671 des intermittents, que la table nomme « réduction générale sans chômage ». Un montant de cotisation en euros (23.005), positif. Sa régularisation : le CTP 669.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'668';REDUCTION GENERALE ETENDUE U2;REDUC GALE ETENDUE;F;100.0;;;2026-01-01"},
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'671';REDUCTION GENERALE SANS CHOMAGE;REDUC GEN SANS CHOM;F;100.0;;;2026-01-01"}
+        ]}},
+      {"code": "003", "qualifiant": "921", "montant": "reduction_heures_en_plus", "nature": "permanent",
+        "note": "La réduction de cotisations salariales des heures supplémentaires et complémentaires (CSS L. 241-17), au format R : le CTP porte le signe négatif, 23.005 est positif. Au nominatif, le code 114 sous la base 03, la rémunération des heures en 81.003, la réduction signée « - » en 81.004.",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'003';REDUCTION SALARIALE HEURES SUP"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "003;REDUCTION SALARIALE HEURES SUP;R;2021-01-01;03;;114"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "L'employeur déclare la totalité de la déduction à l'Urssaf via le CTP 003, y compris la partie portant sur les cotisations de retraite complémentaire"}
+        ]}},
+      {"code": "004", "qualifiant": "921", "montant": "deduction_heures_supplementaires", "nature": "permanent",
+        "note": "La déduction forfaitaire patronale des heures supplémentaires (CSS L. 241-18, L. 241-18-1), quel que soit l'effectif, au format R. Au nominatif, le code 021 sous la base 03, signé « - ».",
+        "source": {"sources": [
+          {"fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv", "emetteur": "urssaf", "citation": "'004';DEDUCTION PATRONALE HEURES SUP"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "004;DEDUCTION PATRONALE HEURES SUP;R;2021-01-01;03;;021"},
+          {"fichier": "atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv", "emetteur": "urssaf", "citation": "A compter de 2025 ce CTP ne doit plus être utilisé, la déduction doit être déclarée par le CTP 004"}
+        ]}}
     ]
   },
-  "affectations_81_059": {
-    "202": "103",
-    "203": "102",
-    "205": "103",
-    "206": "102"
-  },
-  "ctp_urssaf": [
-    {
-      "code": "027",
-      "qualifiant": "920",
-      "assiette": "brut"
-    },
-    {
-      "code": "260",
-      "qualifiant": "920",
-      "assiette": "csg"
-    },
-    {
-      "code": "312",
-      "qualifiant": "920",
-      "assiette": "brut_artiste",
-      "taux_at": "bareme",
-      "statut": "artiste"
-    },
-    {
-      "code": "312",
-      "qualifiant": "921",
-      "assiette": "brut_artiste",
-      "statut": "artiste"
-    },
-    {
-      "code": "334",
-      "qualifiant": "921",
-      "assiette": "brut_x115_artiste",
-      "statut": "artiste",
-      "effectif_sous": 50,
-      "_note": "FNAL ARTISTES PLAFONNE, 0,07 %, sous cinquante salaries (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 du .txt). `effectif_sous` : la ligne ne s'ecrit que si le seuil n'est pas franchi (config/effectifs.json, cinq annees consecutives : `dsn::Seuils`)."
-    },
-    {
-      "code": "316",
-      "qualifiant": "920",
-      "assiette": "brut_x115_artiste",
-      "statut": "artiste",
-      "effectif_au_moins": 50,
-      "_note": "FNAL ARTISTES TOTALITE, 0,35 % (table des CTP : taux deplafonne 0.35 depuis 2012), a partir de cinquante salaries : « Effectif 50 salaries et plus : 0,35 % », « CTP 316 : FNAL artistes totalite » (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 92 et 148 du .txt). Tableau DIDA : 316 -> 049, qualifiant 920 (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 2101). Sur la totalite du brut majore de 11,5 % (CSS L. 243-1-3 ; bareme, `seuils_effectif.fnal.au_dela` : brut_x115). Remplace le 334 (inference : la page donne un seul taux par tranche d'effectif)."
-    },
-    {
-      "code": "432",
-      "qualifiant": "920",
-      "assiette": "brut_artiste",
-      "statut": "artiste",
-      "_note": "COMPLEMENT AF ABATT. 30 %, 1,26 % : le taux abattu des ARTISTES (« Ce CTP artistes », tableau DIDA de l'Urssaf, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1450), sur le brut des artistes intermittents. « Seuls les artistes du spectacle sont concernes par l'application des taux reduits. Les techniciens ne sont pas concernes » (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt) : un technicien intermittent releve du 430. L'assiette est `brut_artiste`, sans les techniciens (`dsn::ctp_urssaf`)."
-    },
-    {
-      "code": "636",
-      "qualifiant": "920",
-      "assiette": "brut_artiste",
-      "statut": "artiste",
-      "_note": "COMPLEMENT MALADIE ABATT. 30%, 4,20 % : le taux abattu des ARTISTES (« Ce CTP artistes », tableau DIDA de l'Urssaf, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838 et 1410), sur le brut des artistes intermittents. « Seuls les artistes du spectacle sont concernes par l'application des taux reduits. Les techniciens ne sont pas concernes » (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt) : un technicien intermittent releve du 635. L'assiette est `brut_artiste`, sans les techniciens (`dsn::ctp_urssaf`)."
-    },
-    {
-      "code": "983",
-      "qualifiant": "920",
-      "assiette": "brut_intermittent",
-      "nature": "intermittent"
-    },
-    {
-      "code": "992",
-      "qualifiant": "920",
-      "assiette": "ta_principale"
-    },
-    {
-      "code": "100",
-      "qualifiant": "920",
-      "assiette": "brut_technicien",
-      "taux_at": "bareme",
-      "statut": "technicien",
-      "_note": "Regime general cas general, taux AT plein de la compagnie (CARSAT 1,50 en 2026 ; 01.69 en mai 2025). A changer avec _taux_carsat du bareme."
-    },
-    {
-      "code": "100",
-      "qualifiant": "921",
-      "assiette": "brut_technicien",
-      "statut": "technicien"
-    },
-    {
-      "code": "635",
-      "qualifiant": "920",
-      "assiette": "brut_technicien",
-      "statut": "technicien",
-      "_note": "COMPLEMENT COTISATION MALADIE, 6,00 %, au taux plein : le nominatif d'un technicien intermittent declare 907 a 6,00 (bareme, par_statut.technicien), et le taux abattu (636) est celui des artistes seuls (Urssaf, « Les taux reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt : « Les techniciens ne sont pas concernes »). Tableau DIDA : 635 -> 907, base 03, qualifiant 920 (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 12 et 1555)."
-    },
-    {
-      "code": "430",
-      "qualifiant": "920",
-      "assiette": "brut_technicien",
-      "statut": "technicien",
-      "_note": "COMPLEMENT COTISATION AF, 1,80 %, au taux plein : le nominatif d'un technicien intermittent declare 102 a 1,80 (bareme, par_statut.technicien), et le taux abattu (432) est celui des artistes seuls (meme page Urssaf). Tableau DIDA : 430 -> 102, base 03, qualifiant 920 (l. 3 et 701)."
-    },
-    {
-      "code": "332",
-      "qualifiant": "921",
-      "assiette": "brut_x115_technicien",
-      "statut": "technicien",
-      "_note": "FNAL moins de 50 salaries, brut x 1,115 (62,00 pour 56,00 en mai 2025)."
-    },
-    {
-      "code": "671",
-      "qualifiant": "921",
-      "montant": "reduction_generale_urssaf",
-      "statut": "technicien",
-      "_note": "Reduction generale des intermittents (AC non recouvree par l'Urssaf) : montant de cotisation en euros, 23.005, positif -- 8,00 en mai 2025. Regularisation : CTP 801."
-    },
-    {
-      "code": "100",
-      "qualifiant": "920",
-      "assiette": "brut_permanent",
-      "taux_at": "bareme",
-      "nature": "permanent",
-      "_note": "RG CAS GENERAL, assiette deplafonnee (13,26 % en 2026) plus le taux AT notifie a l'etablissement. A changer avec _taux_carsat du bareme. Table CTP Urssaf, ligne en vigueur depuis le 01/01/2026."
-    },
-    {
-      "code": "100",
-      "qualifiant": "921",
-      "assiette": "t1_permanent",
-      "nature": "permanent",
-      "_note": "RG CAS GENERAL, assiette plafonnee (15,45 % : vieillesse plafonnee 8,55 + 6,90). L'assiette est la tranche 1 du mois -- le plafond de Securite sociale de la periode, proratise quand le contrat ne couvre pas tout le mois."
-    },
-    {
-      "code": "635",
-      "qualifiant": "920",
-      "assiette": "brut_permanent",
-      "nature": "permanent",
-      "_note": "COMPLEMENT COTISATION MALADIE, 6,00 %. Le CTP 100 porte 7,00 % de maladie -- l'ancien taux reduit --, et ce complement fait les 13,00 % du taux plein (BOSS, COT_AM_SS_METROP). Meme decomposition que pour les artistes (636, abattu a 4,20)."
-    },
-    {
-      "code": "430",
-      "qualifiant": "920",
-      "assiette": "brut_permanent",
-      "nature": "permanent",
-      "_note": "COMPLEMENT COTISATION AF, 1,80 %. Le CTP 100 porte 3,45 % d'allocations familiales, ce complement fait les 5,25 % du taux plein (BOSS, COT_AF_SS_METROP). Equivalent non abattu du 432."
-    },
-    {
-      "code": "332",
-      "qualifiant": "921",
-      "assiette": "t1_x115_permanent",
-      "nature": "permanent",
-      "_note": "FNAL PLAFONNE, 0,10 % (BOSS, COT_FNAL_49_METROP : moins de cinquante salaries). L'assiette est la tranche 1, pas le brut : c'est ce que « plafonne » veut dire. Majoree de 11,5 % pour un permanent que l'employeur declare a la caisse des Conges Spectacles -- un CDD de moins de douze mois d'un artiste (CSS L. 243-1-3 ; seule la part plafonnee : lettre circulaire Acoss 2013-019, annexe 1, R2 ; atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md) --, la tranche 1 nue pour les autres."
-    },
-    {
-      "code": "772",
-      "qualifiant": "920",
-      "assiette": "chomage_permanent",
-      "nature": "permanent",
-      "_note": "CONTRIBUTIONS ASSURANCE CHOMAGE U2, 4,00 % depuis le 01/05/2025 (BOSS, COT_CH_UN_METROP). C'EST LA DIFFERENCE DE FOND avec un intermittent : pour un permanent, l'Urssaf recouvre l'assurance chomage ; pour un intermittent, non -- elle part a France Travail (bloc 78/81, codes 040 et 048), et c'est pour cela que la reduction generale d'un intermittent se declare « sans chomage ». ASSIETTE : `chomage_permanent`, la somme des bases 07 des permanents -- le brut dans la limite de QUATRE plafonds de la securite sociale de la periode (reglement general d'assurance chomage du 15/11/2024, art. 49 ; C. trav. L. 5422-9), la meme que le bulletin et le nominatif (040). Le tableau d'equivalence de l'Urssaf rattache le 772 a la base 07 sous le qualifiant 920 (atelier/reference/sources/chomage-permanents/ ; `dsn::valeur_ctp`)."
-    },
-    {
-      "code": "937",
-      "qualifiant": "920",
-      "assiette": "chomage_permanent",
-      "nature": "permanent",
-      "_note": "COTISATIONS AGS CAS GENERAL U2, 0,25 % depuis le 01/07/2024 (table CTP Urssaf ; attention, ses dates sont en AAAA-JJ-MM). ASSIETTE : celle du chomage, `chomage_permanent` (C. trav. L. 3253-18 : l'AGS est assise sur les remunerations qui servent au calcul des contributions d'assurance chomage ; equivalence Urssaf : base 07, code 048, qualifiant 920)."
-    },
-    {
-      "code": "959",
-      "qualifiant": "920",
-      "assiette": "cfp_permanent",
-      "nature": "permanent",
-      "_note": "CFP ENTREPRISE < 11 SALARIES, 0,55 % (art. L6331-1 du code du travail). Un intermittent releve du 983, a 2,00 % : deux contributions formation differentes dans la meme compagnie, et c'est normal. A CHANGER pour le 971 (1,00 %) si la compagnie franchit onze salaries. L'assiette `cfp_permanent` est la somme des 81.003 de la cotisation 128 des permanents : le brut, majore de 11,5 % pour un contrat declare a la caisse des Conges Spectacles (guide Urssaf des contributions de formation du 12/03/2026, fiche net-entreprises 2503 : atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md ; `dsn::ctp_urssaf`)."
-    },
-    {
-      "code": "987",
-      "qualifiant": "920",
-      "assiette": "cpf_cdd",
-      "nature": "permanent",
-      "_note": "CONTRIBUTION CPF CDD, 1 % (table des CTP, depuis 2022 ; C. trav. L. 6331-6, atelier/reference/sources/code-du-travail/articles-20261010.md, l. 545-549) : les CDD de droit commun qui l'ouvrent (ni saisonniers, ni contrats aides ; le CDDU releve de L. 6331-55). L'assiette `cpf_cdd` est la somme des 81.003 de la cotisation 129 que leur nominatif declare (DIDA : 987 -> 129, base 03, qualifiant 920, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1001 ; `dsn::ctp_urssaf`)."
-    },
-    {
-      "code": "668",
-      "qualifiant": "921",
-      "montant": "reduction_generale_permanent",
-      "nature": "permanent",
-      "_note": "REDUCTION GENERALE ETENDUE U2 : la reduction generale degressive unique d'un salarie dont l'Urssaf recouvre AUSSI l'assurance chomage. C'est le pendant du 671 des intermittents, devenu « REDUCTION GENERALE SANS CHOMAGE » au 01/01/2026 dans la table de l'Urssaf. Montant de cotisation en euros (23.005), positif. Regularisation : CTP 669."
-    },
-    {
-      "code": "003",
-      "qualifiant": "921",
-      "montant": "reduction_heures_en_plus",
-      "nature": "permanent",
-      "_note": "REDUCTION SALARIALE HEURES SUP (format R : le CTP porte le signe negatif, 23.005 positif) : la reduction de cotisations salariales des heures supplementaires et complementaires (CSS L241-17), toute declaree a l'Urssaf, partie retraite complementaire comprise ; au nominatif, le code 114 sous la base 03, la remuneration des heures en 81.003, la reduction signee '-' en 81.004. Tableau d'equivalence DIDA de l'Urssaf (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1017-1020)."
-    },
-    {
-      "code": "004",
-      "qualifiant": "921",
-      "montant": "deduction_heures_supplementaires",
-      "nature": "permanent",
-      "_note": "DEDUCTION PATRONALE HEURES SUP (format R) : la deduction forfaitaire patronale des heures supplementaires (CSS L241-18, L241-18-1), quel que soit l'effectif : « A compter de 2025 ce CTP [005] ne doit plus etre utilise, la deduction doit etre declaree par le CTP 004 ». Au nominatif, le code 021 sous la base 03, signe '-'. Meme tableau, l. 297 et 1766."
-    }
-  ],
-  "_note_ctp": "Assiettes agregees du mois, arrondies a l'euro (bloc S21.G00.23). Verifie sur la DSN de juillet 2026 : brut 2000 -> 027=2000, 260=1987, 334=2230, 992=2200.",
-  "_note_libelles": "Un versement se reconnait a son SIRET, pas a son libelle : 13000548100010 est FRANCE TRAVAIL, 78861779300013 est l'URSSAF (le `_libelle` de chacun dit ou c'est verifie).",
-  "_note_ctp_technicien": "Les CTP marques statut=technicien ne s'ecrivent que si leur assiette (ou leur montant) est non nulle : un mois sans technicien est identique octet pour octet a avant. Releve sur la DSN CoolPaie de mai 2025, seul mois avec un technicien. Les CTP 027, 260, 983 et 992 gardent une assiette qui inclut le technicien, comme le faisait CoolPaie (1096 = 520 + 520 + 56 en mai 2025). Les CTP 312 (AT abattu) et 334 (FNAL abattu) ne portent que les artistes (1040 et 1160 en mai 2025, sans les 56 du technicien) ; 100 et 332 sont leurs pendants au taux plein.",
-  "_note_921": "SOUS LE QUALIFIANT 921 (<< Assiette plafonnee >>, cahier technique DSN 2026.1, p. 168), une population porte son assiette PLAFONNEE : `brut_artiste` sous 312/921 lit la somme des `brut_plafonne` des artistes (le brut de chaque contrat dans la limite de son plafond, celui du bulletin et de la base 02), `brut_x115_artiste` sous 334/921 celle des `brut_x115_plafonne` ; de meme pour les techniciens (100 et 332) ; `t1_permanent` est deja plafonne. C est le qualifiant qui dit plafonnee, pas la cle. Une cle qui n a pas de forme plafonnee refuse sous 921 (`dsn::valeur_ctp`).",
-  "_ctp_permanents": "Les CTP marques \"nature\": \"permanent\" ne s'ecrivent que s'il y a un salarie permanent dans le mois, et ceux marques \"intermittent\" que s'il y a un intermittent -- comme ceux marques \"statut\". Ils ont ete releves le 18/09/2026 dans la table des CTP de l'Urssaf (open data, source `urssaf-codes-types-personnel`), jamais deduits d'un autre CTP. AUCUN N'A ENCORE ETE DEPOSE, pas meme en test : c'est du code verifie contre une table, pas contre la plate-forme.",
-  "_taux_at": "Les CTP marques \"taux_at\": \"bareme\" portent le taux AT/MP (S21.G00.23.003) : celui du bareme du mois declare (`dsn::taux_at_du_ctp`, 70 % pour l'artiste), qui peut changer en cours d'annee. Il ne se recopie pas ici.",
   "contrats": {
-    "_quoi": "Les adhesions (bloc S21.G00.15) qu'une compagnie declare, par convention. `libelle` : la reference du contrat chez l'organisme (S21.G00.15.001), telle que sa fiche de parametrage DSN l'ecrit ; donnee ici quand elle est la meme pour tous, sinon a saisir. `organisme` : son code (S21.G00.15.002) ; `organisme_fixe` quand la branche le designe. `reference` : l'identifiant de l'adhesion dans nos DSN (S21.G00.15.005), fixe pour ceux que `affectations_81_059` nomme ; les autres sont attribues a partir de 104 et ne bougent plus. `si_permanents` : exige seulement le jour ou la compagnie emploie un permanent -- sans lui, la DSN refuse le permanent, pas la compagnie. Les contributions de branche en DSN (FNAS, FCAP, APPAV...) viennent du bareme (`contributions_dsn`), la CASC-SVP de casc-svp-base.json : elles ne se recopient pas ici.",
+    "quoi": "Les adhésions (bloc S21.G00.15) qu'une compagnie déclare : celles de toutes (`tous`), puis celles de sa convention (`conventions`). `libelle` : la référence du contrat chez l'organisme (S21.G00.15.001), telle que sa fiche de paramétrage DSN l'écrit ; donnée ici quand elle est la même pour tous, sinon à saisir. `organisme` : son code (S21.G00.15.002) ; `organisme_fixe` quand la branche le désigne. `reference` : l'identifiant de l'adhésion dans nos DSN (S21.G00.15.005), fixe pour ceux qui le donnent ; les autres sont attribués à partir de 104 et ne bougent plus. `si_permanents` : exigé seulement le jour où la compagnie emploie un permanent -- sans lui, la DSN refuse le permanent, pas la compagnie. `note` se montre sous le contrat, dans Configuration › Organismes et contrats. Les contributions de branche en DSN (FNAS, FCAP, APPAV...) viennent du barème (`contributions_dsn`), la CASC-SVP de casc-svp-base.json : elles ne se recopient pas ici.",
+    "note": "La 2642 et la 3097 n'ont pas de contrat des permanents ici (la 3097 n'a pas de régime ; celui de la 2642 n'est pas relevé) : un permanent y est refusé par la DSN.",
     "tous": [
       {
         "cle": "interbranche",
@@ -312,7 +234,8 @@
         "beneficiaires": "intermittents",
         "quoi": "Prévoyance des intermittents (accord interbranche)",
         "organisme": "P0983",
-        "organisme_fixe": true
+        "organisme_fixe": true,
+        "source": {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Contrat LibelleContrat=\"PREVOYANCE INTERBRANCHE INTERMITTENTS\" ReferenceContrat=\"INTERBRANCHE\" />"}
       },
       {
         "cle": "tsintermittents",
@@ -324,238 +247,242 @@
         "quoi": "Frais de santé des intermittents (Thalie Santé)",
         "organisme": "P0983",
         "organisme_fixe": true,
-        "_depuis": "Thalie Sante des intermittents, creee au 01/01/2026 (fiche de parametrage Audiens version 139). Les DSN de 2025 ne declarent qu'INTERBRANCHE : sans cette date, une compagnie fictive ne produisait aucun mois de 2025 (compagnies de demonstration, 24/09/2026)."
+        "source": {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<ParametresContrats Changement=\"03\" DateDebutValidite=\"01012026\" Periodicite=\"Mensuel\"> <Organisme CodeOC=\"P0983\" /> <Contrat LibelleContrat=\"THALIE SANTE INTERMITTENTS\" ReferenceContrat=\"TSINTERMITTENTS\" />"}
       }
     ],
-    "3090": [
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "libelle": "FM SPECT VIVANT PRIV",
-        "reference": "101",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": true,
-        "_source": "Fiche de parametrage Audiens version 139 : groupes 00003 a 00008, ENSEMBLE DU PERS. PERMANENT SVP SANTE, ReferenceContrat FM SPECT VIVANT PRIV. Declaree meme sans permanent (DSN de la compagnie du poste).",
-        "options": {
-          "_quoi": "Le code option (S21.G00.70.004) qu'Audiens demande sous l'affiliation d'un permanent a ce contrat, par niveau de garantie et composition couverte : `sante_svp` de la fiche du salarie, {niveau, conjoint, enfants}, celui qui fait sa cotisation (`bareme_sante`). Isole : ni conjoint ni enfant ; famille : l'un ou l'autre. Une famille declare aussi ses ayants droit, conjoint (70.008) et enfants (70.011) : la fiche calcule la cotisation par CONJOINT PSS et ENFANT PSS, ils << interviennent dans le calcul >>. 70.009 et 70.010 ne s'ecrivent pas : aucun ascendant dans la fiche, aucun calcul sur le total. Lu par `dsn::rattachements` ; une affiliation a ce contrat sans niveau, ou d'un niveau que la table n'a pas, refuse.",
-          "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml) : groupes 00003 (NIV1/I/GE, << Niveau 1 / Isole / Regime General >>), 00004 (NIV1F/ICE/GE), 00005 (NIV2/I/GE), 00006 (NIV2F/IACE/GE), 00007 (NIV3/I/GE), 00008 (NIV3F/IACE/GE), memes codes en 2025 et en 2026, element <Option CodeOption=...>. Cahier technique DSN 2026.1, S21.G00.70.004 (atelier/reference/norme-dsn/texte/bloc-S21.G00.70.txt, p. 285) : << Les valeurs de code sont fournies par l'organisme de prevoyance et sont a renseigner seulement sur sa demande >> ; 70.008 et 70.011 (p. 285-286) : << doit etre renseignee si elle intervient dans le calcul de la cotisation >>.",
-          "_inference": "La fiche est celle d'UNE compagnie de la 3090 ; que les codes soient les memes pour toute compagnie adherente au contrat de branche FM SPECT VIVANT PRIV est une inference (ce sont les codes du contrat chez Audiens, pas de l'entreprise). Une fiche d'une autre compagnie qui dirait autre chose se lirait ici.",
-          "regime_local": false,
-          "_regime_local": "Les six options sont du << Regime General >> (GE). Celle d'un salarie du regime local d'Alsace-Moselle n'est dans aucune fiche du depot : la DSN refuse plutot que d'ecrire GE.",
-          "niveaux": {
-            "1": {"isole": "NIV1/I/GE", "famille": "NIV1F/ICE/GE"},
-            "2": {"isole": "NIV2/I/GE", "famille": "NIV2F/IACE/GE"},
-            "3": {"isole": "NIV3/I/GE", "famille": "NIV3F/IACE/GE"}
+    "conventions": {
+      "3090": [
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "libelle": "FM SPECT VIVANT PRIV",
+          "reference": "101",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": true,
+          "source": {"sources": [
+            {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<GROUPE LibelleGrp=\"ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV1 (ISOLE) REG GAL\" NumeroGrp=\"00003\">"},
+            {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Contrat LibelleContrat=\"SVP NIVEAU 1 ISOLE\" ReferenceContrat=\"FM SPECT VIVANT PRIV\" />"}
+          ]},
+          "options": {
+            "quoi": "Le code option (S21.G00.70.004) qu'Audiens demande sous l'affiliation d'un permanent à ce contrat, par niveau de garantie et composition couverte : `sante_svp` de la fiche du salarié, {niveau, conjoint, enfants}, celui qui fait sa cotisation (`bareme_sante`). Isolé : ni conjoint ni enfant ; famille : l'un ou l'autre. Une famille déclare aussi ses ayants droit, conjoint (70.008) et enfants (70.011) : la fiche calcule la cotisation par conjoint et par enfant. 70.009 et 70.010 ne s'écrivent pas : aucun ascendant dans la fiche, aucun calcul sur le total. Lu par `dsn::rattachements` ; une affiliation à ce contrat sans niveau, ou d'un niveau que la table n'a pas, refuse.",
+            "note": "INFÉRENCE : la fiche est celle d'UNE compagnie de la 3090 ; que les codes soient les mêmes pour toute compagnie adhérente au contrat de branche FM SPECT VIVANT PRIV en est une (ce sont les codes du contrat chez Audiens, pas de l'entreprise). Les six options sont du « Régime Général » (GE) ; celle d'un salarié du régime local d'Alsace-Moselle n'est dans aucune fiche du dépôt : la DSN refuse plutôt que d'écrire GE.",
+            "source": {"sources": [
+              {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Option CodeOption=\"NIV1/I/GE\" LibelleOption=\"Niveau 1 / Isolé / Régime Général\" />"},
+              {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Option CodeOption=\"NIV1F/ICE/GE\" LibelleOption=\"Niveau 1 Famille/Iso Conjoint Enfant / Régime Général\" />"},
+              {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Option CodeOption=\"NIV2/I/GE\" LibelleOption=\"Niveau 2 / Isolé / Régime Général\" />"},
+              {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Option CodeOption=\"NIV2F/IACE/GE\" LibelleOption=\"Niveau 2 Famille / Iso Assuré Conjoint Enf / Rég Gén\" />"},
+              {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Option CodeOption=\"NIV3/I/GE\" LibelleOption=\"Niveau 3 / Isolé / Régime Général\" />"},
+              {"fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml", "emetteur": "audiens", "citation": "<Option CodeOption=\"NIV3F/IACE/GE\" LibelleOption=\"Niveau 3 Famille/Iso Assuré Conjoint Enf/Rég Gén\" />"},
+              {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.70.txt", "emetteur": "gip_mds", "citation": "Les valeurs de code sont fournies par l'organisme de prévoyance et sont à renseigner seulement sur sa demande."},
+              {"fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.70.txt", "emetteur": "gip_mds", "citation": "être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné."}
+            ], "raisonnement": "La norme laisse l'organisme fournir les codes d'option et demander les ayants droit qui entrent dans le calcul ; la fiche de paramétrage d'Audiens les donne, groupe par groupe."},
+            "regime_local": false,
+            "niveaux": {
+              "1": {"isole": "NIV1/I/GE", "famille": "NIV1F/ICE/GE"},
+              "2": {"isole": "NIV2/I/GE", "famille": "NIV2F/IACE/GE"},
+              "3": {"isole": "NIV3/I/GE", "famille": "NIV3F/IACE/GE"}
+            }
           }
+        },
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": true,
+          "si_permanents": true,
+          "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3090", "emetteur": "convention", "article": "KALIARTI000028157444", "citation": "les partenaires sociaux ont décidé de confier la garantie des risques décès, incapacité et invalidité à l'institution de prévoyance Audiens Prévoyance"}
         }
-      },
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": true,
-        "si_permanents": true,
-        "_source": "CCN 3090, titre XII, art. 12.6 : Audiens designe. La reference du contrat est sur la fiche de parametrage une fois la compagnie adherente."
-      }
-    ],
-    "1285": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": true,
-        "si_permanents": true,
-        "_organisme": "Audiens designe par la branche (XII.2.3.2)."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": true,
-        "si_permanents": true,
-        "_organisme": "Audiens designe par la branche (XII.2.3.2)."
-      }
-    ],
-    "2412": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Audiens designe par l'annexe (art. 7), designation exclue de l'extension : l'entreprise peut s'assurer ailleurs."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Audiens designe par l'annexe (art. 7), designation exclue de l'extension : l'entreprise peut s'assurer ailleurs."
-      }
-    ],
-    "1922": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Audiens et l'OCIRP RECOMMANDES (art. 11), pas designes."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Audiens et l'OCIRP RECOMMANDES (art. 11), pas designes."
-      }
-    ],
-    "2121": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Audiens Sante Prevoyance RECOMMANDE (art. 8), pas designe."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": "P0983",
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Audiens Sante Prevoyance RECOMMANDE (art. 8), pas designe."
-      }
-    ],
-    "3252": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Aucun designe (8.4.2 B, 8.4.3 A) : dispositif de branche ou contrat d'entreprise equivalent."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Aucun designe (8.4.2 B, 8.4.3 A) : dispositif de branche ou contrat d'entreprise equivalent."
-      }
-    ],
-    "3241": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Aucun designe (art. 54.1) : au choix de l'entreprise."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Aucun designe (art. 54.1) : au choix de l'entreprise."
-      }
-    ],
-    "1790": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Libre (avenant n. 68)."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Libre (avenant n. 68)."
-      }
-    ],
-    "1734": [
-      {
-        "cle": "prevoyance_permanents",
-        "role": "prevoyance",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Prévoyance des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Non releve dans prevoyance-conventionnelle-base.json : l'organisme se saisit, il ne se devine pas."
-      },
-      {
-        "cle": "sante_permanents",
-        "role": "sante",
-        "type": "02",
-        "beneficiaires": "permanents",
-        "quoi": "Frais de santé des permanents",
-        "organisme": null,
-        "organisme_fixe": false,
-        "si_permanents": true,
-        "_organisme": "Non releve dans prevoyance-conventionnelle-base.json : l'organisme se saisit, il ne se devine pas."
-      }
-    ],
-    "_sans_contrat_des_permanents": "2642 et 3097 : pas de contrat des permanents ici (la 3097 n'a pas de regime ; la 2642 reste a relever). Un permanent y est refuse par la DSN."
+      ],
+      "1285": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": true,
+          "si_permanents": true,
+          "note": "Audiens designe par la branche (XII.2.3.2)."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": true,
+          "si_permanents": true,
+          "note": "Audiens designe par la branche (XII.2.3.2)."
+        }
+      ],
+      "2412": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Audiens designe par l'annexe (art. 7), designation exclue de l'extension : l'entreprise peut s'assurer ailleurs."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Audiens designe par l'annexe (art. 7), designation exclue de l'extension : l'entreprise peut s'assurer ailleurs."
+        }
+      ],
+      "1922": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Audiens et l'OCIRP RECOMMANDES (art. 11), pas designes."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Audiens et l'OCIRP RECOMMANDES (art. 11), pas designes."
+        }
+      ],
+      "2121": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Audiens Sante Prevoyance RECOMMANDE (art. 8), pas designe."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme": "P0983",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Audiens Sante Prevoyance RECOMMANDE (art. 8), pas designe."
+        }
+      ],
+      "3252": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Aucun designe (8.4.2 B, 8.4.3 A) : dispositif de branche ou contrat d'entreprise equivalent."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Aucun designe (8.4.2 B, 8.4.3 A) : dispositif de branche ou contrat d'entreprise equivalent."
+        }
+      ],
+      "3241": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Aucun designe (art. 54.1) : au choix de l'entreprise."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Aucun designe (art. 54.1) : au choix de l'entreprise."
+        }
+      ],
+      "1790": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Libre (avenant n. 68)."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Libre (avenant n. 68)."
+        }
+      ],
+      "1734": [
+        {
+          "cle": "prevoyance_permanents",
+          "role": "prevoyance",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Prévoyance des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Non releve dans prevoyance-conventionnelle-base.json : l'organisme se saisit, il ne se devine pas."
+        },
+        {
+          "cle": "sante_permanents",
+          "role": "sante",
+          "type": "02",
+          "beneficiaires": "permanents",
+          "quoi": "Frais de santé des permanents",
+          "organisme_fixe": false,
+          "si_permanents": true,
+          "note": "Non releve dans prevoyance-conventionnelle-base.json : l'organisme se saisit, il ne se devine pas."
+        }
+      ]
+    }
   }
 }

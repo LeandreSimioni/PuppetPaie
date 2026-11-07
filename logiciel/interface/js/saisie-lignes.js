@@ -80,9 +80,6 @@ function rubriqueParDefaut(nat, statut) {
  *  Le champ « heures » n'apparaît que si la rubrique le demande — une journée
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
  *  viennent du règlement, pas de nous. */
-// Les cases qu'une ligne de frais porte dans le fichier (`engagement::JUSTIFICATIF`, `PARIS`, `RESTAURANT`).
-const CASES_DE_LIGNE = ["justificatif", "paris", "restaurant", "loge"];
-
 // LES CASES D'UNE LIGNE, telles que le moteur les désigne et les nomme
 // (`cases` de l'aperçu, celles de cette ligne) ; une case qu'il ne désigne
 // plus ne s'écrit plus.
@@ -114,6 +111,9 @@ function ligneRubrique(l = {}, nat, statut) {
   if (l.base !== undefined || l.taux_majoration !== undefined) {
     l = { ...l, quantite: l.base ?? "", taux: l.taux_majoration ?? "" };
   }
+  // UNE LIGNE AU MONTANT (prime, acompte, indemnité, avantage en nature) : le fichier dit `montant`, que le champ du
+  // taux montre.
+  if (l.montant !== undefined) l = { ...l, taux: l.montant ?? "" };
   if (l.taux === undefined || l.taux === null || l.taux === "") l = { ...l, taux: tauxParDefaut(code) };
   /* TOUT SUR LA MÊME LIGNE, et elle se lit comme une phrase :
 
@@ -178,20 +178,18 @@ function ligneRubrique(l = {}, nat, statut) {
   poserRubriques(div.querySelector(".r-code"), code, nat, statut);
   const majAffichage = () => {
     const r = rubriqueDe(div.querySelector(".r-code").value);
-    const veutHeures = !!r && r.saisie.includes("heures");
+    // Les cases de la ligne sont celles que le moteur dit de sa rubrique (`cles`).
+    const cles = (r && r.cles) || [];
+    const veutHeures = cles.includes("heures");
     // `.cachee` et non l'attribut `hidden` : la feuille de style pose
     // `input { display: block }`, qui l'emporterait sur le defaut du
     // navigateur. Le champ resterait visible sans qu'on comprenne pourquoi.
-    // Des heures déjà écrites se montrent, quelle que soit la rubrique : ce
-    // qui est dans le fichier se voit (le moteur dit si elles y ont leur place).
     const h = div.querySelector(".r-heures");
-    h.classList.toggle("cachee", !veutHeures && h.value === "");
+    h.classList.toggle("cachee", !veutHeures);
     // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel) :
-    // ni quantité, ni jours, ni lieu. On tape la somme ; la
-    // quantité vaut 1 et reste écrite, le moteur lit quantité × taux.
-    const montant = !!r && r.saisie.includes("montant") && !r.saisie.includes("quantite");
+    // ni quantité, ni jours, ni lieu. On tape la somme, dans le champ du taux.
+    const montant = cles.includes("montant");
     const q = div.querySelector(".r-quantite");
-    if (montant && q.value === "") q.value = 1;
     q.classList.toggle("cachee", montant);
     div.querySelector(".r-jours-btn").classList.toggle("cachee", montant);
     div.querySelector(".r-lieu").classList.toggle("cachee", montant);
@@ -202,7 +200,7 @@ function ligneRubrique(l = {}, nat, statut) {
     dit.textContent = (r && r.dit) || "";
     dit.classList.toggle("cachee", !(r && r.dit));
     // Une ligne en pourcentage : « base € à taux % », sans jours ni lieu.
-    const pct = !!r && r.saisie.includes("taux_majoration");
+    const pct = cles.includes("taux_majoration");
     const mots = div.querySelectorAll(".r-mot");
     if (r && r.mots) [mots[0].textContent, mots[1].textContent] = r.mots;
     if (pct) {
@@ -240,7 +238,7 @@ function ligneRubrique(l = {}, nat, statut) {
   div.querySelector(".r-genre").onchange = rafraichirApercu;
   div.querySelector(".r-territoire").onchange = rafraichirApercu;
   // Les cases cochées de la ligne, gardées jusqu'à ce que le moteur dise lesquelles ont lieu d'être.
-  div._cases = Object.fromEntries(CASES_DE_LIGNE.filter((k) => l[k] === true).map((k) => [k, true]));
+  div._cases = Object.fromEntries((l.cases || []).map((k) => [k, true]));
   // Changer la rubrique d'une ligne dont le taux n'a pas été tapé : il suit
   // la rubrique. Un taux de cachet ne devient pas un taux horaire.
   div.dataset.code = code;
@@ -844,6 +842,9 @@ function poserQui(liste, voulu) {
 function construireCarte(div, e) {
   // QUI : un salarié. Une carte porte un engagement, et un engagement un salarié.
   const voulu = e.salarie || "";
+  // LA NATURE DU CONTRAT, écrite sur la carte dès l'ouverture (`nouvelle_carte` de la route etat), et une case
+  // seulement là où elle se choisit. Elle change la forme du bloc : un permanent n'a ni spectacle ni cachets, il a
+  // un salaire au mois et des faits (`natures[].carte`).
   div.insertAdjacentHTML("afterbegin", `
     <div class="ligne1">
       <!-- Pas de « + » ici : une fiche neuve se crée dans Configuration.
@@ -855,14 +856,6 @@ function construireCarte(div, e) {
           <div class="e-qui-liste"></div>
         </details>
       </div>
-      <!-- LA NATURE DU CONTRAT. Elle ne se devine pas : un
-           engagement muet est un CDDU du spectacle, et c'est ce qu'ont été
-           les 146 contrats de l'historique. Ce qui manquait, c'était de
-           pouvoir dire AUTRE CHOSE — tant qu'elle n'était pas ici, un
-           permanent n'avait aucun endroit où exister dans cet écran, et
-           donnees/contrats-base.json le savait tout seul. Elle change la
-           forme du bloc : un permanent n'a ni spectacle ni cachets, il a un
-           salaire au mois et des faits. -->
       <label class="e-nature-bloc">Nature
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
@@ -1116,7 +1109,7 @@ function construireCarte(div, e) {
     (n) => `<option value="${echapper(n.cle)}" title="${echapper(n.aide || "")}">${echapper(n.libelle)}</option>`).join(""));
   // Le nom court se lit ; ce qu'il veut dire est dans l'aide du champ, nature par nature.
   div.querySelector(".e-nature-bloc").title = (ETAT.natures || []).filter((n) => n.aide).map((n) => `${n.libelle} : ${n.aide}`).join("\n");
-  selNat.value = e.nature || ETAT.nature_defaut || "";
+  selNat.value = e.nature || "";
   selNat.onchange = () => { viderBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
@@ -1233,10 +1226,8 @@ function construireCarte(div, e) {
   }
   majContrat(div);
   majNature(div);
-  // La Nature ne se montre que s'il y a un choix : sans permanents, la
-  // compagnie n'a que le contrat d'usage, et une case à un seul choix n'en
-  // est pas une.
-  div.querySelector(".e-nature-bloc").hidden = (ETAT.natures || []).length <= 1;
+  // Ce qui ne se choisit pas n'a pas de case : la nature se change seulement là où le moteur le dit.
+  div.querySelector(".e-nature-bloc").hidden = !ETAT.nouvelle_carte.nature_au_choix;
   div.querySelector(".e-viser-btn").onclick = (ev) => {
     ev.preventDefault();
     const c = div.querySelector(".e-chiffres");
@@ -1263,14 +1254,11 @@ function construireCarte(div, e) {
   return div;
 }
 
-/** La nature d'un engagement, telle que `contrats-base.json` la décrit.
- *  Un engagement muet est un CDDU du spectacle : c'est le défaut du moteur,
- *  et la page prend le même — elle ne le redéfinit pas. */
+/** La nature d'un engagement, telle que `contrats-base.json` la décrit. Une carte la dit toujours : elle s'ouvre
+ *  dans la nature choisie (`nouvel-engagement`). */
 function natureDe(cle) {
-  const natures = ETAT.natures || [];
-  return natures.find((n) => n.cle === (cle || ETAT.nature_defaut))
-      || natures.find((n) => n.cle === ETAT.nature_defaut)
-      || { cle: "", libelle: "", mensuelle: false, spectacle: true,
+  return (ETAT.natures || []).find((n) => n.cle === cle)
+      || { cle: "", libelle: "", mensuelle: false, spectacle: false,
            signalement_fctu: false, signalement_par_motif: {}, motifs_rupture: [] };
 }
 
@@ -1281,15 +1269,19 @@ function formeDePaie(div) {
 }
 
 /** UN CONTRAT AU MOIS ET UN CONTRAT D'USAGE SONT DEUX CONTRATS. Les cases
- *  « Début » et « Fin » servent aux deux : quand la nature passe d'une forme
- *  de paie à l'autre, les bornes de la forme quittée ne sont pas celles du
- *  nouveau contrat, elles se vident. */
+ *  « Début » et « Fin », et les lignes, servent aux deux : quand la nature passe d'une forme
+ *  de paie à l'autre, les bornes et les lignes de la forme quittée (des cachets, des heures ; des repas, des nuitées)
+ *  ne sont pas celles du nouveau contrat, elles se vident, et la carte prend les lignes d'une carte neuve de sa nature. */
 function viderBornes(div) {
   const forme = formeDePaie(div);
   const quittee = div.dataset.forme;
   if (quittee && quittee !== forme) {
     div.querySelector(".e-debut").value = "";
     div.querySelector(".e-fin").value = "";
+    const nat = natureDe(div.querySelector(".e-nature").value);
+    const cible = div.querySelector(".rubriques");
+    cible.innerHTML = "";
+    lignesDe({}, nat).forEach((l) => cible.appendChild(ligneRubrique(l, nat, statutDuBloc(div))));
     majContrat(div);
     majRupture(div);
   }
@@ -1451,7 +1443,7 @@ function ligneFait(quoi, v = {}) {
   } else {
     div.innerHTML = `
       <label>rubrique <input type="text" class="f-rubrique"
-        value="${echapper(v.rubrique || "")}" placeholder="prime"></label>
+        value="${echapper(v.rubrique ?? "prime")}"></label>
       <label>montant <input type="number" step="0.01" class="f-montant"
         value="${echapper(v.montant ?? "")}"></label>
       ${v.libelle ? `<label>libellé <input class="f-libelle" value="${echapper(v.libelle)}"></label>` : ""}
@@ -1527,14 +1519,11 @@ function ajouterFait(div, quoi) {
 function faitsDuBloc(div) {
   const val = (n, s) => (n.querySelector(s) || {}).value || "";
   const conges = [...div.querySelectorAll(".fait-conges")]
-    .map((f) => ({ debut: val(f, ".f-debut"), fin: val(f, ".f-fin") }))
+    .map((f) => ({ debut: val(f, ".f-debut") || null, fin: val(f, ".f-fin") || null }))
     .filter((c) => c.debut || c.fin);
-  const primes = [...div.querySelectorAll(".fait-primes")].map((f) => {
-    const p = { montant: +val(f, ".f-montant") };
-    if (val(f, ".f-rubrique")) p.rubrique = val(f, ".f-rubrique");
-    if (val(f, ".f-libelle")) p.libelle = val(f, ".f-libelle");
-    return p;
-  }).filter((p) => p.montant);
+  const primes = [...div.querySelectorAll(".fait-primes")]
+    .map((f) => ({ montant: +val(f, ".f-montant"), rubrique: val(f, ".f-rubrique"), libelle: val(f, ".f-libelle") || null }))
+    .filter((p) => p.montant);
   return { conges, primes };
 }
 
@@ -1660,38 +1649,36 @@ function lignesDuBloc(div, mois) {
     const t = r.querySelector(".r-taux").value;
     const h = r.querySelector(".r-heures").value;
     if (!ligneEnvoyee(r)) return null;
-    const rr = rubriqueDe(r.querySelector(".r-code").value);
-    // Une ligne en pourcentage s'écrit comme le moteur la lit : sa base et
-    // son pourcentage (`calcul._ligne_en_pourcentage`).
-    if (rr && rr.saisie.includes("taux_majoration")) {
-      return { rubrique: rr.code, base: q === "" ? "" : +q, taux_majoration: t === "" ? "" : +t };
-    }
-    const l = { rubrique: r.querySelector(".r-code").value, quantite: q === "" ? "" : +q,
-                taux: t === "" ? "" : +t };
-    // Les heures s'écrivent dès qu'elles sont dites : leur champ se montre
-    // alors, quelle que soit la rubrique (`majAffichage`).
-    if (h !== "") l.heures = +h;
-    // Le genre d'un avantage en nature, quand la rubrique en demande un et
-    // qu'on en a choisi un : le moteur refuse un genre sur toute autre.
-    const genre = r.querySelector(".r-genre").value;
-    if (genre && rr && (rr.genres || []).length) l.genre = genre;
-    const territoire = r.querySelector(".r-territoire").value;
-    if (territoire && rr && (rr.lieux || []).length) l.territoire = territoire;
-    Object.keys(r._cases || {}).filter((k) => r._cases[k]).forEach((k) => { l[k] = true; });
-    // Le lieu et les jours de CETTE ligne. Absents du fichier quand ils sont
-    // vides : une ligne qui ne dit rien de son lieu n'écrit pas `"lieu": ""`.
-    const ou = r.querySelector(".r-lieu").value.trim();
-    if (ou) l.lieu = ou;
+    const code = r.querySelector(".r-code").value;
+    const rr = rubriqueDe(code);
+    // Un nombre tapé, ou `null` : une case vide.
+    const nombre = (x) => (x === "" ? null : +x);
+    const texte = (x) => (x.trim() === "" ? null : x.trim());
     // Un jour qui dit son propre lieu s'écrit {"jour", "lieu"}, les autres nus.
     const propres = new Map([...r.querySelectorAll(".r-lieu-jour")]
       .filter((c) => c.value.trim()).map((c) => [c.dataset.iso, c.value.trim()]));
     const date = (iso) => (propres.has(iso) ? { jour: iso, lieu: propres.get(iso) } : iso);
-    const jours = joursDe(r.querySelector(".r-jours"));
-    if (jours.length) l.dates = jours.map((j) => date(mois + "-" + String(j).padStart(2, "0")));
-    // Le planning de la ligne : les jours cochés dans les mois suivants.
-    const plan = planningDe(r);
-    if (plan.length) l.planning = plan.map(date);
-    return l;
+    // Ce que chaque case de la ligne dit ; la ligne n'en écrit que celles que le moteur demande de sa rubrique
+    // (`cles`), toutes : une ligne en pourcentage écrit sa base et son pourcentage, une ligne au montant sa somme (le
+    // champ du taux), une ligne de frais son lieu hors de la métropole et ses cases cochées.
+    const valeurs = {
+      rubrique: code,
+      quantite: nombre(q),
+      taux: nombre(t),
+      heures: nombre(h),
+      base: nombre(q),
+      taux_majoration: nombre(t),
+      montant: nombre(t),
+      genre: texte(r.querySelector(".r-genre").value),
+      territoire: texte(r.querySelector(".r-territoire").value),
+      cases: Object.keys(r._cases || {}).filter((k) => r._cases[k]),
+      lieu: texte(r.querySelector(".r-lieu").value),
+      dates: joursDe(r.querySelector(".r-jours")).map((j) => date(mois + "-" + String(j).padStart(2, "0"))),
+      // Le planning de la ligne : les jours cochés dans les mois suivants.
+      planning: planningDe(r).map(date),
+    };
+    // Une rubrique que le catalogue ne connaît pas part seule : le moteur dit ce qui lui manque.
+    return Object.fromEntries(((rr && rr.cles) || ["rubrique"]).map((k) => [k, valeurs[k]]));
   }).filter(Boolean);
 }
 
@@ -1701,8 +1688,10 @@ function bornesLues(div) {
   return div._bornes || { debut: "", fin: "" };
 }
 
+/* UNE CARTE NEUVE S'OUVRE DANS LA NATURE QUE LE MOTEUR DIT (`nouvelle_carte` de la route etat), écrite sur elle dès
+   l'ouverture. */
 document.getElementById("ajouter-engagement").onclick = () => {
-  document.getElementById("engagements").appendChild(ligneEngagement());
+  document.getElementById("engagements").appendChild(ligneEngagement({ nature: ETAT.nouvelle_carte.nature }));
   rafraichirApercu();
 };
 

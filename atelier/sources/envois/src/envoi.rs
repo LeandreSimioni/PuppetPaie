@@ -38,17 +38,16 @@
 //! (sans les fichiers du systeme : un `.docx` y a son type, ici `octet-stream`) ; `Date` d'avant
 //! 1996 : la regle de l'heure d'ete est celle de l'Union europeenne (`paris.rs`).
 
+use droit::fiche::Lue as _;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
 use rust_decimal::Decimal;
-use serde_json::Value;
 
 use documents::bulletin::{fmt_eur, fmt_heures};
 use engagement::calcul::Paie;
 use crate::courriel::Courriel;
-use socle::date::{en_texte, repr_flottant};
-use socle::fichiers::vrai;
+use socle::date::repr_flottant;
 
 /// Un courriel, sans le piece jointe lue : `pieces` sont des chemins.
 #[derive(Debug, Clone, Default)]
@@ -68,15 +67,6 @@ impl Message {
     /// La taille des pieces qui existent.
     pub fn taille(&self) -> u64 {
         self.pieces.iter().filter_map(|p| std::fs::metadata(p).ok()).map(|m| m.len()).sum()
-    }
-}
-
-/// « de » devant un nom de mois, elide devant une voyelle : « de mars », « d'avril », « d'août », « d'octobre ».
-pub fn de_mois(nom: &str) -> String {
-    if nom.starts_with(['a', 'e', 'é', 'i', 'o', 'u']) {
-        format!("d'{}", nom)
-    } else {
-        format!("de {}", nom)
     }
 }
 
@@ -169,17 +159,6 @@ fn cle_absente(cle: &str) -> String {
     socle::fichiers::absent(cle)
 }
 
-/// L'année et le mois d'un « AAAA-MM » ; refus s'ils ne se lisent pas.
-fn an_mois(mois: &str) -> Result<(i32, usize), String> {
-    let lire = |t: Option<&str>| -> Result<i64, String> {
-        let t = t.unwrap_or("");
-        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : '{}'", t))
-    };
-    let an = lire(mois.get(..4))?;
-    let mo = lire(mois.get(5..7))?;
-    Ok((an as i32, mo as usize))
-}
-
 /// Ce que le salarie declare a son actualisation France Travail du mois (`recap_france_travail`) : une ligne par
 /// contrat, sur ce qui a ete fait DANS LE MOIS. Rien pour un permanent : chaine vide.
 pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Result<String, String> {
@@ -225,12 +204,12 @@ pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Res
     if lignes.is_empty() {
         return Ok(String::new());
     }
-    let (an, mo) = an_mois(mois)?;
-    let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
+    let m = socle::mois::Mois::lire(mois)?;
+    let (an, nom_mois) = (m.annee(), m.nom(socle::mois::Graphie::Accentuee));
     Ok(format!(
         "Pour ton actualisation France Travail {} {}, employeur {} :\n{}\nCe sont les chiffres de ton bulletin ; \
          vérifie que ce que France Travail pré-remplit est identique.\n",
-        de_mois(nom_mois),
+        socle::texte::de(nom_mois),
         an,
         employeur,
         lignes.join("\n")
@@ -282,8 +261,8 @@ pub struct Renvoi {
 /// spectacle, ses jours travailles, ses cachets, ses heures, son brut et son net a payer ; et les totaux. Le journal le
 /// garde a chaque envoi des documents (`moteur::routes::documents::expedier_envoi`) : c'est l'« ancien » que le courriel de renvoi
 /// compare a la paie refaite. Les montants et les heures s'ecrivent comme le bulletin les ecrit.
-pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
-    let mut contrats: Vec<Value> = Vec::new();
+pub fn resume_de(paies: &[&Paie]) -> Result<ResumeDePaie, String> {
+    let mut contrats = Vec::new();
     let (mut brut, mut net) = (Decimal::ZERO, Decimal::ZERO);
     for p in paies {
         let e = &p.engagement;
@@ -293,28 +272,50 @@ pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
             Some(h) => fmt_heures(heures_en_decimal(h)?),
             None => String::new(),
         };
-        let spectacle = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte) } else { None };
-        contrats.push(serde_json::json!({
-            "debut": e.debut.iso(),
-            "fin": e.fin.map(|f| f.iso()),
-            "spectacle": spectacle,
-            "jours": dates.iter().map(|d| d.iso()).collect::<Vec<_>>(),
-            "cachets": e.cachets,
-            "heures": heures,
-            "brut": fmt_eur(p.brut),
-            "net": fmt_eur(p.net_a_payer),
-        }));
+        let spectacle = p.spectacle.as_ref().and_then(|s| s.titre.dite()).filter(|t| !t.is_empty()).cloned();
+        contrats.push(ContratResume {
+            debut: e.debut.iso(),
+            fin: e.fin.map(|f| f.iso()),
+            spectacle,
+            jours: dates.iter().map(|d| d.iso()).collect(),
+            cachets: e.cachets,
+            heures,
+            brut: fmt_eur(p.brut),
+            net: fmt_eur(p.net_a_payer),
+        });
         brut += p.brut;
         net += p.net_a_payer;
     }
-    Ok(serde_json::json!({"contrats": contrats, "brut": fmt_eur(brut), "net": fmt_eur(net)}))
+    Ok(ResumeDePaie { contrats, brut: fmt_eur(brut), net: fmt_eur(net) })
+}
+
+/// LE RESUME DE LA PAIE D'UN SALARIE (`resume_de`), tel que le journal le garde avec l'envoi de ses documents.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResumeDePaie {
+    pub contrats: Vec<ContratResume>,
+    pub brut: String,
+    pub net: String,
+}
+
+/// Un contrat du resume : ses bornes, son spectacle, ses jours, ses cachets, ses heures, son brut et son net.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContratResume {
+    pub debut: String,
+    pub fin: Option<String>,
+    pub spectacle: Option<String>,
+    pub jours: Vec<String>,
+    pub cachets: i64,
+    pub heures: String,
+    pub brut: String,
+    pub net: String,
 }
 
 /// Un montant du resume (« 1 234,56 », comme le bulletin l'ecrit), tel qu'une phrase le dit ; tel quel s'il ne se lit pas.
-fn texte_de(v: &Value, cle: &str) -> String {
-    let t = v.get(cle).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+fn en_euros(t: &str) -> String {
     let nombre = t.chars().filter(|c| !socle::texte::blanc(*c)).collect::<String>().replace(',', ".");
-    nombre.parse::<Decimal>().map(socle::texte::euros).unwrap_or(t)
+    nombre.parse::<Decimal>().map(socle::texte::euros).unwrap_or_else(|_| t.to_string())
 }
 
 /// CE QUI A CHANGE depuis l'envoi des documents, en lignes pretes pour le courriel : ce qui a change dans les
@@ -322,13 +323,15 @@ fn texte_de(v: &Value, cle: &str) -> String {
 /// « Cachets : 2 → 3 », « Jours : + 22/11 »), puis ce que sa paie en tire, du resume note a l'envoi (`ancien`) a celui
 /// de la paie refaite (`nouveau`) : « Salaire brut : 576,00 € → 720,00 € ». Vide quand rien de cela n'a bouge (le
 /// detail du bulletin seul a change).
-pub fn ce_qui_a_change(faits: &[String], ancien: &Value, nouveau: &Value) -> Vec<String> {
+pub fn ce_qui_a_change(faits: &[String], ancien: Option<&ResumeDePaie>, nouveau: Option<&ResumeDePaie>) -> Vec<String> {
     let mut out: Vec<String> = faits.iter().map(|f| format!("  - {}", f)).collect();
-    if texte_de(ancien, "brut") != texte_de(nouveau, "brut") {
-        out.push(format!("  - Salaire brut : {} → {}", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
+    let brut = |r: Option<&ResumeDePaie>| r.map(|r| en_euros(&r.brut)).unwrap_or_default();
+    let net = |r: Option<&ResumeDePaie>| r.map(|r| en_euros(&r.net)).unwrap_or_default();
+    if brut(ancien) != brut(nouveau) {
+        out.push(format!("  - Salaire brut : {} → {}", brut(ancien), brut(nouveau)));
     }
-    if texte_de(ancien, "net") != texte_de(nouveau, "net") {
-        out.push(format!("  - Net à payer : {} → {}", texte_de(ancien, "net"), texte_de(nouveau, "net")));
+    if net(ancien) != net(nouveau) {
+        out.push(format!("  - Net à payer : {} → {}", net(ancien), net(nouveau)));
     }
     out
 }
@@ -344,32 +347,33 @@ pub const RIEN_DANS_LE_RESUME: &str = "  - le détail de ton bulletin ; tes jour
 /// (`aer`, `attestation_fctu`) ; le courriel le dit, sans rien promettre.
 pub fn preparer_avec(
     paies: &[Paie],
-    ent: &Value,
+    ent: &droit::fiche::ChampsEntreprise,
     mois: &str,
     dossier: &Path,
     renvois: &std::collections::HashMap<String, Renvoi>,
     a_part: &std::collections::HashMap<String, Vec<&'static str>>,
 ) -> Result<Vec<Message>, String> {
-    let (an, mo) = an_mois(mois)?;
-    let etiq = socle::date::etiquette_du_mois(mois)?;
-    let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
+    let m = socle::mois::Mois::lire(mois)?;
+    let (an, etiq, nom_mois) = (m.annee(), m.etiquette(), m.nom(socle::mois::Graphie::Accentuee));
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
-    let salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
-    let cle_de = |s: &Value| -> Result<String, String> { Ok(en_texte(s.get("_cle").ok_or_else(|| cle_absente("_cle"))?)) };
-    for s in &salaries {
+    let cle_de = |s: &droit::fiche::SalarieDuContrat| -> Result<String, String> { Ok(s.id.to_string()) };
+    for p in paies {
+        let s = &p.salarie;
         let cle = cle_de(s)?;
         if vus.contains(&cle) {
             continue;
         }
         vus.push(cle.clone());
-        let texte = |k: &str| -> Result<String, String> { Ok(en_texte(s.get(k).ok_or_else(|| cle_absente(k))?)) };
-        let email = s.get("email").filter(|v| vrai(v));
+        fn texte<T: AsRef<str>>(c: &Option<T>, k: &str) -> Result<String, String> {
+            c.portee().map(str::to_string).ok_or_else(|| cle_absente(k))
+        }
+        let email = s.email.dite().filter(|e| !e.is_empty());
         let Some(email) = email else {
             return Err(format!(
                 "Pas d'adresse e-mail pour {} {} : saisir son courriel dans sa fiche, ou imprimer ses documents.",
-                texte("nom")?,
-                texte("prenom")?
+                texte(&s.nom, "nom")?,
+                texte(&s.prenom, "prenom")?
             ));
         };
         let mut pieces = Vec::new();
@@ -400,22 +404,22 @@ pub fn preparer_avec(
         if a_part.contains(&"attestation_fctu") {
             notes.push(NOTE_SANS_ATTESTATION_FCTU);
         }
-        let nom_affichage = en_texte(ent.get("nom_affichage").ok_or_else(|| cle_absente("nom_affichage"))?);
+        let nom_affichage = ent.nom_affichage.ecrite("nom_affichage").map_err(|_| cle_absente("nom_affichage"))?.to_string();
         let mut ft = recap_france_travail(&siennes, mois, &nom_affichage)?;
         if !ft.is_empty() && !notes.is_empty() {
             ft = format!("\n{}", ft);
         }
-        let signataire = ent.get("signataire").ok_or_else(|| cle_absente("signataire"))?;
-        let nom_signataire = match signataire.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => en_texte(v),
-            None => en_texte(signataire.get("prenom").ok_or_else(|| cle_absente("prenom"))?),
+        let signataire = ent.signataire.dite().ok_or_else(|| cle_absente("signataire"))?;
+        let nom_signataire = match signataire.prenom_affichage.remplie() {
+            Some(v) => v.to_string(),
+            None => signataire.prenom.ecrite("prenom").map_err(|_| cle_absente("prenom"))?.to_string(),
         };
         let courts: Vec<&str> = presents.iter().map(|c| chercher(&COURTS, c)).collect();
         let renvoi = renvois.get(&cle);
         let champs = [
-            ("prenom", texte("prenom_affichage")?),
+            ("prenom", texte(&s.prenom_affichage, "prenom_affichage")?),
             ("mois", nom_mois.to_string()),
-            ("de_mois", de_mois(nom_mois)),
+            ("de_mois", socle::texte::de(nom_mois)),
             ("annee", an.to_string()),
             ("liste", libelles.join("\n")),
             ("notes", if notes.is_empty() { String::new() } else { format!("{}\n", notes.join("\n\n")) }),
@@ -438,8 +442,8 @@ pub fn preparer_avec(
         };
         messages.push(Message {
             cle: cle.clone(),
-            nom: format!("{} {}", texte("prenom_affichage")?, texte("nom")?),
-            destinataire: en_texte(email).to_lowercase(),
+            nom: format!("{} {}", texte(&s.prenom_affichage, "prenom_affichage")?, texte(&s.nom, "nom")?),
+            destinataire: email.to_lowercase(),
             sujet,
             corps,
             pieces,

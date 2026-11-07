@@ -32,11 +32,11 @@
 
 
 
-use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::date::{dernier_du_mois, premier_du_mois, Jour};
+use socle::date::Jour;
+use socle::mois::Mois;
 use socle::num::Resultat;
 
 /// Une modalite du contrat qui a sa rubrique en bloc 41 : d'ou son changement tient sa date.
@@ -130,8 +130,8 @@ fn valeur<'a>(bloc: &'a [(String, String)], r: &str) -> Option<&'a str> {
 }
 
 fn mois_precedent(mois: &str) -> Resultat<String> {
-    let veille = premier_du_mois(mois)?.plus_jours(-1)?;
-    Ok(format!("{:04}-{:02}", veille.an, veille.mois))
+    let veille = Mois::lire(mois)?.premier_jour().plus_jours(-1)?;
+    Ok(veille.mois_civil().to_string())
 }
 
 fn ddmmaaaa(v: &str) -> Option<Jour> {
@@ -143,22 +143,23 @@ fn ddmmaaaa(v: &str) -> Option<Jour> {
     Jour::lire(&format!("{}-{}-{}", s(4, 8), s(2, 4), s(0, 2))).ok()
 }
 
-/// Les jours ou ces champs de la fiche datee `brute` ont change : le `depuis` de chaque valeur qui en suit une autre.
-fn changements_dates(brute: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
+/// Les jours ou ces champs d'une fiche datee ont change (`depuis` : les jours ou un champ prend une valeur) : le `depuis` de chaque
+/// valeur qui en suit une autre.
+fn changements_dates(depuis: impl Fn(&str) -> Vec<Option<Jour>>, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
     let mut out = Vec::new();
     for c in champs {
-        out.extend(droit::contexte::valeurs_datees(brute, c)?.into_iter().skip(1).filter_map(|(j, _)| j.map(|j| (j, c.to_string()))));
+        out.extend(depuis(c).into_iter().skip(1).filter_map(|j| j.map(|j| (j, c.to_string()))));
     }
     Ok(out)
 }
 
 /// « NOM Prénom, contrat <numéro> » : qui la phrase de refus désigne.
 fn qui(p: &Paie) -> String {
-    let cle = p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("");
+    let cle = p.salarie.id.as_str();
     format!(
         "{}, contrat {}",
-        socle::texte::salarie_nomme_ou(Some(&p.salarie), cle),
-        p.engagement.numero.clone().unwrap_or_else(|| "sans numero".into())
+        p.salarie.nomme().unwrap_or_else(|| cle.to_string()),
+        p.engagement.numero.as_deref().unwrap_or("sans numero").to_string()
     )
 }
 
@@ -166,7 +167,7 @@ fn qui(p: &Paie) -> String {
 /// quand elle ne se lit pas, ou qu'elle ne tombe pas dans le mois declare (voir l'en-tete du module).
 #[allow(clippy::too_many_arguments)]
 fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, mois: &str, avant: &str, apres: &str) -> Resultat<Jour> {
-    let (debut_m, fin_b) = (premier_du_mois(mois)?, dernier_du_mois(&decl.mois)?);
+    let (debut_m, fin_b) = (Mois::lire(mois)?.premier_jour(), Mois::lire(&decl.mois)?.dernier_jour());
     let fin_p = p.engagement.fin_periode()?;
     let mut candidats: Vec<(Jour, String)> = Vec::new();
     if md.saisie {
@@ -175,10 +176,10 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
             candidats.push((j, "la date de modification de la saisie du mois (`date_modification`)".into()));
         }
     }
-    for (j, c) in changements_dates(&crate::ntt::brute(ctx, &p.salarie), md.fiche)? {
+    for (j, c) in changements_dates(|c| ctx.salarie_brut(p.salarie.id.as_str()).map_or_else(Vec::new, |b| b.depuis(c)), md.fiche)? {
         candidats.push((j, format!("la fiche du salarie (`{}`)", c)));
     }
-    for (j, c) in changements_dates(ctx.entreprise_brute(), md.entreprise)? {
+    for (j, c) in changements_dates(|c| ctx.entreprise_brute().depuis(c), md.entreprise)? {
         candidats.push((j, format!("la fiche entreprise (`{}`)", c)));
     }
     if md.annuelle && decl.mois[..4] < mois[..4] {
@@ -194,10 +195,10 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
                 qui(p),
                 md.r40,
                 avant,
-                engagement::libelle_mois(&decl.mois),
+                socle::mois::Mois::en_clair(&decl.mois),
                 apres,
-                engagement::libelle_mois(&decl.mois),
-                engagement::libelle_mois(mois)
+                socle::mois::Mois::en_clair(&decl.mois),
+                socle::mois::Mois::en_clair(mois)
             ));
         }
         candidats.push((p.engagement.debut_periode()?, "la periode de paie (la valeur se lit periode par periode, p. 199)".into()));
@@ -206,7 +207,7 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
     let mut apres_declare: Vec<&(Jour, String)> = candidats.iter().filter(|(j, _)| *j > fin_b).collect();
     apres_declare.sort_by_key(|(j, _)| *j);
     apres_declare.dedup_by_key(|(j, _)| *j);
-    let quoi = format!("{} passe de '{}' (declare en {}) a '{}'", md.r40, avant, engagement::libelle_mois(&decl.mois), if apres.is_empty() { "(rien)" } else { apres });
+    let quoi = format!("{} passe de '{}' (declare en {}) a '{}'", md.r40, avant, socle::mois::Mois::en_clair(&decl.mois), if apres.is_empty() { "(rien)" } else { apres });
     let ou_dater = {
         let mut o = Vec::new();
         if md.saisie {
@@ -227,7 +228,7 @@ partir duquel le changement vaut, que l'avertissement demande ; l'avenant prend 
 declare avec l'ancienne valeur. Ce n'est plus un changement du mois mais une correction de mois deja declares (cahier \
 technique DSN, § 2.1.2.5.2 p. 25-26 : bloc S21.G00.41 et profondeur de recalcul), avec la regularisation de leurs paies, \
 que le logiciel ne fait pas. Refus : verifier la date du changement.",
-                    qui(p), quoi, j.jj_mm_aaaa(), d, engagement::libelle_mois(&decl.mois)
+                    qui(p), quoi, j.jj_mm_aaaa(), d, socle::mois::Mois::en_clair(&decl.mois)
                 ));
             }
             Err(format!(
@@ -243,12 +244,12 @@ se devine pas. Le dater : {}.",
                     "{} : {}. Le changement est date du {} ({}), avant {} : il se declare dans la DSN de {}, qui n'est pas \
 deposee. La deposer d'abord (elle porte le changement) ; si ces mois ont ete declares avec l'ancienne valeur, c'est une \
 correction de mois deja declares, que le logiciel ne fait pas.",
-                    qui(p), quoi, j.jj_mm_aaaa(), d, engagement::libelle_mois(mois), engagement::libelle_mois(&format!("{:04}-{:02}", j.an, j.mois))
+                    qui(p), quoi, j.jj_mm_aaaa(), d, socle::mois::Mois::en_clair(mois), socle::mois::Mois::en_clair(&j.mois_civil().to_string())
                 ));
             }
             // En cours de mois : la paie decoupee au jour du changement le porte (; norme, § 2.1.2.5 p. 22-23 :
             // 41.001 au jour, 41.028 au premier du mois), pour ce que le decoupage sait calculer.
-            if *j > debut_m && !md.en_cours_de_mois && !(md.decoupable && p.decoupee_le(j)) {
+            if *j > debut_m && !md.en_cours_de_mois && !(md.decoupable && p.decoupee_le(j)?) {
                 let suivant = Jour { jour: 1, ..debut_m.plus_jours(31)? };
                 let comment = if md.decoupable && md.saisie && md.fiche.is_empty() {
                     " La paie se decoupe au jour d'un avenant quand la saisie dit les termes du contrat d'avant (`avant` : \
@@ -273,7 +274,7 @@ plusieurs blocs, chacun avec la valeur d'avant lui, que la fiche ne garde pas to
 intermediaires, ou ne garder qu'un changement.",
             qui(p),
             quoi,
-            engagement::libelle_mois(&decl.mois),
+            socle::mois::Mois::en_clair(&decl.mois),
             plusieurs.iter().map(|(j, d)| format!("{} par {}", j.jj_mm_aaaa(), d)).collect::<Vec<_>>().join(" ; ")
         )),
     }
@@ -291,7 +292,7 @@ pub fn blocs_41(ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], ecrit: &[
         return Ok(Vec::new());
     }
     let Some(decl) = declare else { return Ok(Vec::new()) };
-    let fin_m = dernier_du_mois(mois)?;
+    let fin_m = Mois::lire(mois)?.dernier_jour();
     let mut identifiants = Vec::new();
     // L'IDENTIFIANT : la date de debut. Il ne change jamais en silence : l'ancienne se declare dans un bloc Changements
     // contrat (41.021), sans quoi les organismes verraient un nouveau contrat (§ 2.1.2.3, p. 20-21). Ce bloc se date du
@@ -315,7 +316,7 @@ p. 217).",
     // L'IDENTIFIANT : l'etablissement. Le contrat etait declare par un autre etablissement : son SIRET, date du jour de
     // la mutation (« la datation precise du changement de SIRET est impactante », p. 21).
     if decl.nic != nics[0] {
-        let fin_b = dernier_du_mois(&decl.mois)?;
+        let fin_b = Mois::lire(&decl.mois)?.dernier_jour();
         // L'etablissement est celui que l'engagement dit (`engagement::calcul::etablissement_du_contrat`) ; le jour ou il
         // change est celui de l'avenant (`date_modification`).
         let date = p.engagement.date_modification.as_deref().and_then(|d| Jour::lire(d).ok()).filter(|j| *j > fin_b && *j <= fin_m);
@@ -326,7 +327,7 @@ Le SIRET de l'ancien etablissement se declare dans un bloc Changements contrat (
 mutation (cahier technique DSN, p. 21) : ouvrir la carte de l'engagement, changer l'établissement, « Modifier l'engagement », et dire dans l'avertissement le mois et le jour où il change.",
                 qui(p),
                 decl.siret,
-                engagement::libelle_mois(&decl.mois),
+                socle::mois::Mois::en_clair(&decl.mois),
                 nics[0]
             ));
         };
@@ -402,7 +403,7 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
 /// date declaree ne se lit pas, ou que le jour de la correction n'est pas connu : le bloc ne se devine pas (regle 1).
 pub fn ancienne_date_de_debut(lignes: &mut Vec<String>, debut: usize, r: &crate::dsn::Regularisation, nouveau: &Jour, fin_mois: Jour) -> Resultat<()> {
     let e = &r.apres.engagement;
-    let numero = e.numero.clone().unwrap_or_default();
+    let numero = e.numero.as_deref().unwrap_or_default().to_string();
     if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
         return Ok(());
     }

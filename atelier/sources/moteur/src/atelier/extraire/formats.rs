@@ -17,7 +17,7 @@
 //!   (« Regexp », la CSL 00 du cahier) et sa longueur (« Lg Min », « Lg Max »). Le releve recompose le meme JSON :
 //!   longueur [Lg Min, Lg Max] quand le type en porte une, `csl` = [Regexp] quand il en porte une. Une rubrique que la
 //!   feuille « Fields » type d'un type inconnu de « Data Types » n'a pas de format (aucun controle) : le releve la nomme
-//!   (`_types_inconnus`), il ne la reprend pas d'ailleurs. Preuve de la methode : sur la norme 2027, le classeur 2027.1.2
+//!   (`types_inconnus`), il ne la reprend pas d'ailleurs. Preuve de la methode : sur la norme 2027, le classeur 2027.1.2
 //!   redonne le releve du PDF 2027.1.1 rubrique pour rubrique, a l'exception des deux CSL que le journal de maintenance
 //!   2027.1.2 change (evolutions 15 et 18 : S21.G00.40.070, S21.G00.41.045) et de S89.G00.32.014, absente de « Fields ».
 //!
@@ -26,7 +26,7 @@
 //!   suivant ; on y lit la premiere longueur `[min,max]` et chaque expression `CSL nn : ...`.
 //!
 //! UNE EXPRESSION QUE LE MOTEUR NE SAIT PAS COMPILER (`formats::Regex::compiler`) EST LAISSEE TOMBER, plutot que reparee a
-//! la main : une expression devinee refuserait des valeurs licites. Elle est nommee dans `_expressions_ecartees`. Le
+//! la main : une expression devinee refuserait des valeurs licites. Elle est nommee dans `expressions_ecartees`. Le
 //! critere est celui du moteur, qui seul se sert de ces expressions ; sur les sources deposees, il ecarte trois
 //! expressions, coupees par la mise en page.
 //!
@@ -264,7 +264,7 @@ fn relever_xlsx(
         let rid = format!("{}.{}", texte(bloc), texte(id));
         let genre = type_id.and_then(|t| types.get(&cle(t)));
         let Some(genre) = genre else {
-            sans_type.push((rid, type_id.map_or(Value::Null, Cellule::json)));
+            sans_type.push((rid, json!(type_id)));
             continue;
         };
         let mut fmt = Map::new();
@@ -366,41 +366,36 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     }
     let mut donnees = Map::new();
     donnees.insert(
-        "_quoi".into(),
+        "quoi".into(),
         json!(
             "Le format de chaque rubrique du cahier technique NEODeS : sa longueur [min,max] et ses expressions de \
                controle CSL. Le tableau des usages dit si une rubrique a le droit d'etre la ; ceci dit ce qu'elle doit \
-               contenir."
+               contenir. Ce n'est pas un validateur : il verifie la FORME d'une valeur, pas sa justesse : un montant \
+               faux au bon format passe."
         ),
     );
-    donnees.insert("_source".into(), Value::String(provenance));
     donnees.insert(
-        (if classeur { "_sha256_du_classeur" } else { "_sha256_du_pdf" }).into(),
-        Value::String(empreinte),
-    );
-    donnees.insert(
-        "_comment_le_verifier".into(),
-        json!(
-            "Toute declaration que le moteur ecrit (DSN, signalement, FCTU) passe ce releve avant d'etre ecrite \
+        "note".into(),
+        Value::String(format!(
+            "{} Toute declaration que le moteur ecrit (DSN, signalement, FCTU) passe ce releve avant d'etre ecrite \
                (`declarations::formats::verifier_fichier`), et `declarations/tests/declarations/usages_formats_ntt.rs` \
                en eprouve les expressions motif par motif. Une expression qui refuserait une valeur reellement acceptee \
                serait fausse, et c'est elle qu'on retire -- un controle faux refuse une declaration licite, ce qui est \
-               pire que pas de controle."
-        ),
+               pire que pas de controle.",
+            provenance
+        )),
     );
     donnees.insert(
-        "_ce_que_ce_controle_n_est_pas".into(),
-        json!(
-            "Un validateur. Il verifie la FORME d'une valeur, pas sa justesse : un montant faux au bon format passe."
-        ),
+        (if classeur { "sha256_du_classeur" } else { "sha256_du_pdf" }).into(),
+        Value::String(empreinte),
     );
     donnees.insert(
-        "_expressions_ecartees".into(),
+        "expressions_ecartees".into(),
         Value::Array(ecartees.iter().map(|(r, c)| json!({"rubrique": r, "coupee": c})).collect()),
     );
     if !sans_type.is_empty() {
         donnees.insert(
-            "_types_inconnus".into(),
+            "types_inconnus".into(),
             Value::Array(sans_type.iter().map(|(r, t)| json!({"rubrique": r, "type": t})).collect()),
         );
     }

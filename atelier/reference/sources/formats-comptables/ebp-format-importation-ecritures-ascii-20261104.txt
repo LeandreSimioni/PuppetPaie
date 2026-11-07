@@ -1,0 +1,196 @@
+          Format d'importation des écritures en ASCII                                                                                        search 
+                                        -22%
+                                                                           -200€ Ecran PC incurvé 49”
+                                                                         Samsung Gaming ODYSSEY G9
+                                                                                     OLED
+                                                                          899.99 €
+                                                                                                       Voir le Deal
+                                                                          699.99 €
+
+
+ASSISTANCE INFORMATIQUE       chevron_right
+                                          Votre 1ère catégorie                   chevron_right
+                                                                                             LOGICIELS EBP   chevron_right
+                                                                                                                         EBP COMPTABILITE
+
+
+
+                                                   power_settings_new   Se connecter pour répondre
+
+
+
+ Format d'importation des écritures en ASCII
+
+
+
+
+  person     Admin
+             Mer 27 Jan
+
+ Comment importer les écritures en ASCII ?
+
+
+ Version du 01/07/06
+
+
+ Il faut utiliser l'option Import Ecritures du menu Outils + Import de Données et sélectionner le format Fichiers
+ au format EBP V3 pour Windows.
+
+
+ Le fichier des écritures
+
+
+ Exemple de fichier d’écritures
+
+
+ Attention : Depuis la version V11 de la comptabilité, pour répondre au contrôle des comptabilités
+ informatisées des entreprises, nous avons mis en place certains contrôles au moment de l’import afin de
+ vérifier l’équilibre des pièces, la présences des numéros de pièces…Un rapport d’anomalies s’affichera en fin
+ d’import.
+
+
+ 1,010196,VE,411ART,FA, "Ventes d’ordinateur ", "123 ",12548.95,D,010301,EUR
+
+
+ Description des champs du fichier
+
+
+ Ligne : il s’agit d’un numéro de ligne ignoré lors de l’importation.
+
+
+                                                                                                                                                  power_settings_new
+ Date : JJMMAA ou JJMMAAAA.
+ Code journal : alphanumérique sur 4 caractères maximum.
+ Compte : alphanumérique sur 15 caractères maximum.
+
+
+                 
+ Libellé automatique : sur 2 caractères, ignoré lors de l’importation.
+ Libellé manuel : entre guillemets et sur 40 caractères maximum.
+                Accueil
+                                                                                    
+                                                                              Nouveautés
+                                                                                                                                        
+                                                                                                                                      Connexion
+Numéro de pièce : entre guillemets et alphanumérique sur 15 caractères maximum.
+Montant : numérique, avec le point comme séparateur de décimale.
+Sens : D ou C pour Débit ou Crédit.
+Date d’échéance : JJMMAA ou JJMMAAAA.
+Devise : (champ facultatif, à préciser uniquement si vous importez des écritures dont les montants sont
+dans une devise différente de celle du dossier). Ajoutez le code ISO de la devise concernée.
+
+
+La fin de chaque enregistrement est un retour chariot.
+
+
+Le séparateur de champs est la virgule.
+
+
+Le délimiteur de champs est le guillemet, il est présent sur le champ Libellé manuel et Numéro de pièce.
+
+
+En supposant que tous les champs ne soient pas renseignés, vous devez obligatoirement prévoir leur
+emplacement.
+
+
+Exemple :
+Le champ Libellé automatique n’existe pas dans votre application :
+1,010101,VE,411ART,, "Ventes d’ordinateur ", "123 ",12548.95,D,010301,
+
+
+Ventilations analytiques
+
+
+La structure d'une ligne de ventilation analytique est de la forme suivante :
+
+
+>Poste analytique, clé de répartition, montant à répartir
+
+
+Cette ligne est précédée de la ligne d'écriture de comptabilité générale à laquelle elle appartient.
+
+
+Exemple :
+1,010101,VE,701,FA, "Ventes d’ordinateur ", "123 ",12548.95,C,010301,
+>POSTE1,100.00,12548.95
+
+
+Le fichier des comptes
+
+
+Nom et emplacement du fichier
+
+
+Le fichier des comptes se nomme obligatoirement COMPTES.TXT. Il doit être placé dans le même répertoire
+que celui contenant le fichier des écritures.
+
+
+Au moment de l’importation, vous sélectionnez le fichier des écritures. Le programme détectera
+automatiquement la présence du fichier COMPTES.TXT, et l’
+importera avant les écritures. En l'absence de ce fichier des comptes, le libellé des comptes créés sera
+"Compte créé pendant transfert".
+                                                                                                           power_settings_new
+Description des champs du fichier
+
+
+                                                     
+Numéro de compte : alphanumérique sur 15 caractères maximum.
+             Accueil                               Nouveautés
+                                                                                              
+                                                                                            Connexion
+ Intitulé : alphanumérique sur 60 caractères maximum (ce champ correspond au libellé du compte).
+ Raison sociale : alphanumérique sur 30 caractères maximum (ce champ correspond à la raison sociale de
+ l’onglet Adresse).
+ Adresse : alphanumérique sur 100 caractères maximum.
+ Code postal : numérique sur 5 caractères maximum.
+ Ville : alphanumérique sur 30 caractères maximum.
+ Pays : alphanumérique sur 35 caractères maximum.
+ Interlocuteur : alphanumérique sur 35 caractères maximum.
+ Téléphone : alphanumérique sur 20 caractères maximum.
+ Fax : alphanumérique sur 20 caractères maximum.
+
+
+ La fin de chaque enregistrement est un retour chariot.
+
+
+ Le séparateur de champs est la virgule.
+
+
+ En supposant que tous les champs ne soient pas renseignés, vous devez obligatoirement prévoir leur
+ emplacement.
+
+
+ Exemple :
+ Vous ne disposez ni de raison sociale ni d’interlocuteur dans votre application de facturation, votre
+ exportation devra cependant contenir ces champs, même vide. Votre enregistrement sera donc de la forme :
+ 411DUPOND,DUPOND,,21 rue du bois, 78120, Rambouillet, France,,0135698475,0135698475
+
+
+
+
+ Importation automatique
+
+
+ Si le fichier d'écritures se nomme ECRITURES.TXT, qu'il respecte la structure décrite plus haut et est généré
+ dans le répertoire COMPTA.x (x étant le numéro de l'exercice courant, sous le répertoire du dossier
+ comptable), le programme détectera automatiquement sa présence à l'ouverture du dossier, et un message
+ vous proposera d’effectuer le transfert immédiatement.
+
+
+ La présence du fichier COMPTES.TXT au même emplacement permettra de créer les comptes inexistants
+ avec leur intitulé.
+
+
+thumb_up   J'aime    thumb_down   Je n'aime pas
+
+
+
+
+                                                                                                           power_settings_new
+                     
+                    Accueil
+                                                      
+                                                   Nouveautés
+                                                                                              
+                                                                                           Connexion
+

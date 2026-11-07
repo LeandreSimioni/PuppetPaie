@@ -5,12 +5,14 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::PathBuf;
 
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::fichiers::dossier_du_code;
 use socle::num::Resultat;
+
+use crate::routes::catalogue::Route;
 
 pub(crate) fn options(args: &[String]) -> Option<HashMap<String, String>> {
     let mut o = HashMap::new();
@@ -85,8 +87,8 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     });
     // LE MESSAGE AU DEVELOPPEUR PART AUSSITOT, comme la fenetre le fait partir en fond (`interface::api`) : le processus
     // attend son depart, sans changer ce que la route a rendu.
-    if nom == "signalement-envoyer" && corps["ok"] == Value::Bool(true) {
-        let _ = crate::routes::commande(&o, r#"{"route":"signalements-partir","charge":{}}"#);
+    if Route::lire(&nom) == Some(Route::SignalementEnvoyer) && corps["ok"] == Value::Bool(true) {
+        let _ = crate::routes::servir_la_route(&o, Route::SignalementsPartir, &json!({}));
     }
     if texte_seul {
         dire_sans_ligne!("{}", en_texte(&nom, &corps));
@@ -103,7 +105,7 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
 fn sans_mot_de_passe(entree: &str) -> Resultat<String> {
     let mut d = demande(entree)?;
     let nom = d.get("route").and_then(Value::as_str).unwrap_or("").to_string();
-    let du_coffre = crate::routes::catalogue::dans(crate::routes::coffre::ROUTES, &nom).is_some();
+    let du_coffre = Route::lire(&nom).and_then(|r| crate::routes::catalogue::dans(crate::routes::coffre::ROUTES, r)).is_some();
     if let Some(c) = d.get_mut("charge").and_then(Value::as_object_mut) {
         c.remove("motdepasse");
         if du_coffre {
@@ -128,11 +130,11 @@ pub fn en_texte(route: &str, rep: &Value) -> String {
         }
         return lignes.iter().map(|p| format!("{}\n", p)).collect();
     }
-    let phrase = rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let phrase = rep.get("erreur").map(documents::valeur::valeur_en_texte).unwrap_or_default();
     let classe = rep.get("classe").and_then(Value::as_str).unwrap_or("");
     let corriger = crate::routes::catalogue::catalogue()
         .into_iter()
-        .filter(|f| f.nom == route)
+        .filter(|f| f.nom() == route)
         .flat_map(|f| f.refus.iter().copied())
         .find(|r| r.classe == classe)
         .map(|r| format!("À corriger : {}\n", r.corriger))

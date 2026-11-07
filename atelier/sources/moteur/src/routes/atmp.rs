@@ -13,6 +13,7 @@
 //! n'a pas dite reprend son code, et le taux de l'arrete de l'annee pour un risque TC (`Contexte::taux_atmp_reporte`). L'avance de l'ecran propose
 //! les codes que le socle connait, ou un autre code notifie.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
@@ -21,22 +22,22 @@ use droit::bareme::{self, RisqueAtmp};
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{dossier_du_code, lire_json, vrai};
+use documents::valeur::vrai;
 use socle::num::Decimal;
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
+use documents::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 
 /// La marque d'un taux que le moteur a pose a la creation (et que personne n'a encore change).
-const POSE_A_LA_CREATION: &str = "_pose_a_la_creation";
+const POSE_A_LA_CREATION: &str = "pose_a_la_creation";
 
 fn surcouche(racine: &Path, an: i64) -> std::path::PathBuf {
     racine.join(droit::contexte::BAREMES).join(format!("{}.json", an))
 }
 
-/// Le socle livre de l'annee, s'il existe.
-fn socle_de(an: i64) -> Option<Value> {
-    let p = dossier_du_code().join("baremes").join(format!("{}.json", an));
-    p.is_file().then(|| lire_json(&p).ok()).flatten()
+/// Le socle livre de l'annee, s'il existe, lu par sa forme (`droit::contexte::socle_livre_lu`).
+fn socle_de(an: i64) -> Option<droit::forme_bareme::Pile> {
+    droit::contexte::socle_livre_lu(an as i32).ok().flatten()
 }
+
 
 fn aujourdhui_jj_mm_aaaa() -> String {
     let iso = socle::paris::iso_secondes(socle::temps::secondes());
@@ -95,7 +96,7 @@ pub(crate) fn poser_a_la_creation(racine: &Path, an: i64) -> R<()> {
     m.insert("valeur".into(), nombre(t));
     m.insert("code_risque".into(), json!(r.code));
     m.insert(POSE_A_LA_CREATION.into(), json!(true));
-    m.insert("_source".into(), json!(format!("Pose a la creation de la compagnie : le risque par defaut du socle {} et son taux collectif (atelier/reference/sources/tarification-atmp/).", an)));
+    m.insert("note".into(), json!(format!("Pose a la creation de la compagnie : le risque par defaut du socle {} et son taux collectif (atelier/reference/sources/tarification-atmp/).", an)));
     ecrire(racine, an, m)
 }
 
@@ -114,7 +115,7 @@ pub(crate) fn poser(ctx: &Contexte, an: i64, code: &str, valeur: Option<Decimal>
         ));
     }
     let socle = socle_de(an);
-    let connu = socle.as_ref().and_then(|s| bareme::risques_atmp(s).into_iter().find(|r| r.code == code));
+    let connu = socle.as_ref().and_then(|s| bareme::risques_de(s).into_iter().find(|r| r.code == code));
     let valeur = if code == bareme::SANS_NOTIFICATION {
         if valeur.is_some() {
             return Err(erreur(
@@ -145,14 +146,14 @@ pub(crate) fn poser(ctx: &Contexte, an: i64, code: &str, valeur: Option<Decimal>
         m.insert("valeur".into(), nombre(v));
     }
     m.insert("code_risque".into(), json!(code));
-    m.insert("_source".into(), json!(source));
+    m.insert("note".into(), json!(source));
     ecrire(&ctx.racine, an, m)
 }
 
 /// LE CODE ET LE TAUX QUE LA CARSAT NOTIFIE (retour DSN de nature 34, `envois::retours::taux_atmp_d_octets`) se posent
 /// d'eux-memes dans la surcouche de l'annee de leur date d'effet : la compagnie n'a rien a recopier. Effet au 1er janvier :
 /// le taux de l'annee. Effet en cours d'annee : `valeur` devient la liste datee `[{depuis, valeur}]`, le taux d'avant
-/// (dit pour l'annee, ou repris) jusqu'a la date d'effet (`droit::bareme::taux_atmp_au`, et le bareme a la date). `_notification`
+/// (dit pour l'annee, ou repris) jusqu'a la date d'effet (`droit::bareme::taux_atmp_au`, et le bareme a la date). `notification`
 /// garde le jour de la notification et la date d'effet ; une notification plus ancienne que celle deja posee ne remplace
 /// rien. `Ok(Some(phrase))` : rien n'est pose, et la phrase dit pourquoi et quoi faire (un changement de code en cours
 /// d'annee, que la configuration ne date pas).
@@ -164,7 +165,7 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
     }
     let deja = crate::routes::fiches::lire_tolerant(&surcouche(&ctx.racine, an))?.and_then(|v| v.get("taux_atmp").and_then(Value::as_object).cloned());
     let calcul = n.date_calcul.map(|j| j.iso()).unwrap_or_default();
-    if let Some(avant) = deja.as_ref().and_then(|t| t.get("_notification")).and_then(|x| x.get("calcul")).and_then(Value::as_str) {
+    if let Some(avant) = deja.as_ref().and_then(|t| t.get("notification")).and_then(|x| x.get("calcul")).and_then(Value::as_str) {
         if !calcul.is_empty() && avant > calcul.as_str() {
             return Ok(None);
         }
@@ -174,11 +175,8 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
         nombre(n.taux)
     } else {
         // Le taux d'avant la date d'effet : celui que l'annee dit, sinon celui qu'elle reprend.
-        let avant = match &deja {
-            Some(t) => Some(t.clone()),
-            None => ctx.taux_atmp_de(an as i32).and_then(Result::ok),
-        };
-        let code_avant = avant.as_ref().and_then(|t| t.get("code_risque")).filter(|c| vrai(c)).map(valeur_en_texte);
+        let avant = ctx.taux_atmp_de(an as i32).and_then(Result::ok);
+        let code_avant = avant.as_ref().and_then(|t| t.code_risque.clone()).filter(|c| !c.is_empty());
         if code_avant.as_deref().is_some_and(|c| c != code) {
             return Ok(Some(format!(
                 "{} : le code risque passe de {} à {} au {} ; rien n'est posé, car la configuration ne date pas le code risque. Saisissez le code et le taux notifiés dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».",
@@ -186,10 +184,14 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
             )));
         }
         let effet = n.date_effet.iso();
-        let mut liste: Vec<Value> = match avant.as_ref().and_then(|t| t.get("valeur")) {
-            Some(Value::Array(a)) => a.iter().filter(|e| e.get("depuis").and_then(Value::as_str).is_some_and(|d| d < effet.as_str())).cloned().collect(),
-            Some(v) if !v.is_null() => vec![json!({"depuis": format!("{}-01-01", an), "valeur": v})],
-            _ => vec![],
+        let mut liste: Vec<Value> = match avant.as_ref().and_then(|t| t.valeur.as_ref()) {
+            Some(droit::forme_bareme::ValeurAtmp::Datee(_)) => avant.as_ref().and_then(|t| t.valeur.as_ref()).map(|v| v.valeurs()).unwrap_or_default()
+                .into_iter()
+                .filter(|(d, _)| d.is_some_and(|d| d < effet.as_str()))
+                .map(|(d, v)| json!({"depuis": d, "valeur": nombre(v)}))
+                .collect(),
+            Some(droit::forme_bareme::ValeurAtmp::Seule(v)) => vec![json!({"depuis": format!("{}-01-01", an), "valeur": nombre(v.0)})],
+            None => vec![],
         };
         liste.push(json!({"depuis": effet, "valeur": nombre(n.taux)}));
         Value::Array(liste)
@@ -197,8 +199,8 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
     let mut m = Map::new();
     m.insert("valeur".into(), valeur);
     m.insert("code_risque".into(), json!(code));
-    m.insert("_source".into(), json!(source));
-    m.insert("_notification".into(), json!({"le": le, "calcul": calcul, "effet": n.date_effet.iso()}));
+    m.insert("note".into(), json!(source));
+    m.insert("notification".into(), json!({"le": le, "calcul": calcul, "effet": n.date_effet.iso()}));
     ecrire(&ctx.racine, an, m)?;
     Ok(None)
 }
@@ -230,33 +232,28 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
     // pourquoi il ne se reprend pas (`Contexte::taux_atmp_de`).
     let (pose, reporte, manque) = match ctx.taux_atmp_de(an as i32) {
         Some(Ok(t)) => {
-            let de = t.get("_reporte_de").and_then(Value::as_i64);
+            let de = t.reporte_de.map(i64::from);
             (Some(t), de, None)
         }
         Some(Err(m)) => (None, None, Some(m)),
         None => (None, None, None),
     };
-    let code = pose.as_ref().and_then(|t| t.get("code_risque")).filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
+    let code = pose.as_ref().and_then(|t| t.code_risque.clone()).unwrap_or_default();
     // Le taux en vigueur aujourd'hui, ramene dans l'annee (une liste datee : celui de sa date d'effet).
     let jour = match ctx.aujourdhui.an as i64 {
         a if a < an => socle::date::Jour::nouveau(an as i32, 1, 1),
         a if a > an => socle::date::Jour::nouveau(an as i32, 12, 31),
         _ => Some(ctx.aujourdhui),
     };
-    let valeur = pose
-        .as_ref()
-        .and_then(|t| t.get("valeur"))
-        .zip(jour)
-        .and_then(|(v, j)| bareme::taux_atmp_au(v, &j))
-        .map(nombre);
-    let notification = pose.as_ref().and_then(|t| t.get("_notification")).cloned();
-    let a_la_creation = pose.as_ref().is_some_and(|t| t.get(POSE_A_LA_CREATION).is_some_and(vrai));
+    let valeur = pose.as_ref().and_then(|t| t.valeur.as_ref()).zip(jour).and_then(|(v, j)| v.au(&j)).map(nombre);
+    let notification = pose.as_ref().and_then(|t| t.notification.as_ref()).map(|n| json!({"le": n.le, "calcul": n.calcul, "effet": n.effet}));
+    let a_la_creation = pose.as_ref().is_some_and(|t| t.pose_a_la_creation == Some(true));
     let socle = socle_de(an);
-    let risques = socle.as_ref().map(bareme::risques_atmp).unwrap_or_default();
+    let risques = socle.as_ref().map(bareme::risques_de).unwrap_or_default();
     let arrete = socle.as_ref().and_then(bareme::arrete_atmp);
     let connu = risques.iter().find(|r| r.code == code);
     let nom = |r: &RisqueAtmp| r.code_arrete.clone().unwrap_or_else(|| r.code.clone());
-    let taux_dit = valeur.as_ref().map(|v| en_pourcent(socle::num::dec(v).unwrap_or_default()));
+    let taux_dit = valeur.as_ref().map(|v| en_pourcent(documents::valeur::dec(v).unwrap_or_default()));
     let explication = match (connu, &taux_dit) {
         (Some(r), _) if r.code == bareme::SANS_NOTIFICATION => format!(
             "999ZZ : la compagnie n'a pas encore reçu de notification de la CARSAT. La DSN le déclare ainsi, sans taux. Aucun texte ne dit quel taux le bulletin cotise en attendant : le logiciel ne calcule pas la paie de {} tant que le code et le taux notifiés ne sont pas saisis ici.",
@@ -311,7 +308,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         "ou_le_lire": "La CARSAT notifie à la compagnie son code risque et son taux : la notification se lit dans le compte AT/MP de net-entreprises (compte entreprise › Accidents du travail et maladies professionnelles).",
         "ou_le_changer": "Si la notification dit un autre code, ou un autre taux, ou si la compagnie n'en a pas encore reçu (999ZZ), changez-les dans « Avancé » ci-dessous.",
         "codes": risques.iter().map(risque_en_json).collect::<Vec<_>>(),
-        "etablissements": crate::routes::ouverture::etablissements_dits(ctx).iter().map(|e| d_un_etablissement(e, an, socle.as_ref(), arrete.as_deref())).collect::<Vec<_>>(),
+        "etablissements": ctx.etablissements_dits().iter().map(|e| d_un_etablissement(e, an, socle.as_ref(), arrete.as_deref())).collect::<Vec<_>>(),
     }))
 }
 
@@ -319,22 +316,16 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
 /// etablissement, le classement suivant l'activite qui y est exercee (D. 242-6-1, `code-de-la-securite-sociale/xml/D242-6-1.xml` ;
 /// arrete du 17/10/1995, art. 1, I, 1°) ; un code « TC » a le taux de l'arrete de l'annee quel que soit l'effectif
 /// (D. 242-6-14, I), lu au meme endroit que pour la compagnie (`bareme::taux_atmp_applique`).
-fn d_un_etablissement(e: &Value, an: i64, socle: Option<&Value>, arrete: Option<&str>) -> Value {
-    let t = bareme::taux_atmp_d_un_etablissement(e, &an.to_string());
-    let code = t.get("code_risque").map(valeur_en_texte).unwrap_or_default();
-    let r = socle.and_then(|s| bareme::risques_atmp(s).into_iter().find(|r| r.code == code));
+fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&droit::forme_bareme::Pile>, arrete: Option<&str>) -> Value {
+    let t = bareme::taux_atmp_d_un_etablissement(e, an as i32).unwrap_or_default();
+    let code = t.code_risque.clone().unwrap_or_default();
+    let r = socle.and_then(|s| bareme::risques_de(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
-    let cp = e.get("code_postal").map(valeur_en_texte).unwrap_or_default();
-    let taux = socle.and_then(|s| bareme::taux_atmp_applique(s, &t, bareme::en_alsace_moselle(&cp)));
+    let cp = e.code_postal.texte().to_string();
+    let taux = socle.and_then(|s| bareme::taux_atmp_applique(&bareme::risques_de(s), &t, bareme::en_alsace_moselle(&cp)));
     let arrete = arrete.map(String::from).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an));
     let mut phrases = Vec::new();
-    if t.get("_code_de_la_compagnie").is_some_and(vrai) {
-        phrases.push(format!(
-            "Le code risque {} est celui de la compagnie, posé par le logiciel. Le code d'un établissement suit l'activité qui y est exercée (arrêté du 17 octobre 1995, art. 1 ; code de la sécurité sociale, art. D. 242-6-1) : si la CARSAT notifie un autre code à cet établissement, changez-le ici.",
-            nom_code
-        ));
-    }
-    phrases.push(match (&taux, t.get("valeur").filter(|v| !v.is_null())) {
+    phrases.push(match (&taux, t.valeur) {
         (Some(_), Some(_)) => "Le taux est celui que vous avez saisi, tel que la notification de la CARSAT le dit.".to_string(),
         (Some(x), None) if r.as_ref().is_some_and(|r| r.tc) => format!(
             "Le taux de ce risque est collectif, le même quel que soit l'effectif (code de la sécurité sociale, art. D. 242-6-14, et {}) : {} en {}.",
@@ -348,8 +339,8 @@ fn d_un_etablissement(e: &Value, an: i64, socle: Option<&Value>, arrete: Option<
         (None, _) => format!("Son taux est celui que la CARSAT notifie à cet établissement (compte AT/MP sur net-entreprises) : saisissez-le avec le code {}.", nom_code),
     });
     json!({
-        "nic": e.get("nic").cloned().unwrap_or(Value::Null),
-        "libelle": e.get("libelle").cloned().unwrap_or(Value::Null),
+        "nic": json!(e.nic.portee()),
+        "libelle": json!(e.libelle.portee()),
         "resume": format!("Code risque {}{}", nom_code, taux.map(|x| format!(", taux {}", en_pourcent(x))).unwrap_or_default()),
         "risque": r.as_ref().map(risque_en_json),
         "explication": phrases.join(" "),
@@ -388,7 +379,7 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     });
     // Une lecture dit le taux de l'annee.
     if r["phrase"] == json!("") {
-        let t = |k: &str| socle::valeur::valeur_en_texte(&r["taux"][k]);
+        let t = |k: &str| documents::valeur::valeur_en_texte(&r["taux"][k]);
         let p = if r["taux"].is_object() { format!("Taux AT/MP {} : {} %, code risque {}.", an, t("valeur"), t("code_risque")) } else { format!("Aucun taux AT/MP pour {}.", an) };
         r["phrase"] = json!(p);
     }
@@ -397,5 +388,5 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`, par son code postal) ?
 fn en_alsace_moselle(ctx: &Contexte) -> bool {
-    ctx.entreprise.get("code_postal").map(valeur_en_texte).is_some_and(|c| bareme::en_alsace_moselle(&c))
+    bareme::en_alsace_moselle(ctx.entreprise.code_postal.texte())
 }
