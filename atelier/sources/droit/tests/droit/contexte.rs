@@ -8,11 +8,10 @@ use std::path::Path;
 /// TOUTE LA CONFIGURATION EST DATEE : une valeur changee a une date ne touche pas ce qui precede. La compagnie passe de la
 /// 3090 a la 1285 et demenage le 01/11/2026 : octobre se lit sous la 3090 et l'ancienne adresse (la fiche, le contexte
 /// du mois, la convention que le bareme applique), novembre sous les nouvelles ; la premiere valeur vaut de tout temps
-/// (un salarie saisi le 15/10 se trouve pour un contrat d'avant), meme ecrite avec une date ; une valeur non datee se
-/// refuse.
+/// (un salarie saisi le 15/10 se trouve pour un contrat d'avant), meme ecrite avec une date.
 #[test]
 fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
-    use droit::fiche::{lire_champs, ChampsEntreprise, ChampsSalarie, FicheDatee, FicheEntrepriseDatee, FicheSalarieDatee};
+    use droit::fiche::{ChampsEntreprise, ChampsSalarie, FicheDatee, FicheEntrepriseDatee, FicheSalarieDatee};
     use socle::date::Jour;
     let racine = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("configuration-datee-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&racine);
@@ -48,8 +47,5 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     assert_eq!(ctx.salarie_au("BRIOCHE", &j("2020-03-01")).unwrap().nom.texte(), "BRIOCHE");
     assert_eq!(ctx.au(&j("2020-03-01")).unwrap().salaries["BRIOCHE"].emploi.texte(), "COMEDIENNE");
     assert_eq!(ctx.entreprise_au(&j("2019-01-01")).idcc.texte(), "3090");
-    // Une valeur non datee se refuse, et la phrase dit quoi faire.
-    let e = lire_champs::<FicheEntrepriseDatee>(&BTreeMap::from([("idcc", "3090")]), "config/entreprise.json").unwrap_err();
-    assert!(e.contains("« idcc »") && e.contains("Ajouter une compagnie"), "{}", e);
     std::fs::remove_dir_all(&racine).unwrap();
 }

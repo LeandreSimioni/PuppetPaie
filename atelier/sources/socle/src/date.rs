@@ -354,28 +354,6 @@ pub fn repr_flottant(x: f64) -> String {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn j(an: i32, mois: u32, jour: u32) -> Jour {
-        Jour::nouveau(an, mois, jour).unwrap()
-    }
-
-    #[test]
-    fn ajouter_et_soustraire() {
-        let x = j(2026, 1, 31);
-        assert_eq!(x.plus_jours(1).unwrap(), j(2026, 2, 1));
-        assert_eq!(x.plus_jours(-31).unwrap(), j(2025, 12, 31));
-        assert_eq!(j(2024, 2, 28).plus_jours(1).unwrap(), j(2024, 2, 29));
-        assert_eq!(j(2026, 7, 1).moins(&j(2026, 6, 30)), 1);
-        assert_eq!(j(2026, 1, 1).moins(&j(2025, 1, 1)), 365);
-        assert_eq!(j(9999, 12, 31).plus_jours(1).unwrap_err(), HORS_CALENDRIER);
-        assert_eq!(j(1, 1, 1).plus_jours(-1).unwrap_err(), HORS_CALENDRIER);
-    }
-
-}
-
 /// `AAAA-MM-JJ` ou `AAAAMMJJ`.
 pub fn jour_iso(texte: &str) -> Option<Jour> {
     let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());

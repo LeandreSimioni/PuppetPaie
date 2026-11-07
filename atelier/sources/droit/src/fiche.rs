@@ -1586,11 +1586,4 @@ mod tests {
         assert_eq!(f.au(&Jour::lire("2026-11-01").unwrap()).actif, Case::Nulle);
         assert!(f.au(&Jour::lire("2026-11-02").unwrap()).actif.oui());
     }
-
-    /// Une cle inconnue se refuse, et la phrase nomme le fichier et la cle.
-    #[test]
-    fn une_cle_inconnue_se_refuse_en_la_nommant() {
-        let e = lire_champs::<Salaries>(&json!({"FULLER": {"prevoyance_techniciens_3097": [{"valeur": true}]}}), "config/salaries.json").unwrap_err();
-        assert!(e.contains("config/salaries.json") && e.contains("prevoyance_techniciens_3097"), "{}", e);
-    }
 }

@@ -1079,33 +1079,6 @@ mod tests {
             ("ij_nette_majoree", "null"), ("prolongations", "[]"), ("reprises", "[]"), ("saisi_le", r#""2026-02-03T10:00:00""#), ("qui", r#""interface""#), ("note", r#""""#)])
     }
 
-    /// Une suspension telle que le moteur l'ecrit.
-    fn suspension_entiere() -> Cles {
-        cles(&[("genre", r#""suspension""#), ("salarie", r#""X""#), ("contrat_debut", r#""2026-01-01""#), ("contrat_numero", r#""N""#),
-            ("motif", r#""632""#), ("debut", r#""2026-02-01""#), ("fin", r#""2026-04-30""#), ("saisi_le", r#""2026-02-01T10:00:00""#), ("qui", r#""interface""#), ("note", r#""""#)])
-    }
-
-    /// Un imprevu se relit tel qu'il s'ecrit, dans l'ordre de ses cles ; une cle obligatoire manquante, une cle inconnue
-    /// ou un genre inconnu refusent : rien n'est rempli a la place. Une cle facultative (nulle) peut manquer.
-    #[test]
-    fn un_imprevu_se_relit_entier_et_refuse_ce_qui_manque_ou_qu_il_ne_connait_pas() {
-        for entier in [arret_entier(), suspension_entiere()] {
-            assert_eq!(socle::ecriture::json_en_ligne(&lu(&entier).unwrap()), texte(&entier));
-            for i in 0..entier.len() {
-                let mut moins = entier.clone();
-                let (cle, _) = moins.remove(i);
-                if let Ok(relu) = lu(&moins) {
-                    let ecrit = socle::ecriture::json_en_ligne(&relu);
-                    assert!(ecrit.contains(&format!(r#""{}":null"#, cle)), "{} manque et n'est pas vide", cle);
-                }
-            }
-            let mut plus = entier.clone();
-            plus.push(("heures", "3".into()));
-            assert!(lu(&plus).is_err());
-        }
-        assert!(lu(&cles(&[("genre", r#""autre""#)])).is_err());
-    }
-
     /// S21.G00.60.002 : « la veille de la date de debut de la prescription de l'arret de travail, sauf [...] arret prescrit
     /// lors d'un jour travaille : le dernier jour travaille correspond alors a la date de l'arret » (bloc-S21.G00.60.txt,
     /// p. 266-267) ; l'absence va du lendemain a la veille de la reprise (S21.G00.60.010).

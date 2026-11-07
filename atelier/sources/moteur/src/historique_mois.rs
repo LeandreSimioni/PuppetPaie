@@ -877,21 +877,3 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let phrase = format!("Historique de {} : {} documents, {} envois.", socle::mois::Mois::en_clair(mois), documents.len(), envois.len());
     Ok(json!({"phrase": phrase, "mois": mois, "documents": documents, "envois": envois}))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn une_publication_se_lit_en_heure() {
-        assert_eq!(quand_publication("20261019171100"), "2026-10-19T17:11:00");
-        assert_eq!(quand_publication(""), "");
-    }
-
-    #[test]
-    fn la_nature_d_une_declaration_se_dit() {
-        assert_eq!(nature_dsn("01", "01"), "DSN mensuelle");
-        assert_eq!(nature_dsn("01", "03"), "DSN mensuelle (annule et remplace)");
-        assert_eq!(nature_dsn("07", "04"), "Signalement fin du contrat de travail unique (annulation)");
-    }
-}

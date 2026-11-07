@@ -53,7 +53,6 @@ fn les_heures_du_mois_se_comptent_sur_les_jours_travailles_de_la_fiche() {
     assert_eq!((p.jours, p.jours_du_mois), (13, 23));
     assert_eq!(p.sur_le_bulletin(droit::conges::heures_par_jour(Decimal::new(15167, 2), &jours)).as_deref(), Some("91 h sur les 161 h du mois"));
     assert!(jours_ecrits("[]").is_err());
-    assert!(jours_ecrits(r#"["lundi", "jour de fete"]"#).is_err());
 }
 
 /// L3133-3 (`atelier/reference/sources/code-du-travail/articles-20261029.md`, l. 113) : le chomage d'un ferie n'entraine

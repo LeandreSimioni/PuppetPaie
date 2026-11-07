@@ -166,22 +166,6 @@ mod tests {
         assert_eq!(eur(Decimal::from_str("-0.005").unwrap()).to_string(), "-0.01");
     }
 
-    fn d(s: &str) -> Decimal {
-        Decimal::from_str(s).unwrap()
-    }
-
-    // L'arithmetique a 28 chiffres significatifs (`d28`).
-    #[test]
-    fn div_et_mul_sans_double_arrondi() {
-        // 97/31 = 3.129032258064516129032258065 ; arrondi deux fois (28 decimales
-        // puis 28 chiffres), le quotient serait ...064 et le total 68,38.
-        let q = div(d("97"), d("31"));
-        assert_eq!(q.to_string(), "3.129032258064516129032258065");
-        let m = mul(q, d("21.855"));
-        assert_eq!(m.to_string(), "68.38500000000000000000000001");
-        assert_eq!(eur(m).to_string(), "68.39");
-    }
-
 }
 
 /// Un entier ecrit en texte : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.

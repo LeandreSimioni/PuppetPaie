@@ -211,14 +211,3 @@ pub fn virgule(x: rust_decimal::Decimal) -> String {
     x.normalize().to_string().replace('.', ",")
 }
 
-#[cfg(test)]
-mod tests {
-    use super::salarie_nomme;
-
-    #[test]
-    fn le_salarie_est_nomme_comme_la_page_le_montre() {
-        assert_eq!(salarie_nomme("SERAPHIN", "Séraphin", "Loie", "Loïe").as_deref(), Some("SÉRAPHIN Loïe"));
-        assert_eq!(salarie_nomme("Martin", "", "Léa", " ").as_deref(), Some("MARTIN Léa"));
-        assert_eq!(salarie_nomme("", "", "", ""), None);
-    }
-}

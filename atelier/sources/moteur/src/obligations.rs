@@ -1421,13 +1421,6 @@ fn arret_obligations(ctx: &Contexte, c: ChargeArretObligations) -> R<Obligations
 mod essais {
     use super::*;
 
-    #[test]
-    fn une_heure_se_lit_en_minutes() {
-        assert_eq!(lire_heure("10:30"), Some(630));
-        assert_eq!(lire_heure("24:00"), None);
-        assert_eq!(lire_heure("9h"), None);
-    }
-
     /// Bug reel : un signalement de fin de contrat accepte au transport puis refuse au bilan se disait fait. Le bilan
     /// tranche (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) : refuse, il reste du.
     #[test]

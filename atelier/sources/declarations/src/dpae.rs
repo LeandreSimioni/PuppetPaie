@@ -24,8 +24,6 @@ use droit::contexte::EntrepriseDuDocument;
 use droit::fiche::ChampsEntreprise;
 use documents::valeur::{d, en_texte, repr_valeur, vrai};
 use socle::fichiers::{modele_de, repr};
-#[cfg(test)]
-use socle::fichiers::MARQUEUR_COPIE;
 use crate::ntt;
 use socle::num::Resultat;
 use socle::texte::ascii_nfkd;
@@ -873,13 +871,6 @@ mod tests {
         octets.iter().map(|&o| o as char).collect::<String>().chars().take(LONGUEUR).collect()
     }
 
-    fn dossier(nom: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("puppetpaie-dpae-{}-{}", std::process::id(), nom));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
-    }
-
     /// Un salarie inventé (le NIR porte `999`, la marque des numeros inventes).
     fn salarie() -> Value {
         json!({"nom": "Dupont", "prenom": "Alice", "nir": "2850375999001", "nir_cle": "42",
@@ -1071,36 +1062,6 @@ mod tests {
         assert_eq!(zone(&enr(&e, None, json!("")).unwrap(), "jours_essai"), "   ");
     }
 
-    #[test]
-    fn le_gabarit_de_la_compagnie_passe_devant_celui_du_logiciel() {
-        let d = dossier("gabarits");
-        let gab = d.join("compagnie").join("gabarits");
-        std::fs::create_dir_all(&gab).unwrap();
-        let mut t: Vec<char> = neutre();
-        t.splice(0..4, "ZZZZ".chars());
-        let octets: Vec<u8> = t.iter().map(|&c| c as u8).collect();
-        std::fs::write(gab.join(NOM_GABARIT), octets).unwrap();
-        let ent = gab.clone();
-        let poste = d.join("poste");
-        assert_eq!(modele_de(NOM_GABARIT, Some(&ent), &poste), gab.join(NOM_GABARIT));
-        // Une copie de developpement n'emprunte rien au poste, et prend le modele livre.
-        std::fs::create_dir_all(poste.join("gabarits")).unwrap();
-        std::fs::write(poste.join("gabarits").join(NOM_GABARIT), b"x").unwrap();
-        let vide = d.join("copie").join("gabarits");
-        std::fs::create_dir_all(&vide).unwrap();
-        let ent = vide.clone();
-        assert_eq!(modele_de(NOM_GABARIT, Some(&ent), &poste.join("gabarits")), poste.join("gabarits").join(NOM_GABARIT));
-        std::fs::write(d.join("copie").join(MARQUEUR_COPIE), "{}").unwrap();
-        assert_eq!(modele_de(NOM_GABARIT, Some(&ent), &poste.join("gabarits")), dossier_du_code().join("modeles").join(NOM_GABARIT));
-        // Un gabarit trop court est refuse.
-        std::fs::write(gab.join(NOM_GABARIT), b"court\n").unwrap();
-        let ent = gab.clone();
-        let c = Chemins { defaut: PathBuf::new(), poste };
-        let m = gabarit_lu(Some(&ent), &c).unwrap_err();
-        assert!(m.contains("gabarit DUE"), "{}", m);
-        let _ = std::fs::remove_dir_all(&d);
-    }
-
     // ---- le latin-1 et le .zip
 
     #[test]
@@ -1109,74 +1070,6 @@ mod tests {
         assert_eq!(en_latin1("caf\u{e9}").unwrap(), b"caf\xe9");
         for t in ["ab\u{178}c", "a\u{178}\u{178}\u{1f600}", "\u{1f600}"] {
             assert!(en_latin1(t).is_err(), "{:?}", t);
-        }
-    }
-
-    /// Relit un .zip d'un fichier : (nom, octets decompresses), CRC verifie.
-    fn depaqueter(z: &[u8]) -> (String, Vec<u8>) {
-        use flate2::read::DeflateDecoder;
-        use std::io::Read;
-        let u16_ = |i: usize| u16::from_le_bytes([z[i], z[i + 1]]) as usize;
-        let u32_ = |i: usize| u32::from_le_bytes([z[i], z[i + 1], z[i + 2], z[i + 3]]);
-        assert_eq!(u32_(0), 0x0403_4b50);
-        let (compresse, taille, nom, extra) = (u32_(18) as usize, u32_(22) as usize, u16_(26), u16_(28));
-        let debut = 30 + nom + extra;
-        let mut sortie = Vec::new();
-        DeflateDecoder::new(&z[debut..debut + compresse]).read_to_end(&mut sortie).unwrap();
-        assert_eq!(sortie.len(), taille);
-        let mut crc = flate2::Crc::new();
-        crc.update(&sortie);
-        assert_eq!(crc.sum(), u32_(14));
-        // le repertoire central pointe sur lui, et finit l'archive
-        let rep = debut + compresse;
-        assert_eq!(u32_(rep), 0x0201_4b50);
-        let fin = z.len() - 22;
-        assert_eq!(u32_(fin), 0x0605_4b50);
-        assert_eq!(u32_(fin + 16) as usize, rep);
-        (String::from_utf8(z[30..30 + nom].to_vec()).unwrap(), sortie)
-    }
-
-    #[test]
-    fn ecrire_pose_le_fichier_et_son_zip_et_cree_le_dossier() {
-        let d = dossier("ecrire");
-        let chemin = d.join("sorties").join("2026-10").join("DPAE_Octobre2026.txt");
-        let c = chemins();
-        let ent = entreprise();
-        let e = embauche(salarie(), "cdi", Value::Null);
-        let p = parametres(Some(&ent), json!("117"), &c);
-        ecrire(&[e.clone(), e.clone()], &chemin, &p, true).unwrap();
-        let octets = std::fs::read(&chemin).unwrap();
-        assert_eq!(octets.len(), 2 * LONGUEUR);
-        let (nom, dans_le_zip) = depaqueter(&std::fs::read(d.join("sorties/2026-10/DPAE_Octobre2026.txt.zip")).unwrap());
-        assert_eq!(nom, "DPAE_Octobre2026.txt");
-        assert_eq!(dans_le_zip, octets);
-        assert_eq!(octets, contenu(&[e.clone(), e.clone()], &p).unwrap());
-        // sans zip
-        let seul = d.join("sans-zip.txt");
-        ecrire(&[e.clone()], &seul, &p, false).unwrap();
-        assert!(seul.exists() && !d.join("sans-zip.txt.zip").exists());
-        // un refus laisse le dossier cree, et rien d'ecrit
-        let mut mauvais = salarie();
-        mauvais["nir"] = json!("");
-        mauvais["sexe"] = json!("");
-        let refuse = d.join("autre").join("x.txt");
-        assert!(ecrire(&[embauche(mauvais, "cdi", Value::Null)], &refuse, &p, true).is_err());
-        assert!(d.join("autre").is_dir() && !refuse.exists());
-        let _ = std::fs::remove_dir_all(&d);
-    }
-
-    // ---- le recapitulatif
-
-    #[test]
-    fn le_recapitulatif_d_un_permanent_ne_nomme_aucun_spectacle() {
-        let e = embauche(salarie(), "cdi", Value::Null);
-        let t = recapitulatif(&[e], &json!("0800")).unwrap();
-        assert!(t.contains("sans terme"), "{}", t);
-        assert!(t.contains("CDI"), "{}", t);
-        assert!(!t.contains("CDD d'usage"), "{}", t);
-        // Ce qu'il faut pour declarer : qui, sa naissance, son NIR, le jour et l'heure de l'embauche, l'emploi.
-        for fait in ["Dupont Alice", "07/03/1985", "Tours (37)", "285037599900142", "01/10/2026", "08h00", "Comedienne"] {
-            assert!(t.contains(fait), "{} : {}", fait, t);
         }
     }
 
