@@ -81,9 +81,9 @@ fn case<T: AsRef<str>>(c: &Option<T>, cle: &str) -> Resultat<String> {
 
 /// La forme lisible d'une case de la fiche du salarie si elle est dite, la forme declaree sinon (`case`).
 fn lisible<T: AsRef<str>>(affichage: &Option<String>, c: &Option<T>, cle: &str) -> Resultat<String> {
-    match affichage.texte() {
-        "" => case(c, cle),
-        a => Ok(a.to_string()),
+    match affichage.remplie() {
+        Some(a) => Ok(a.to_string()),
+        None => case(c, cle),
     }
 }
 
@@ -387,10 +387,9 @@ pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalari
     // ce qui est vrai.
     poser(
         Marqueur::SalarieNir,
-        if !s.nir.texte().is_empty() {
-            format!("{}{}", s.nir.texte(), s.nir_cle.ecrite("nir_cle")?)
-        } else {
-            "en cours d'immatriculation".to_string()
+        match s.nir.remplie() {
+            Some(nir) => format!("{}{}", nir, s.nir_cle.ecrite("nir_cle")?),
+            None => "en cours d'immatriculation".to_string(),
         },
     );
     let emploi_texte = lisible(&s.emploi_affichage, &s.emploi, "emploi")?;

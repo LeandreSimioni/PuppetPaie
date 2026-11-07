@@ -265,7 +265,7 @@ fn classification(idcc: Option<&str>, sal: &ChampsSalarie) -> Resultat<Option<St
         Some(c) => Some(droit::clauses::categorie_imprimee(idcc, &c)?.unwrap_or_else(|| c.replace('_', " "))),
         None => None,
     };
-    let classement = Some(sal.classement_conventionnel.texte().to_string()).filter(|t| !t.trim().is_empty());
+    let classement = sal.classement_conventionnel.portee().filter(|t| !t.trim().is_empty()).map(str::to_string);
     Ok(match (categorie, classement) {
         (Some(c), Some(k)) => Some(format!("{}, {}", c, k)),
         (Some(c), None) => Some(c),
@@ -278,11 +278,11 @@ fn classification(idcc: Option<&str>, sal: &ChampsSalarie) -> Resultat<Option<St
 /// capitales, puis son prenom (`prenom_affichage`, sinon `prenom`). La DSN et la DPAE declarent le nom sans accents ;
 /// le bulletin est lu par le salarie, sous son nom.
 fn nom_imprime(sal: &ChampsSalarie) -> Resultat<String> {
-    let lu = |cases: [&str; 2]| -> Option<String> {
-        cases.into_iter().find(|t| !t.trim().is_empty()).map(str::to_string)
+    let lu = |cases: [Option<&str>; 2]| -> Option<String> {
+        cases.into_iter().flatten().find(|t| !t.trim().is_empty()).map(str::to_string)
     };
-    let nom = lu([sal.nom_affichage.texte(), sal.nom.texte()]).ok_or_else(|| socle::fichiers::absent("nom"))?;
-    let prenom = lu([sal.prenom_affichage.texte(), sal.prenom.texte()]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
+    let nom = lu([sal.nom_affichage.portee(), sal.nom.portee()]).ok_or_else(|| socle::fichiers::absent("nom"))?;
+    let prenom = lu([sal.prenom_affichage.portee(), sal.prenom.portee()]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
     Ok(format!("{} {}", nom.to_uppercase(), prenom))
 }
 
@@ -290,7 +290,7 @@ fn nom_imprime(sal: &ChampsSalarie) -> Resultat<String> {
 /// (`emploi_affichage`), sinon celui de la fiche, sinon le libelle que la DSN declare (`emploi`, S21.G00.40.006).
 fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<String> {
     let lisible = e.emploi_affichage.clone().filter(|t| !t.trim().is_empty())
-        .or_else(|| Some(sal.emploi_affichage.texte().to_string()).filter(|t| !t.trim().is_empty()));
+        .or_else(|| sal.emploi_affichage.portee().filter(|t| !t.trim().is_empty()).map(str::to_string));
     match lisible {
         Some(t) => Ok(t),
         None => exige(&sal.emploi, "emploi"),
@@ -945,16 +945,19 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     // l'etablissement du contrat, celui sous lequel la DSN le declare (`droit::bareme::entreprise_du_salarie`).
     let vue = droit::bareme::entreprise_du_salarie(ent, sal)?;
     let (siret, naf) = (vue.siret.ecrite("siret")?, vue.naf.ecrite("naf")?);
-    let etablissement = ent.etablissement(vue.nic.texte()).map(|l| {
+    let etablissement = vue.nic.portee().and_then(|n| ent.etablissement(n)).map(|l| {
         let ou = |usage: &Option<String>, civil: &Option<String>| usage.remplie().or(civil.portee()).unwrap_or_default().to_string();
         let adresse = droit::fiche::avec_complement(ou(&l.adresse_affichage, &l.adresse.en_texte()), l.complement_adresse_affichage.remplie().or(l.complement_adresse.remplie()));
-        let lieu = [adresse, l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune.en_texte())]
+        let lieu = [Some(adresse), l.code_postal.en_texte(), Some(ou(&l.commune_affichage, &l.commune.en_texte()))]
             .into_iter()
+            .flatten()
             .filter(|s| !s.trim().is_empty())
             .collect::<Vec<_>>()
             .join(" ");
-        let nom = l.libelle.texte();
-        if nom.trim().is_empty() { lieu } else { format!("{}, {}", nom, lieu) }
+        match l.libelle.portee().filter(|n| !n.trim().is_empty()) {
+            Some(nom) => format!("{}, {}", nom, lieu),
+            None => lieu,
+        }
     });
     let (siret_siege, naf_siege) = (ent.siret.ecrite("siret")?, ent.naf.ecrite("naf")?);
     let mut blocs = vec![
@@ -1022,7 +1025,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
             format!("Numéro d'objet : {} {} Spectacle : {}", du_spectacle(sp.as_ref(), |s| &s.numero_objet, "numero_objet")?, tiret, du_spectacle(sp.as_ref(), |s| &s.titre, "titre")?);
         ligne_caisse = vec![
             k("N° Congés Spectacles :"),
-            mt(format!(" {}\n", match sal.num_conges_spectacles.texte() { "" => "-", n => n })),
+            mt(format!(" {}\n", match sal.num_conges_spectacles.remplie() { Some(n) => n, None => "-" })),
         ];
         let dates: Vec<String> = e.dates_travail.iter().map(Jour::jj_mm_aaaa).collect();
         travail = vec![m("Dates travaillées :", true, None), mt(format!(" {}", dates.join(", ")))];
@@ -1030,9 +1033,9 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     blocs.push(para(vec![mt(sous_titre)], 7.0, Some(GRIS), 0.0, 5.0));
 
     // Le cadre d'identite : un tableau d'une ligne, deux cellules a filet.
-    let nir_affiche = match sal.nir.texte() {
-        n if !n.is_empty() => format!("{}{}", n, exige(&sal.nir_cle, "nir_cle")?),
-        _ => "en cours d'immatriculation".to_string(),
+    let nir_affiche = match sal.nir.remplie() {
+        Some(n) => format!("{}{}", n, exige(&sal.nir_cle, "nir_cle")?),
+        None => "en cours d'immatriculation".to_string(),
     };
     let mut salarie = vec![
         m(nom_imprime(sal)?, true, None),
@@ -1076,7 +1079,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
         k("Urssaf :"),
         mt(format!(
             " {}\n",
-            ent.urssaf_compte.texte()
+            ent.urssaf_compte.ecrite("urssaf_compte")?
         )),
         k("Conv. collective :"),
         mt(format!(" IDCC {} - {}\n", conv.0, conv.1)),
