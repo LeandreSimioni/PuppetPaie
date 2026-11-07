@@ -295,8 +295,7 @@ pub fn blocs(
     // Ce qui demande les montants de l'annee : la taxe sur les salaires et la PEEC.
     let ts = taxe_sur_les_salaires_de_la_fiche(ent).map_err(|m| format!("DSN de decembre {}, bloc S21.G00.44 : {} Rien n'est ecrit.", an, m))?;
     if ts.is_some() {
-        let cp = ent_e.code_postal.texte().to_string();
-        if cp.starts_with("97") || cp.starts_with("98") {
+        if let Some(cp) = ent_e.code_postal.portee().filter(|cp| cp.starts_with("97") || cp.starts_with("98")) {
             return Err(format!(
                 "DSN de decembre {} : l'etablissement {} est outre-mer (code postal {}), ou la taxe sur les salaires a un taux \
 unique et pas de taux majores (CGI art. 231, 2 bis et 5). Le moteur ne connait que le bareme de metropole et n'ecrit \

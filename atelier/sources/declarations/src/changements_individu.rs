@@ -34,10 +34,15 @@ pub struct Identifiant {
     pub r30: &'static str,
     pub r31: &'static str,
     pub libelle: &'static str,
-    pub ecrite: fn(&ChampsSalarie) -> String,
+    pub ecrite: fn(&ChampsSalarie) -> Option<String>,
     pub poser: fn(&mut ChampsSalarie, &ChampsSalarie),
     /// Ses valeurs dans la fiche datee, de la plus ancienne a la plus recente, telles que le bloc 30 les ecrit.
     pub datees: fn(&FicheSalarieDatee) -> Vec<(Option<Jour>, Option<String>)>,
+}
+
+/// Un texte de la fiche tel que le bloc 30 l'ecrit.
+fn texte_ecrit<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
+    c.portee().map(|t| strip(t).to_string())
 }
 
 /// Les identifiants, dans l'ordre du bloc 31 (p. 177).
@@ -47,68 +52,68 @@ pub const IDENTIFIANTS: [Identifiant; 4] = [
         r30: "S21.G00.30.001",
         r31: "S21.G00.31.008",
         libelle: "NIR",
-        ecrite: |s| strip(s.nir.texte()).to_string(),
+        ecrite: |s| texte_ecrit(&s.nir),
         poser: |s, au| s.nir = au.nir.clone(),
-        datees: |b| datees(&b.nir, |c| Some(strip(c.texte()).to_string())),
+        datees: |b| datees(&b.nir, texte_ecrit),
     },
     Identifiant {
         champ: "nom",
         r30: "S21.G00.30.002",
         r31: "S21.G00.31.009",
         libelle: "nom de famille",
-        ecrite: |s| strip(s.nom.texte()).to_string(),
+        ecrite: |s| texte_ecrit(&s.nom),
         poser: |s, au| s.nom = au.nom.clone(),
-        datees: |b| datees(&b.nom, |c| Some(strip(c.texte()).to_string())),
+        datees: |b| datees(&b.nom, texte_ecrit),
     },
     Identifiant {
         champ: "prenom",
         r30: "S21.G00.30.004",
         r31: "S21.G00.31.010",
         libelle: "prenoms",
-        ecrite: |s| strip(s.prenom.texte()).to_string(),
+        ecrite: |s| texte_ecrit(&s.prenom),
         poser: |s, au| s.prenom = au.prenom.clone(),
-        datees: |b| datees(&b.prenom, |c| Some(strip(c.texte()).to_string())),
+        datees: |b| datees(&b.prenom, texte_ecrit),
     },
     Identifiant {
         champ: "date_naissance",
         r30: "S21.G00.30.006",
         r31: "S21.G00.31.011",
         libelle: "date de naissance",
-        ecrite: |s| s.date_naissance.dite().map(Jour::jjmmaaaa).unwrap_or_default(),
+        ecrite: |s| s.date_naissance.dite().map(Jour::jjmmaaaa),
         poser: |s, au| s.date_naissance = au.date_naissance.clone(),
         datees: |b| datees(&b.date_naissance, |c| c.dite().map(Jour::jjmmaaaa)),
     },
 ];
 
-/// L'identite d'un individu telle qu'une DSN l'a declaree.
+/// L'identite d'un individu telle qu'une DSN l'a declaree : chaque case vide quand la DSN ne l'a pas portee.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Declaree {
     /// Le mois principal declare (AAAA-MM) et le nom du fichier qui l'a portee.
     pub mois: String,
     pub fichier: String,
-    pub nir: String,
-    pub nom: String,
-    pub prenoms: String,
+    pub nir: Option<String>,
+    pub nom: Option<String>,
+    pub prenoms: Option<String>,
     /// JJMMAAAA, comme 30.006.
-    pub naissance: String,
+    pub naissance: Option<String>,
     /// Le numero technique temporaire (30.020), s'il y en avait un.
-    pub ntt: String,
-    pub matricule: String,
+    pub ntt: Option<String>,
+    pub matricule: Option<String>,
 }
 
 impl Declaree {
-    fn valeur(&self, champ: &str) -> &str {
+    fn valeur(&self, champ: &str) -> Option<&str> {
         match champ {
-            "nir" => &self.nir,
-            "nom" => &self.nom,
-            "prenom" => &self.prenoms,
-            _ => &self.naissance,
+            "nir" => self.nir.as_deref(),
+            "nom" => self.nom.as_deref(),
+            "prenom" => self.prenoms.as_deref(),
+            _ => self.naissance.as_deref(),
         }
     }
 
     /// L'identite seule (sans le mois ni le fichier) : deux etablissements d'un meme mois doivent dire la meme.
-    fn identite(&self) -> (&str, &str, &str, &str, &str) {
-        (&self.nir, &self.nom, &self.prenoms, &self.naissance, &self.ntt)
+    fn identite(&self) -> [&Option<String>; 5] {
+        [&self.nir, &self.nom, &self.prenoms, &self.naissance, &self.ntt]
     }
 }
 
@@ -168,12 +173,15 @@ impl<'a> Declarations<'a> {
                 tous.push(Declaree {
                     mois: mois.clone(),
                     fichier: "la paie declaree".to_string(),
-                    ntt: if nir.is_empty() { crate::ntt::numero(self.ctx.entreprise.siren.texte(), s).unwrap_or_default() } else { String::new() },
+                    ntt: match nir {
+                        None => Some(crate::ntt::numero(self.ctx.entreprise.siren.ecrite("siren")?, s)?),
+                        Some(_) => None,
+                    },
                     nir,
-                    nom: strip(s.nom.texte()).to_string(),
-                    prenoms: strip(s.prenom.texte()).to_string(),
-                    naissance: s.date_naissance.dite().map(Jour::jjmmaaaa).unwrap_or_default(),
-                    matricule: strip(s.code_salarie.texte()).to_string(),
+                    nom: texte_ecrit(&s.nom),
+                    prenoms: texte_ecrit(&s.prenom),
+                    naissance: s.date_naissance.dite().map(Jour::jjmmaaaa),
+                    matricule: texte_ecrit(&s.code_salarie),
                 });
             }
             self.lus.insert(i, tous);
@@ -185,14 +193,13 @@ impl<'a> Declarations<'a> {
     /// Il se reconnait a un NIR que sa fiche (`brute`, datee) a porte, sinon a son matricule
     /// (30.019 ; il finit le NTT et ne change pas sans NIR, `moteur::routes::fiches::ecrire_fiche`).
     pub fn derniere(&mut self, salarie: &ChampsSalarie, brute: Option<&FicheSalarieDatee>) -> Resultat<Option<Declaree>> {
-        let mut nirs: Vec<String> = vec![crate::ntt::nir_de(salarie)];
+        let mut nirs: Vec<String> = crate::ntt::nir_de(salarie).into_iter().collect();
         nirs.extend(brute.into_iter().flat_map(IDENTIFIANTS[0].datees).filter_map(|(_, v)| v));
-        nirs.retain(|n| !n.is_empty());
-        let matricule = strip(salarie.code_salarie.texte()).to_string();
+        let matricule = texte_ecrit(&salarie.code_salarie);
         for i in 0..self.mois.len() {
             let tous = self.lire(i)?;
-            let mut siens: Vec<&Declaree> = tous.iter().filter(|d| !d.nir.is_empty() && nirs.contains(&d.nir)).collect();
-            if siens.is_empty() && !matricule.is_empty() {
+            let mut siens: Vec<&Declaree> = tous.iter().filter(|d| d.nir.as_ref().is_some_and(|n| nirs.contains(n))).collect();
+            if siens.is_empty() && matricule.is_some() {
                 siens = tous.iter().filter(|d| d.matricule == matricule).collect();
             }
             let Some(premier) = siens.first() else { continue };
@@ -220,17 +227,24 @@ pub fn derniere_declaree(ctx: &Contexte, salarie: &droit::fiche::SalarieDuContra
 }
 
 fn qui(salarie: &ChampsSalarie) -> String {
-    let matricule = strip(salarie.code_salarie.texte());
-    format!("{} (matricule {})", salarie.nomme().unwrap_or_else(|| "?".to_string()), if matricule.is_empty() { "?" } else { matricule })
+    let nom = salarie.nomme().unwrap_or_else(|| "?".to_string());
+    match salarie.code_salarie.portee() {
+        Some(matricule) => format!("{} (matricule {})", nom, strip(matricule)),
+        None => format!("{} (sans matricule)", nom),
+    }
 }
 
 fn decrire(d: &Declaree) -> String {
+    let dite = |c: &Option<String>| c.clone().unwrap_or_else(|| "?".to_string());
     format!(
         "{} {}, ne(e) le {}, {}",
-        d.prenoms,
-        d.nom,
-        d.naissance,
-        if d.nir.is_empty() { format!("NTT {}", d.ntt) } else { format!("NIR {}", d.nir) }
+        dite(&d.prenoms),
+        dite(&d.nom),
+        dite(&d.naissance),
+        match &d.nir {
+            Some(nir) => format!("NIR {}", nir),
+            None => format!("NTT {}", dite(&d.ntt)),
+        }
     )
 }
 
@@ -262,32 +276,35 @@ pub fn ecrire(f: &mut Fichier, salarie: &ChampsSalarie, brute: Option<&FicheSala
     let mut sans_date: Vec<String> = Vec::new();
     for identifiant @ Identifiant { champ, r31, libelle, ecrite: valeur, .. } in &IDENTIFIANTS {
         let (champ, r31, libelle) = (*champ, *r31, *libelle);
-        let avant = d.valeur(champ);
         let maintenant = valeur(salarie);
-        if avant == maintenant {
+        if d.valeur(champ) == maintenant.as_deref() {
             continue;
         }
-        if champ == "nir" {
-            if avant.is_empty() {
-                continue;
-            }
-            if maintenant.is_empty() {
-                return Err(format!(
-                    "{} a ete declare(e) sous le NIR {} (DSN de {}, {}), et sa fiche n'a plus de NIR : un NIR declare ne se \
+        // Une case que la DSN n'a pas portee n'a pas d'ancienne valeur : le NIR qui arrive se lie par le NTT.
+        let Some(avant) = d.valeur(champ) else { continue };
+        if champ == "nir" && maintenant.is_none() {
+            return Err(format!(
+                "{} a ete declare(e) sous le NIR {} (DSN de {}, {}), et sa fiche n'a plus de NIR : un NIR declare ne se \
 retire pas, il se reporte a l'identique d'une DSN a la suivante (cahier technique, § 2.1.1, p. 18). Remettre le NIR \
 dans la fiche, ou le remplacer par le NIR corrige, date. Rien n'est ecrit.",
-                    qui(salarie),
-                    avant,
-                    d.mois,
-                    d.fichier
-                ));
-            }
+                qui(salarie),
+                avant,
+                d.mois,
+                d.fichier
+            ));
         }
         match date_d_effet(brute, identifiant, avant, fin)? {
             Some(j) => par_date.entry(j).or_default().push((r31, avant.to_string())),
             None => sans_date.push(format!(
-                "  - {} : declare(e) \u{ab} {} \u{bb} dans la DSN de {} ({}), \u{ab} {} \u{bb} dans la fiche",
-                libelle, avant, d.mois, d.fichier, maintenant
+                "  - {} : declare(e) \u{ab} {} \u{bb} dans la DSN de {} ({}), {} dans la fiche",
+                libelle,
+                avant,
+                d.mois,
+                d.fichier,
+                match &maintenant {
+                    Some(m) => format!("\u{ab} {} \u{bb}", m),
+                    None => "rien".to_string(),
+                }
             )),
         }
     }
@@ -321,12 +338,12 @@ mod tests {
         Declaree {
             mois: "2026-07".into(),
             fichier: "la paie declaree".into(),
-            nir: "2901075999009".into(),
-            nom: "CLAIRON".into(),
-            prenoms: "LUCILE".into(),
-            naissance: "02101990".into(),
-            ntt: String::new(),
-            matricule: "6".into(),
+            nir: Some("2901075999009".into()),
+            nom: Some("CLAIRON".into()),
+            prenoms: Some("LUCILE".into()),
+            naissance: Some("02101990".into()),
+            ntt: None,
+            matricule: Some("6".into()),
         }
     }
 
@@ -376,7 +393,7 @@ mod tests {
 
     #[test]
     fn un_nir_declare_ne_disparait_pas() {
-        let s = json!({"nir": "", "nom": "CLAIRON", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
+        let s = json!({"nom": "CLAIRON", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
         let e = ecrire(&mut Fichier::nouveau(), &lue(&s), Some(&fiche(s.clone(), &[])), Some(&declaree()), "2026-09", &fin()).unwrap_err();
         assert!(e.contains("n'a plus de NIR"), "{}", e);
     }
@@ -387,8 +404,8 @@ mod tests {
         let b = fiche(json!({"nom": "CLAIRON", "adresse": "ANCIENNE"}), &[("nom", "2026-10-02", "DUVAL"), ("adresse", "2026-10-02", "NOUVELLE")]);
         let s = FicheSalarie { id: droit::contexte::IdSalarie::lire("DUVAL").unwrap(), champs: lue(&s) };
         let m = identite_du_mois(&s, Some(&b), &fin()).unwrap();
-        assert_eq!(m.nom.texte(), "CLAIRON");
+        assert_eq!(m.nom.portee(), Some("CLAIRON"));
         // Ce qui n'identifie pas se lit tel quel (la derniere valeur connue, § 2.1.2.4.2 par analogie).
-        assert_eq!(m.adresse.texte(), "NOUVELLE");
+        assert_eq!(m.adresse.portee(), Some("NOUVELLE"));
     }
 }

@@ -284,9 +284,9 @@ pub struct LigneLivre {
     pub cout_employeur: Option<Decimal>,
     /// Le jour du versement (`Engagement::date_du_versement`), JJ/MM/AAAA.
     pub verse_le: String,
-    pub nir: String,
-    pub date_naissance: String,
-    pub adresse: String,
+    pub nir: Option<String>,
+    pub date_naissance: Option<String>,
+    pub adresse: Option<String>,
 }
 
 impl LigneLivre {
@@ -417,16 +417,13 @@ fn regroupement_lisible(r: &str) -> &'static str {
     }
 }
 
-/// Le NIR, la date de naissance et l'adresse d'une fiche, quand le livre porte les coordonnees ; vides sinon.
-fn coordonnees_de(s: &droit::fiche::ChampsSalarie, coordonnees: bool) -> (String, String, String) {
+/// Le NIR, la date de naissance et l'adresse (la forme lisible quand la fiche la porte, la declaree sinon) d'une fiche,
+/// quand le livre porte les coordonnees ; chacune vide quand la fiche ne la dit pas.
+fn coordonnees_de(s: &droit::fiche::ChampsSalarie, coordonnees: bool) -> (Option<String>, Option<String>, Option<String>) {
     if !coordonnees {
-        return (String::new(), String::new(), String::new());
+        return (None, None, None);
     }
-    let adresse = match s.adresse_affichage.texte() {
-        "" => s.adresse.texte(),
-        a => a,
-    };
-    (s.nir.texte().to_string(), s.date_naissance.dite().map(|j| j.iso()).unwrap_or_default(), adresse.to_string())
+    (s.nir.en_texte(), s.date_naissance.dite().map(|j| j.iso()), s.adresse_affichage.clone().or_else(|| s.adresse.en_texte()))
 }
 
 /// Les lignes du livre pour un mois (`engagement::etats::paies_du_mois` : les paies ecrites des engagements valides, puis
@@ -610,18 +607,20 @@ fn colonnes_livre(livre: &LivreDePaie) -> Vec<&'static str> {
     c
 }
 
-/// Une cellule du livre : un texte, un montant (ou son absence).
+/// Une cellule du livre : un texte (ou son absence), un montant (ou son absence).
 #[derive(Clone)]
 enum CelL {
     T(String),
+    Vide,
     M(Option<Decimal>),
 }
 
 fn cellules(l: &LigneLivre, coordonnees: bool) -> Vec<CelL> {
     let t = |s: &str| CelL::T(s.to_string());
+    let o = |s: &Option<String>| s.clone().map_or(CelL::Vide, CelL::T);
     let mut c = vec![t(&l.mois), t(&l.salarie)];
     if coordonnees {
-        c.extend([t(&l.nir), t(&l.date_naissance), t(&l.adresse)]);
+        c.extend([o(&l.nir), o(&l.date_naissance), o(&l.adresse)]);
     }
     c.extend([t(&l.contrat), t(&l.nature), t(&l.spectacle)]);
     c.extend(CUMULABLES.iter().map(|ch| CelL::M(l.montant(ch))));
@@ -663,7 +662,7 @@ pub fn csv_livre(livre: &LivreDePaie) -> Vec<u8> {
     let texte = |c: &CelL| -> String {
         match c {
             CelL::T(t) => t.clone(),
-            CelL::M(None) => String::new(),
+            CelL::Vide | CelL::M(None) => String::new(),
             CelL::M(Some(d)) => d.to_string().replace('.', ","),
         }
     };
@@ -714,7 +713,7 @@ pub fn xlsx_livre(livre: &LivreDePaie) -> R<Vec<u8>> {
                         ws.write_string_with_format(ligne, i as u16, t, &f).map_err(xl)?;
                     }
                 }
-                CelL::M(None) => {}
+                CelL::Vide | CelL::M(None) => {}
                 CelL::M(Some(d)) => {
                     let f = if MONTANTS.contains(&cl[i]) { f.set_num_format("# ##0.00 \u{20ac}") } else { f };
                     ws.write_number_with_format(ligne, i as u16, d.to_f64().unwrap_or(0.0), &f).map_err(xl)?;
@@ -750,6 +749,7 @@ pub fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
     let cel = |c: &CelL| -> String {
         match c {
             CelL::T(t) => t.clone(),
+            CelL::Vide => String::new(),
             CelL::M(None) => "—".to_string(),
             CelL::M(Some(d)) => d.to_string().replace('.', ","),
         }
@@ -1142,7 +1142,7 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             }
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.as_deref().unwrap_or_default().to_string());
-            l.t("nir", if coord { paie.salarie.nir.texte().to_string() } else { String::new() });
+            l.ot("nir", paie.salarie.nir.portee().filter(|_| coord));
             l.d("net_imposable", eur2(paie.net_imposable));
             match r {
                 Some(v) => {
@@ -1330,10 +1330,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             let cachets = paie.remuneration.iter().filter(|r| r.unite == "cachet").fold(Decimal::ZERO, |a, r| a + r.quantite);
             let heures = paie.remuneration.iter().fold(Decimal::ZERO, |a, r| a + r.heures_annexes);
             let derniere = e.dates_travail.last().map(|j| j.iso()).unwrap_or_default();
-            let emploi = match e.emploi.clone().filter(|x| !x.is_empty()) {
-                Some(x) => x,
-                None => paie.salarie.emploi.texte().to_string(),
-            };
+            let emploi = e.emploi.clone().filter(|x| !x.is_empty()).or_else(|| paie.salarie.emploi.en_texte());
             let debut = e.debut.iso();
             let fin = match e.fin {
                 Some(f) => f.iso(),
@@ -1341,7 +1338,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             };
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("cle_salarie", cle_de(&paie.salarie)?);
-            l.t("contrat", e.numero.as_deref().unwrap_or_default().to_string()).t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
+            l.t("contrat", e.numero.as_deref().unwrap_or_default().to_string()).t("spectacle", titre_spectacle(paie)).ot("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
             l.d("cachets", cachets).d("heures", heures).n("jours", e.dates_travail.len() as i64).d("brut", eur2(paie.brut));
             lignes.push(l);
         }

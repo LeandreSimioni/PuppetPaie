@@ -171,14 +171,14 @@ impl Base {
         self.contrats.tous.iter().chain(self.contrats.conventions.values().flatten())
     }
 
-    /// Les contrats de toute compagnie, puis ceux de la convention `idcc`.
-    pub fn contrats_de(&self, idcc: &str) -> impl Iterator<Item = &Contrat> {
-        self.contrats.tous.iter().chain(self.contrats.conventions.get(idcc).into_iter().flatten())
+    /// Les contrats de toute compagnie, puis ceux de la convention `idcc` quand la fiche la dit.
+    pub fn contrats_de(&self, idcc: Option<&str>) -> impl Iterator<Item = &Contrat> {
+        self.contrats.tous.iter().chain(idcc.and_then(|i| self.contrats.conventions.get(i)).into_iter().flatten())
     }
 
     /// Les options que l'organisme demande sous le contrat de reference `libelle` (S21.G00.15.001), pour la convention
-    /// `idcc`.
-    pub fn options(&self, idcc: &str, libelle: &str) -> Option<&Options> {
+    /// `idcc` quand la fiche la dit.
+    pub fn options(&self, idcc: Option<&str>, libelle: &str) -> Option<&Options> {
         self.contrats_de(idcc).filter(|c| c.libelle.as_deref().map(str::trim) == Some(libelle)).find_map(|c| c.options.as_ref())
     }
 

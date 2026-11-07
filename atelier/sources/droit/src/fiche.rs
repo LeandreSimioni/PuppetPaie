@@ -39,6 +39,7 @@ pub trait Lue<T> {
     }
 
     /// Le texte dit, `""` sinon : ce qu'une page, un message ou une comparaison montre d'une case vide.
+    #[deprecated]
     fn texte<'a>(&'a self) -> &'a str
     where
         T: AsRef<str> + 'a,

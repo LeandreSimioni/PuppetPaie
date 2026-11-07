@@ -474,12 +474,11 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &ChampsEntreprise) -> R<Vec<(&'stati
     out.push(("dest_commune", format!("{} {}", texte_requis(&s.code_postal, "code_postal")?, lisible(&s.commune_affichage, commune_defaut))));
     out.push(("dest_pays", "France".to_string()));
     out.push(("siret", siret_espace(&texte_requis(&ent.siret, "siret")?)));
-    out.push(("compte", ent.congesspectacles_adherent.texte().to_string()));
+    out.push(("compte", texte_requis(&ent.congesspectacles_adherent, "congesspectacles_adherent")?));
     out.push(("num_ce", c.numero.to_string()));
-    out.push((
-        "nir",
-        format!("{} {}", s.nir.texte(), s.nir_cle.texte()).trim_matches(socle::texte::blanc).to_string(),
-    ));
+    if let Some(nir) = s.nir.portee() {
+        out.push(("nir", s.nir_cle.portee().map_or_else(|| nir.to_string(), |cle| format!("{} {}", nir, cle))));
+    }
     out.push(("raison_sociale", texte_requis(&ent.raison_sociale, "raison_sociale")?));
     out.push(("nom_naissance", texte_requis(&s.nom, "nom")?));
     // Le nom d'usage : le nom declare, comme le modele du certificat de la caisse le repete quand il n'y en a pas d'autre.
@@ -490,7 +489,9 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &ChampsEntreprise) -> R<Vec<(&'stati
     // DSN Audiens).
     out.push(("cadre", if droit::bareme::est_cadre(s) { "OUI" } else { "NON" }.to_string()));
     out.push(("prenom", texte_requis(&s.prenom, "prenom")?));
-    out.push(("pseudonyme", s.pseudonyme.texte().to_string()));
+    if let Some(p) = s.pseudonyme.portee() {
+        out.push(("pseudonyme", p.to_string()));
+    }
     out.push(("debut", cases_date(&c.debut)));
     out.push(("fin", cases_date(&c.fin)));
     out.push(("nb_cachets", c.nb_jours_ou_cachets.to_string()));

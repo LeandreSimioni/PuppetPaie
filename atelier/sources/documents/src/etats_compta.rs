@@ -364,12 +364,11 @@ fn code_du_titre(titre: &str) -> String {
 /// numero le plus recent.
 fn codes_des_fiches(spectacles: Vec<&droit::fiche::ChampsSpectacle>) -> BTreeMap<String, String> {
     let mut rangees = spectacles;
-    rangees.sort_by_cached_key(|v| (!v.archivee(), v.numero_objet.texte().to_string()));
+    rangees.sort_by_cached_key(|v| (!v.archivee(), v.numero_objet.en_texte()));
     let mut out = BTreeMap::new();
     for v in rangees {
-        let code = v.code_analytique.texte().trim().to_string();
-        if let Some(titre) = v.titre.remplie().filter(|_| !code.is_empty()) {
-            out.insert(titre.to_string(), code);
+        if let (Some(titre), Some(code)) = (v.titre.remplie(), v.code_analytique.portee()) {
+            out.insert(titre.to_string(), code.trim().to_string());
         }
     }
     out
@@ -1445,13 +1444,12 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         }
         let charges = taux.map(|t| eur(div(mul(retenu, t), Decimal::ONE_HUNDRED)));
         let fiche = ctx.salaries.get(cle.as_str());
-        let nom = match fiche.map_or("", |f| f.nom.texte()) {
-            "" => cle.clone(),
-            n => n.to_string(),
-        };
-        let prenom = fiche.map_or("", |f| f.prenom.texte()).to_string();
+        let nom = fiche.and_then(|f| f.nom.portee()).unwrap_or(cle.as_str());
         let mut l = Ligne::nouvelle();
-        l.t("salarie", format!("{} {}", nom, prenom));
+        l.t("salarie", match fiche.and_then(|f| f.prenom.portee()) {
+            Some(prenom) => format!("{} {}", nom, prenom),
+            None => nom.to_string(),
+        });
         l.t("contrat", contrat).t("nature", nature);
         l.d("report", arrondir_jours(cpt.report_restant)).d("acquis", arrondir_jours(cpt.acquis)).d("pris", arrondir_jours(cpt.pris)).d("solde", arrondir_jours(cpt.solde));
         l.d("dixieme", dixieme).d("maintien", maintien).d("indemnite", retenu).t("regle", regle);

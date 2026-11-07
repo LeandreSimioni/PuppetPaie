@@ -123,7 +123,7 @@ annule-et-remplace ou un annule."
 
     // Le NIR, et pas un numero technique temporaire : sans NIR, la DGFiP n'a
     // personne a qui repondre.
-    if crate::ntt::nir_de(&paie.salarie).is_empty() {
+    if crate::ntt::nir_de(&paie.salarie).is_none() {
         let qui = paie.salarie.id.to_string();
         return impossible(format!(
             "{} n'a pas de NIR : il se declare sous numero technique temporaire, et la DGFiP n'a alors personne a \

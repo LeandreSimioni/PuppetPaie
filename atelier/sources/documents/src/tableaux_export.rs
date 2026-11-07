@@ -109,6 +109,11 @@ impl Ligne {
         self.poser(k, Some(Val::Txt(s.into())))
     }
 
+    /// Un texte, ou rien quand il est vide.
+    pub fn ot(&mut self, k: &str, s: Option<impl Into<String>>) -> &mut Ligne {
+        self.poser(k, s.map(|s| Val::Txt(s.into())))
+    }
+
     pub fn d(&mut self, k: &str, v: Decimal) -> &mut Ligne {
         self.poser(k, Some(Val::Dec(v)))
     }
@@ -880,13 +885,10 @@ pub fn qui(fiche: &droit::fiche::ChampsSalarie) -> R<String> {
     Ok(qui_souple(fiche))
 }
 
-/// Le « qui » d'une fiche qui n'a peut-etre pas de nom.
+/// Le « qui » d'une fiche qui n'a peut-etre pas de nom : le nom et le prenom (`prenom_affichage`, sinon `prenom`) qu'elle
+/// dit.
 pub fn qui_souple(fiche: &droit::fiche::ChampsSalarie) -> String {
-    let prenom = match fiche.prenom_affichage.texte() {
-        "" => fiche.prenom.texte(),
-        p => p,
-    };
-    format!("{} {}", fiche.nom.texte(), prenom)
+    [fiche.nom.portee(), fiche.prenom_affichage.portee().or(fiche.prenom.portee())].into_iter().flatten().collect::<Vec<_>>().join(" ")
 }
 
 /// Un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).

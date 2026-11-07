@@ -269,8 +269,7 @@ pub fn manques(ctx: &Contexte) -> socle::num::Resultat<Vec<Value>> {
     // La sante d'un permanent suspendu sans indemnisation tout un mois : hors de la 3090, aucun texte ne la dit, et le mois
     // refuse tant que la fiche ne repond pas (`calcul::sante_de_la_suspension`). Elle ne se demande que si une suspension
     // non remuneree est saisie : un champ n'apparait que parce qu'un fait l'exige.
-    let idcc = ent.idcc.texte();
-    if idcc != "3090" && !ent.sante_suspension_non_indemnisee.est_dite() && une_suspension_non_remuneree(ctx) {
+    if ent.idcc.portee() != Some("3090") && !ent.sante_suspension_non_indemnisee.est_dite() && une_suspension_non_remuneree(ctx) {
         let cle = droit::bareme::SANTE_SUSPENSION;
         let (libelle, aide) = champ(cle);
         out.push(manque(cle, libelle, "le mois d'un permanent suspendu sans indemnisation tout le mois", ENTREPRISE, Some(cle), aide));
@@ -366,10 +365,7 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
             continue;
         }
         let nom = fiche
-            .map(|f| {
-                let prenom = if f.prenom_affichage.texte().is_empty() { f.prenom.texte() } else { f.prenom_affichage.texte() };
-                format!("{} {}", f.nom.texte(), prenom).trim().to_string()
-            })
+            .map(|f| documents::tableaux_export::qui_souple(f))
             .filter(|n| !n.is_empty())
             .unwrap_or_else(|| salarie.clone());
         out.push((salarie, nom, premier));

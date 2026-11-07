@@ -183,12 +183,12 @@ impl Organisme {
 /// livree (`organismes-base.json`), qui porte les adresses et les organismes que la branche designe.
 struct Organismes {
     compagnie: droit::organismes::Organismes,
-    idcc: String,
+    idcc: Option<String>,
 }
 
 impl Organismes {
     fn lire(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise) -> Resultat<Organismes> {
-        Ok(Organismes { compagnie: ctx.organismes()?, idcc: ent.idcc.texte().to_string() })
+        Ok(Organismes { compagnie: ctx.organismes()?, idcc: ent.idcc.en_texte() })
     }
 
     /// L'organisme de ce siret : son nom, et l'adresse que la donnee livree lui donne.
@@ -209,7 +209,7 @@ impl Organismes {
     fn adhesion(&self, cle: &str) -> Option<Organisme> {
         let enregistre = self.compagnie.adhesions_prevoyance.iter().find(|a| a.cle == cle).map(|a| a.delegataire.as_str());
         let designe = || {
-            self.compagnie.base.contrats_de(&self.idcc).filter(|c| c.cle == cle && c.organisme_fixe).find_map(|c| c.organisme.as_deref())
+            self.compagnie.base.contrats_de(self.idcc.as_deref()).filter(|c| c.cle == cle && c.organisme_fixe).find_map(|c| c.organisme.as_deref())
         };
         self.par_siret(enregistre.or_else(designe)?)
     }
