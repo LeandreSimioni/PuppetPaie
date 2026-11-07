@@ -890,7 +890,7 @@ mod tests {
     }
 
     fn entreprise() -> EntrepriseDuDocument {
-        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "raison_sociale": "Compagnie Fictive des Marionnettes d'Orléans", "adresse": "1, rue Fictive",
+        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "nic": "00016", "raison_sociale": "Compagnie Fictive des Marionnettes d'Orléans", "adresse": "1, rue Fictive",
                "code_postal": "45000", "commune": "Orléans", "naf": "9001Z", "medecine_travail": "MT542",
                "declarant_dsn": {"tel": "01 02 03 04 05"}}), "entreprise").unwrap();
         EntrepriseDuDocument { fiche, gabarits: std::env::temp_dir().join("puppetpaie-dpae-sans-gabarits") }
