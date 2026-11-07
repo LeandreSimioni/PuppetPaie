@@ -981,7 +981,7 @@ pub(crate) fn engagements(
             Some(code) => {
                 let salarie = fiche_du_salarie(ctx, carte.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
                 let feminin = sexe(&salarie).as_deref() == Some("2");
-                Some(emplois::resoudre(code, carte.cadre, feminin, ctx.entreprise.idcc.texte()).map_err(|m| format!("{} : {}", qui, m))?)
+                Some(emplois::resoudre(code, carte.cadre, feminin, ctx.entreprise.idcc.portee()).map_err(|m| format!("{} : {}", qui, m))?)
             }
             None => None,
         };
@@ -1101,10 +1101,9 @@ fn versement_refuse(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<Opt
         Some(f) if !eng.nat()?.duree_indeterminee && droit::versement::au_plus_tard_cirque_1285(&f)? < verse => {
             let ent = ctx.entreprise_au(&fin_mois);
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
-            let code = fiche.code_emploi_ft.texte().to_string();
-            let metier = emplois::metier(&code)?;
+            let metier = fiche.code_emploi_ft.portee().map(emplois::metier).transpose()?.flatten();
             let cirque = metier.as_ref().and_then(|m| m.au_catalogue()).and_then(|f| f.minima.ccn_1285.as_deref()) == Some("cirque");
-            (ent.idcc.texte() == "1285" && cirque).then_some(f)
+            (ent.idcc.portee() == Some("1285") && cirque).then_some(f)
         }
         _ => None,
     };
@@ -1729,8 +1728,7 @@ fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()>
 
 /// "1", "2", ou `None` si la fiche ne le dit pas (le NIR d'abord).
 fn sexe(fiche: &droit::fiche::ChampsSalarie) -> Option<String> {
-    let nir = fiche.nir.texte().trim();
-    if nir.starts_with('1') || nir.starts_with('2') {
+    if let Some(nir) = fiche.nir.portee().map(str::trim).filter(|n| n.starts_with('1') || n.starts_with('2')) {
         return Some(nir[..1].to_string());
     }
     fiche.sexe.dite().map(|s| s.as_str().to_string())
@@ -1966,7 +1964,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
             Some(metier) => emplois::metier(metier)?.map(|m| (metier, m)),
             None => None,
         };
-        if let Some((metier, m)) = m.filter(|(_, m)| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.texte()) == Some(true)) {
+        if let Some((metier, m)) = m.filter(|(_, m)| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.portee()) == Some(true)) {
             fn texte<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
                 c.remplie().map(str::to_string)
             }

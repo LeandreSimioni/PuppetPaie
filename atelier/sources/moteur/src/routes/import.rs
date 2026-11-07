@@ -206,7 +206,7 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     };
     if let Some(c) = du_catalogue {
         let femme = declarations::ntt::sexe_de(Some(decl.nir.as_str()), None) == Some("2");
-        let l = droit::emplois::resoudre(&c, None, femme, "")?.emploi_affichage;
+        let l = droit::emplois::resoudre(&c, None, femme, None)?.emploi_affichage;
         if !l.is_empty() {
             f.insert("emploi_affichage".into(), Value::String(l));
         }

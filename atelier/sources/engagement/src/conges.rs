@@ -66,10 +66,9 @@ pub(crate) fn regle_du_mois_incomplet(
     debut_mois: &Jour,
     fin_mois: &Jour,
 ) -> Resultat<droit::periodes::RegleDuMoisIncomplet> {
-    let idcc = ctx.entreprise.idcc.texte().to_string();
     let fiche = ctx.salarie(salarie)?;
     let statut = crate::calcul::statut_de(&fiche)?;
-    Ok(droit::periodes::regle_du_mois_incomplet(&idcc, statut, debut > debut_mois || fin < fin_mois))
+    Ok(droit::periodes::regle_du_mois_incomplet(ctx.entreprise.idcc.portee(), statut, debut > debut_mois || fin < fin_mois))
 }
 
 /// L'horaire de `salarie` pour le mois [`debut_mois`, `fin_mois`] (`droit::periodes::Horaire`) : ses jours travailles,

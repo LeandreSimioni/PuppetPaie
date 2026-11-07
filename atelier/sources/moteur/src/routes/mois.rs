@@ -912,7 +912,7 @@ fn emploi(ctx: &Contexte, c: ChargeEmploi) -> R<Emploi> {
             format!("Métier {} inconnu : ni dans le catalogue des métiers, ni dans la nomenclature France Travail.", repr(&c.metier)),
         ));
     }
-    let champs = emplois::resoudre(&c.metier, c.cadre, feminin, ctx.entreprise.idcc.texte()).map_err(plain)?;
+    let champs = emplois::resoudre(&c.metier, c.cadre, feminin, ctx.entreprise.idcc.portee()).map_err(plain)?;
     Ok(Emploi { phrase: format!("Métier : {} ({}).", champs.emploi_affichage, champs.code_emploi_ft.as_deref().unwrap_or_default()), champs })
 }
 // ---------------------------------------------------------------- rubriques cochees

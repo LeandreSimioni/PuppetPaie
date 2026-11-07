@@ -271,8 +271,8 @@ impl Metier {
     /// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
     /// nomme pas : `cadre_par_defaut` dans la `note` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue :
     /// `None`, seule la compagnie le sait (la fiche le dit).
-    pub fn cadre_par_defaut(&self, idcc: &str) -> Option<bool> {
-        self.au_catalogue().map(|f| match f.cadre_selon_la_convention.as_ref().and_then(|c| c.get(idcc.trim())) {
+    pub fn cadre_par_defaut(&self, idcc: Option<&str>) -> Option<bool> {
+        self.au_catalogue().map(|f| match f.cadre_selon_la_convention.as_ref().zip(idcc).and_then(|(c, i)| c.get(i.trim())) {
             Some(cadre) => *cadre,
             None => f.cadre_par_defaut,
         })
@@ -332,7 +332,7 @@ pub struct ChampsDuMetier {
 /// Les sept champs declares pour ce metier (`emploi_affichage` compris).
 /// `cadre` a `None` prend le defaut du catalogue dans la convention `idcc` (`Metier::cadre_par_defaut`). Refuse un code
 /// inconnu.
-pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> Resultat<ChampsDuMetier> {
+pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: Option<&str>) -> Resultat<ChampsDuMetier> {
     let m = metier(code)?.ok_or_else(|| {
         format!(
             "Metier {} inconnu : ni dans le catalogue (emplois-base.json), ni \
@@ -524,7 +524,7 @@ pub struct MetierDuDeroulant {
 
 /// Le catalogue du spectacle vivant, le defaut cadre de chaque metier lu dans la convention `idcc`, pour un
 /// deroulant, dans l'ordre du fichier.
-pub fn catalogue(idcc: &str) -> Resultat<Vec<MetierDuDeroulant>> {
+pub fn catalogue(idcc: Option<&str>) -> Resultat<Vec<MetierDuDeroulant>> {
     base()?
         .emplois
         .iter()

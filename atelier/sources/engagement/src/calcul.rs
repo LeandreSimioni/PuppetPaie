@@ -1113,7 +1113,7 @@ pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Pile>> {
 /// (une dispense qui commence avec le contrat n'en est pas une) refuse : le partage de la cotisation du mois entre
 /// dispense et affiliation n'est dit par aucun texte depose (regle 1).
 pub(crate) fn dispense_de_la_periode(mut fiche: FicheSalarie, debut: &Jour, fin: &Jour) -> Resultat<FicheSalarie> {
-    if fiche.sante_dispense.texte().is_empty() {
+    if fiche.sante_dispense.remplie().is_none() {
         return Ok(fiche);
     }
     let depuis = fiche.sante_dispense_depuis.dite().copied();
@@ -1128,7 +1128,7 @@ pub(crate) fn dispense_de_la_periode(mut fiche: FicheSalarie, debut: &Jour, fin:
         (None, None) => None,
     };
     if let Some(borne) = borne {
-        let qui = [fiche.prenom.texte(), fiche.nom.texte()].into_iter().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
+        let qui = [fiche.prenom.portee(), fiche.nom.portee()].into_iter().flatten().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
         return Err(format!(
             "{} : sa dispense de complementaire sante {}, en cours de periode payee (du {} au {}). Le moteur ne partage \
 pas la cotisation sante d'un mois entre dispense et affiliation : aucun texte depose ne dit comment. Dater la borne de \
@@ -1164,7 +1164,7 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
 /// `legifrance-3090-prevoyance-titre12-20260919.md`, `legifrance-1285-prevoyance-titre12-20260919.md`), nulle ce
 /// mois-la -- inference : aucun texte depose ne traite de la suspension non indemnisee pour la prevoyance.
 fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: SalarieDuContrat) -> Resultat<SalarieDuContrat> {
-    if !fiche.sante_dispense.texte().is_empty() {
+    if fiche.sante_dispense.remplie().is_some() {
         return Ok(fiche);
     }
     let cle = fiche.id.to_string();
@@ -1248,9 +1248,8 @@ fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &
         nombre => nombre.flottant()?,
     };
     let jours = lu.ceil() as i64;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
     let artiste = sal.statut.dite() == Some(&Statut::Artiste);
-    let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), sal.statut_conventionnel.dite().map(|s| s.as_str()), artiste, &idcc)?;
+    let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), sal.statut_conventionnel.dite().map(|s| s.as_str()), artiste, ctx.entreprise.idcc.portee())?;
     droit::essai::refuser_au_dela(jours, plafond.as_ref(), &format!("{} ({})", crate::qui_de(sal)?, nat.libelle))
 }
 

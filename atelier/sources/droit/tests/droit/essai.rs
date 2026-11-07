@@ -15,28 +15,28 @@ fn la_periode_d_essai_ne_depasse_pas_ce_que_le_texte_permet() {
     let jours = |p: Option<droit::essai::Plafond>| p.map(|p| p.jours);
 
     // Un CDD de six mois au plus : un jour par semaine, deux semaines au plus.
-    let jules = plafond(&cdd, &j("2026-01-12"), Some(&j("2026-06-30")), Some("05"), false, "3090").unwrap();
+    let jules = plafond(&cdd, &j("2026-01-12"), Some(&j("2026-06-30")), Some("05"), false, Some("3090")).unwrap();
     assert_eq!(jours(jules.clone()), Some(14));
     let refus = refuser_au_dela(30, jules.as_ref(), "VARENNE Jules").unwrap_err();
     assert!(refus.contains("L. 1242-10") && refus.contains("14 jours"), "{}", refus);
     assert!(refuser_au_dela(14, jules.as_ref(), "VARENNE Jules").is_ok());
     // Trois semaines de contrat : trois jours ; un contrat d'usage de trois jours : un jour.
-    assert_eq!(jours(plafond(&cdd, &j("2026-03-02"), Some(&j("2026-03-22")), None, false, "").unwrap()), Some(3));
-    assert_eq!(jours(plafond(&cddu, &j("2026-11-20"), Some(&j("2026-11-22")), None, true, "3090").unwrap()), Some(1));
+    assert_eq!(jours(plafond(&cdd, &j("2026-03-02"), Some(&j("2026-03-22")), None, false, None).unwrap()), Some(3));
+    assert_eq!(jours(plafond(&cddu, &j("2026-11-20"), Some(&j("2026-11-22")), None, true, Some("3090")).unwrap()), Some(1));
     // Plus de six mois : un jour par semaine, un mois au plus.
-    assert_eq!(jours(plafond(&cdd, &j("2026-01-12"), Some(&j("2026-07-20")), None, false, "").unwrap()), Some(28));
-    assert_eq!(jours(plafond(&cdd, &j("2026-01-12"), Some(&j("2026-12-31")), None, false, "").unwrap()), Some(31));
+    assert_eq!(jours(plafond(&cdd, &j("2026-01-12"), Some(&j("2026-07-20")), None, false, None).unwrap()), Some(28));
+    assert_eq!(jours(plafond(&cdd, &j("2026-01-12"), Some(&j("2026-12-31")), None, false, None).unwrap()), Some(31));
     // Un CDD sans terme : sa duree minimale n'est pas dite, rien ne se juge.
-    assert_eq!(plafond(&cdd, &j("2026-01-12"), None, None, false, "").unwrap(), None);
+    assert_eq!(plafond(&cdd, &j("2026-01-12"), None, None, false, None).unwrap(), None);
 
     // Un CDI : deux mois pour un employe, trois pour un agent de maitrise, quatre pour un cadre ; un artiste de la 3090,
     // deux mois ; un classement que la loi ne nomme pas, rien.
     let debut = j("2026-01-12");
-    assert_eq!(jours(plafond(&cdi, &debut, None, Some("06"), false, "").unwrap()), Some(59));
-    assert_eq!(jours(plafond(&cdi, &debut, None, Some("05"), false, "").unwrap()), Some(90));
-    assert_eq!(jours(plafond(&cdi, &debut, None, Some("04"), false, "").unwrap()), Some(120));
-    assert_eq!(jours(plafond(&cdi, &debut, None, Some("04"), true, "3090").unwrap()), Some(59));
-    assert_eq!(plafond(&cdi, &debut, None, Some("01"), false, "").unwrap(), None);
-    let cadre = plafond(&cdi, &debut, None, Some("04"), false, "").unwrap();
+    assert_eq!(jours(plafond(&cdi, &debut, None, Some("06"), false, None).unwrap()), Some(59));
+    assert_eq!(jours(plafond(&cdi, &debut, None, Some("05"), false, None).unwrap()), Some(90));
+    assert_eq!(jours(plafond(&cdi, &debut, None, Some("04"), false, None).unwrap()), Some(120));
+    assert_eq!(jours(plafond(&cdi, &debut, None, Some("04"), true, Some("3090")).unwrap()), Some(59));
+    assert_eq!(plafond(&cdi, &debut, None, Some("01"), false, None).unwrap(), None);
+    let cadre = plafond(&cdi, &debut, None, Some("04"), false, None).unwrap();
     assert!(refuser_au_dela(121, cadre.as_ref(), "X").unwrap_err().contains("L. 1221-19"));
 }

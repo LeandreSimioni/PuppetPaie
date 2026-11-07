@@ -103,15 +103,15 @@ impl MetiersAjoutes {
 
     /// Ce metier est-il dans le deroulant de cette compagnie ? Ceux de sa convention le sont d'office ; elle en ajoute
     /// d'une autre, elle en retire des siens (Configuration > Metiers).
-    fn visible(&self, m: &MetierDuDeroulant, idcc: &str) -> bool {
+    fn visible(&self, m: &MetierDuDeroulant, idcc: Option<&str>) -> bool {
         !self.retires.contains(&m.code) && (de_la_convention(m, idcc) || self.codes.contains(&m.code))
     }
 }
 
 /// Le metier est-il de la convention `idcc` ? Sans IDCC (une compagnie qui s'installe), ou sans convention dite, rien ne
 /// se cache.
-fn de_la_convention(m: &MetierDuDeroulant, idcc: &str) -> bool {
-    m.conventions.is_empty() || idcc.is_empty() || m.conventions.iter().any(|c| c == idcc)
+fn de_la_convention(m: &MetierDuDeroulant, idcc: Option<&str>) -> bool {
+    m.conventions.is_empty() || idcc.is_none_or(|i| m.conventions.iter().any(|c| c == i))
 }
 
 /// Les conventions d'un metier en mots : « Spectacle vivant privé (3090) » quand `idcc` est dit.
@@ -136,8 +136,8 @@ fn rang_des_familles(familles: &[String]) -> HashMap<String, usize> {
 pub(crate) fn metiers(ctx: &Contexte) -> R<Vec<MetierDuDeroulant>> {
     let ordre = rang_des_familles(&emplois::familles().map_err(plain)?);
     let retenus = MetiersAjoutes::lire(&ctx.racine)?;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
-    let mut liste: Vec<MetierDuDeroulant> = emplois::catalogue(&idcc).map_err(plain)?.into_iter().filter(|m| retenus.visible(m, &idcc)).collect();
+    let idcc = ctx.entreprise.idcc.portee();
+    let mut liste: Vec<MetierDuDeroulant> = emplois::catalogue(idcc).map_err(plain)?.into_iter().filter(|m| retenus.visible(m, idcc)).collect();
     liste.sort_by_cached_key(|m| (ordre.get(&m.famille).copied().unwrap_or(ordre.len()), m.libelle.to_lowercase()));
     Ok(liste)
 }
@@ -154,9 +154,9 @@ pub(crate) struct MetierAutre {
 pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Vec<MetierAutre>> {
     let noms = emplois::noms_des_conventions().map_err(plain)?;
     let retenus = MetiersAjoutes::lire(&ctx.racine)?;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
+    let idcc = ctx.entreprise.idcc.portee();
     let mut out: Vec<MetierAutre> =
-        emplois::catalogue(&idcc).map_err(plain)?.into_iter().filter(|m| !retenus.visible(m, &idcc)).map(|m| MetierAutre { de: conventions_dites(&m, &noms, true), metier: m }).collect();
+        emplois::catalogue(idcc).map_err(plain)?.into_iter().filter(|m| !retenus.visible(m, idcc)).map(|m| MetierAutre { de: conventions_dites(&m, &noms, true), metier: m }).collect();
     out.sort_by(|a, b| (&a.de, a.metier.libelle.to_lowercase()).cmp(&(&b.de, b.metier.libelle.to_lowercase())));
     Ok(out)
 }
@@ -185,13 +185,13 @@ fn metiers_catalogue(ctx: &Contexte) -> R<MetiersDuCatalogue> {
     let ordre = rang_des_familles(&familles);
     let noms = emplois::noms_des_conventions().map_err(plain)?;
     let retenus = MetiersAjoutes::lire(&ctx.racine)?;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
-    let mut metiers: Vec<MetierDeLOnglet> = emplois::catalogue(&idcc)
+    let idcc = ctx.entreprise.idcc.portee();
+    let mut metiers: Vec<MetierDeLOnglet> = emplois::catalogue(idcc)
         .map_err(plain)?
         .into_iter()
         .map(|m| {
-            let conv = de_la_convention(&m, &idcc);
-            MetierDeLOnglet { retenu: retenus.visible(&m, &idcc), de_la_convention: conv, de: if conv { String::new() } else { conventions_dites(&m, &noms, false) }, metier: m }
+            let conv = de_la_convention(&m, idcc);
+            MetierDeLOnglet { retenu: retenus.visible(&m, idcc), de_la_convention: conv, de: if conv { String::new() } else { conventions_dites(&m, &noms, false) }, metier: m }
         })
         .collect();
     metiers.sort_by_cached_key(|m| (ordre.get(&m.metier.famille).copied().unwrap_or(ordre.len()), m.metier.libelle.to_lowercase()));
@@ -221,12 +221,12 @@ struct EmploisRendus {
 }
 
 fn metier_retenu(ctx: &Contexte, c: MetierARetenir) -> R<EmploisRendus> {
-    let idcc = ctx.entreprise.idcc.texte().to_string();
-    let catalogue = emplois::catalogue(&idcc).map_err(plain)?;
+    let idcc = ctx.entreprise.idcc.portee();
+    let catalogue = emplois::catalogue(idcc).map_err(plain)?;
     let Some(m) = catalogue.iter().find(|m| m.code == c.code) else {
         return Err(refus(format!("Metier hors catalogue : {}.", c.code)));
     };
-    let conv = de_la_convention(m, &idcc);
+    let conv = de_la_convention(m, idcc);
     let mut retenus = MetiersAjoutes::lire(&ctx.racine)?;
     retenus.codes.retain(|x| *x != c.code);
     retenus.retires.retain(|x| *x != c.code);

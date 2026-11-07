@@ -1588,7 +1588,7 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 ///
 /// La CCH-11 (p. 182, l. 156-160 : 40.003 = 01 => 40.002 dans 03, 04 ou 08) est un controle bloquant : verifiee ici,
 /// avant de produire.
-pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
+pub fn statuts_du_contrat(p: &Paie, idcc: Option<&str>) -> Resultat<(String, String)> {
     let s = &p.salarie;
     let lu = |v: Option<&str>| v.map(str::trim).filter(|v| !v.is_empty()).map(str::to_string);
     let code = s.code_emploi_ft.texte().trim().to_uppercase();
@@ -1695,7 +1695,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         ), "taux_atmp"));
     }
     // Les statuts se lisent, ou refusent (`statuts_du_contrat`), avant qu'une ligne du contrat soit ecrite.
-    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p, ent.idcc.texte())?;
+    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p, ent.idcc.portee())?;
     f.add("S21.G00.40.001", e.debut.jjmmaaaa());
     f.add("S21.G00.40.002", statut_conventionnel);
     f.add("S21.G00.40.003", statut_categoriel_rc);
