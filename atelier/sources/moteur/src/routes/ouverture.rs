@@ -403,7 +403,7 @@ pub(crate) struct ChoixEtablissement {
 /// le garde). `None` : un seul etablissement, rien a choisir.
 pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Option<Vec<ChoixEtablissement>> {
     let principal = ctx.entreprise.nic_principal();
-    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(&ctx.entreprise_brute().etablissements)
+    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(ctx.entreprise_brute().etablissements.as_deref())
         .unwrap_or_default()
         .into_iter()
         .map(|(e, f)| (socle::ecriture::en_valeur(&e), f))

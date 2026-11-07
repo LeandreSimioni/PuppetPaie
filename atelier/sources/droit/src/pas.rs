@@ -144,7 +144,7 @@ pub fn le_jour(ctx: &Contexte, le: Option<Jour>) -> Jour {
 /// se sont ecrits). Une valeur de la fiche qui n'est pas un taux (la case vide d'avant le premier) n'en est pas un.
 pub fn recus(ctx: &Contexte, cle: &str) -> Resultat<Vec<TauxPas>> {
     let Some(fiche) = ctx.salarie_brut(cle) else { return Ok(Vec::new()) };
-    let mut ecrits: Vec<_> = fiche.taux_pas.iter().collect();
+    let mut ecrits: Vec<_> = fiche.taux_pas.iter().flatten().collect();
     ecrits.sort_by_key(|e| e.depuis);
     let mut r: Vec<TauxPas> = ecrits.into_iter().filter_map(|e| e.valeur.dite()).cloned().collect();
     r.sort_by_key(|v| v.mis_a_disposition.texte().trim().to_string());

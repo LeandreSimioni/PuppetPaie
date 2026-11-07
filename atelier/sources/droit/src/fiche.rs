@@ -702,25 +702,25 @@ macro_rules! fiche {
             }
         }
 
-        /// La fiche telle qu'ecrite : chaque champ une liste datee.
+        /// La fiche telle qu'ecrite : chaque champ une liste datee ; absente ou nulle, la fiche ne dit rien de ce champ.
         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $datee {
-            $( #[serde(default, skip_serializing_if = "Vec::is_empty")] pub $champ: Vec<Datee<$t>>, )*
+            $( #[serde(skip_serializing_if = "Option::is_none")] pub $champ: Option<Vec<Datee<$t>>>, )*
             $( $( $(#[$nm])* #[serde(skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
         }
 
         impl $datee {
             /// Ses champs en vigueur a `jour`, ses notes telles qu'ecrites.
             pub fn au(&self, jour: &Jour) -> $plate {
-                $plate { $( $champ: valeur_au(&self.$champ, jour), )* $( $( $note: self.$note.clone(), )* )? }
+                $plate { $( $champ: self.$champ.as_deref().and_then(|l| valeur_au(l, jour)), )* $( $( $note: self.$note.clone(), )* )? }
             }
 
             /// Les jours ou le champ `cle` prend une valeur, du plus ancien au plus recent (`None` : la valeur de tout
             /// temps, d'abord) ; aucun pour un champ que la fiche ne dit pas, ou que la forme ne declare pas.
             pub fn depuis(&self, cle: &str) -> Vec<Option<Jour>> {
                 $( if stringify!($champ).trim_start_matches("r#") == cle {
-                    let mut j: Vec<Option<Jour>> = self.$champ.iter().map(|e| e.depuis).collect();
+                    let mut j: Vec<Option<Jour>> = self.$champ.iter().flatten().map(|e| e.depuis).collect();
                     j.sort();
                     return j;
                 } )*
@@ -731,13 +731,13 @@ macro_rules! fiche {
             /// s'applique n'en donne pas.
             pub fn dates_en_vigueur(&self, jour: &Jour) -> Vec<Jour> {
                 let mut out = Vec::new();
-                $( out.extend(self.$champ.iter().filter_map(|e| e.depuis).filter(|j| j <= jour).max()); )*
+                $( out.extend(self.$champ.iter().flatten().filter_map(|e| e.depuis).filter(|j| j <= jour).max()); )*
                 out
             }
 
             /// Les listes et les notes que `autre` porte remplacent les siennes, entieres ; les autres restent.
             pub fn par_dessus(&mut self, autre: &$datee) {
-                $( if !autre.$champ.is_empty() {
+                $( if autre.$champ.is_some() {
                     self.$champ = autre.$champ.clone();
                 } )*
                 $( $( if autre.$note.is_some() {
@@ -781,7 +781,9 @@ macro_rules! fiche {
             }
 
             fn voir_listes<V: VoirListe>(&self, v: &mut V) {
-                $( v.liste(stringify!($champ).trim_start_matches("r#"), &self.$champ); )*
+                $( if let Some(l) = &self.$champ {
+                    v.liste(stringify!($champ).trim_start_matches("r#"), l);
+                } )*
             }
         }
     };
@@ -850,7 +852,8 @@ pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Option<T> {
 /// ce qui precede reste ce qu'il etait. La premiere valeur d'une liste vaut de tout temps, quel que soit `depuis` : avant
 /// elle, la fiche ne disait rien d'autre. Une valeur deja ecrite au meme jour est remplacee (une correction du meme jour
 /// d'effet). `note` dit pourquoi.
-pub fn dater<T>(liste: &mut Vec<Datee<T>>, valeur: Option<T>, depuis: Option<&Jour>, note: Option<&str>) {
+pub fn dater<T>(liste: &mut Option<Vec<Datee<T>>>, valeur: Option<T>, depuis: Option<&Jour>, note: Option<&str>) {
+    let liste = liste.get_or_insert_with(Vec::new);
     let depuis = if liste.is_empty() { None } else { depuis.copied() };
     liste.retain(|e| e.depuis != depuis);
     liste.push(Datee { depuis, valeur, note: note.map(str::trim).filter(|n| !n.is_empty()).map(str::to_string) });

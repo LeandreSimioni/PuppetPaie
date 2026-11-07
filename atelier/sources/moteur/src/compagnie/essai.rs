@@ -244,10 +244,10 @@ impl Identite {
         // Ce que la fiche de la fictive dit de SON identite, et qui ne survit pas sous celle de la variable : ce que la variable
         // remplace, et ce qui en derive (l'affichage, le complement d'adresse).
         for liste in [&mut brute.siret, &mut brute.nom_affichage, &mut brute.adresse_affichage, &mut brute.commune_affichage] {
-            liste.clear();
+            *liste = None;
         }
-        brute.complement_adresse.clear();
-        brute.etablissements.clear();
+        brute.complement_adresse = None;
+        brute.etablissements = None;
         brute.note = None;
         let mut f = Map::new();
         let (siren, nic) = (self.texte("siren")?, self.texte("nic")?);

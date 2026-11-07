@@ -114,8 +114,8 @@ impl Declaree {
 
 /// Les valeurs d'une liste datee, de la plus ancienne a la plus recente, telles que le bloc 30 les ecrit (`ecrite` ;
 /// `None` : une valeur qui ne ressemble a aucune valeur declaree).
-fn datees<T>(liste: &[Datee<T>], ecrite: fn(&Option<T>) -> Option<String>) -> Vec<(Option<Jour>, Option<String>)> {
-    droit::fiche::valeurs_datees(liste).into_iter().map(|e| (e.depuis, ecrite(&e.valeur))).collect()
+fn datees<T>(liste: &Option<Vec<Datee<T>>>, ecrite: fn(&Option<T>) -> Option<String>) -> Vec<(Option<Jour>, Option<String>)> {
+    liste.iter().flat_map(|l| droit::fiche::valeurs_datees(l)).map(|e| (e.depuis, ecrite(&e.valeur))).collect()
 }
 
 /// La fiche telle que le bloc 30 doit la lire pour le mois declare : ses identifiants tels qu'ils valaient le dernier

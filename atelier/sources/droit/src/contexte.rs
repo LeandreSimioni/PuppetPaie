@@ -85,10 +85,8 @@ fn levenshtein(a: &str, b: &str) -> usize {
 /// est la liste de ceux qui sont ouverts, une version par ouverture, modification ou fermeture), chacun dans sa derniere
 /// valeur de la periode. Un etablissement ferme en cours de mois a encore sa DSN de ce mois. `None` : la fiche n'en dit
 /// rien.
-pub fn etablissements_entre(liste: &[Datee<Vec<Etablissement>>], debut: &Jour, fin: &Jour) -> Option<Vec<Etablissement>> {
-    if liste.is_empty() {
-        return None;
-    }
+pub fn etablissements_entre(liste: Option<&[Datee<Vec<Etablissement>>]>, debut: &Jour, fin: &Jour) -> Option<Vec<Etablissement>> {
+    let liste = liste?;
     let versions = crate::fiche::valeurs_datees(liste);
     let mut ordre: Vec<String> = Vec::new();
     let mut vus: HashMap<String, Etablissement> = HashMap::new();
@@ -112,8 +110,8 @@ pub fn etablissements_entre(liste: &[Datee<Vec<Etablissement>>], debut: &Jour, f
 
 /// L'HISTOIRE DES AUTRES ETABLISSEMENTS : chacun dans sa derniere valeur, et le dernier jour ou il etait ouvert s'il est
 /// ferme (la veille de la premiere version qui ne le porte plus).
-pub fn histoire_des_etablissements(liste: &[Datee<Vec<Etablissement>>]) -> Resultat<Vec<(Etablissement, Option<Jour>)>> {
-    let versions = crate::fiche::valeurs_datees(liste);
+pub fn histoire_des_etablissements(liste: Option<&[Datee<Vec<Etablissement>>]>) -> Resultat<Vec<(Etablissement, Option<Jour>)>> {
+    let versions: Vec<&Datee<Vec<Etablissement>>> = liste.into_iter().flat_map(crate::fiche::valeurs_datees).collect();
     let mut ordre: Vec<String> = Vec::new();
     let mut vus: HashMap<String, (Etablissement, Option<Jour>)> = HashMap::new();
     for (i, v) in versions.iter().enumerate() {
@@ -1638,7 +1636,7 @@ PSS_H_METROP).",
     /// Les autres etablissements que la fiche dit en dernier (ouverts ou fermes depuis), hors le siege : ce que l'ecran en
     /// montre.
     pub fn etablissements_dits(&self) -> Vec<crate::fiche::Etablissement> {
-        let derniere = crate::fiche::valeurs_datees(&self.fiches.entreprise.etablissements).last().and_then(|d| d.valeur.dite());
+        let derniere = self.fiches.entreprise.etablissements.as_deref().and_then(|l| l.iter().max_by_key(|d| d.depuis)).and_then(|d| d.valeur.dite());
         let principal = self.entreprise.nic_principal();
         derniere.into_iter().flatten().filter(|e| e.nic.texte() != principal).cloned().collect()
     }
@@ -1649,7 +1647,7 @@ PSS_H_METROP).",
         let mois = Mois::lire(mois)?;
         let dernier = mois.dernier_jour();
         let mut ent = self.entreprise_au(&dernier);
-        if let Some(l) = etablissements_entre(&self.fiches.entreprise.etablissements, &mois.premier_jour(), &dernier) {
+        if let Some(l) = etablissements_entre(self.fiches.entreprise.etablissements.as_deref(), &mois.premier_jour(), &dernier) {
             ent.etablissements = Some(l);
         }
         Ok(ent)
