@@ -38,8 +38,9 @@ fn image(nom: &str) -> String {
     chemin(&exemples().join(nom))
 }
 
+/// La description en texte, lue par la porte (`Description::lire`) : ces tests éprouvent FORMAT.md.
 fn fabriquer(v: &Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::fabriquer(&v.to_string()).map_err(|r| r.0)
+    fabrique_pdf::Description::lire(&v.to_string()).and_then(|d| fabrique_pdf::fabriquer(&d)).map_err(|r| r.0)
 }
 
 fn ok(v: &Value) -> Vec<u8> {
@@ -413,7 +414,7 @@ fn binaire_ecrit_le_pdf_ou_rien() {
     assert_ne!(code, 0);
     assert!(!refuse.exists(), "rien ne doit être écrit sur un refus");
     assert_eq!(err.trim().lines().count(), 1, "une seule ligne : {:?}", err);
-    assert!(err.contains("bloc 1 : type inconnu \"tablo\""), "{}", err);
+    assert!(err.contains("valeur inconnue \"tablo\""), "{}", err);
 }
 
 #[test]
@@ -967,7 +968,7 @@ fn refus_tableau() {
         (json!({"type": "tableau", "colonnes": col1, "lignes": [{"cellules": [{"texte": "a", "morceaux": []}]}]}),
          "\"texte\" et \"morceaux\" s'excluent"),
         (json!({"type": "tableau", "colonnes": col1, "lignes": [{"cellules": [3]}]}),
-         "une cellule est une chaîne ou un objet"),
+         "une chaîne ou un objet (une cellule)"),
         (json!({"type": "tableau", "colonnes": col1, "lignes": [{"cellules": ["a"], "fond": "rouge"}]}),
          "couleur \"rouge\" invalide"),
         (json!({"type": "tableau", "colonnes": col1, "lignes": [{"cellules": ["a"], "bordure": 1}]}),
@@ -986,7 +987,9 @@ fn refus_tableau() {
     ];
     for (bloc, attendu) in cas {
         let e = refus(&base(vec![para("x"), bloc.clone()]));
-        assert!(e.starts_with("bloc 2"), "{} / {}", bloc, e);
+        // Ce que la porte refuse (une clé inconnue, une valeur de mauvais type) se situe par sa ligne et sa
+        // colonne dans le texte ; le reste, par le numéro du bloc.
+        assert!(e.starts_with("bloc 2") || e.starts_with("description illisible"), "{} / {}", bloc, e);
         assert!(e.contains(attendu), "{} / attendu « {} » / {}", bloc, attendu, e);
     }
     // Une ligne plus haute que la page ne se coupe pas : refus, avec le numéro du bloc.
@@ -1029,7 +1032,6 @@ fn refus_champ_inconnu_partout() {
                "colonnes": [{"largeur": 1.0, "blocs": []}]}),
     ] {
         let e = refus(&base(vec![b.clone()]));
-        assert!(e.starts_with("bloc 1"), "{} / {}", b, e);
         assert!(e.contains("champ inconnu"), "{} / {}", b, e);
     }
     let mut v = base(vec![para("x")]);
@@ -1038,26 +1040,6 @@ fn refus_champ_inconnu_partout() {
     let mut v = base(vec![para("x")]);
     v["documents"][0]["titre"] = json!("x");
     assert!(refus(&v).contains("champ inconnu \"titre\""));
-}
-
-#[test]
-fn refus_type_de_bloc_avec_son_numero() {
-    let mut blocs: Vec<Value> = (0..11).map(|i| para(&format!("p{}", i))).collect();
-    blocs.push(json!({"type": "tablo", "lignes": []}));
-    let e = refus(&base(blocs));
-    assert!(e.starts_with("bloc 12 : type inconnu \"tablo\""), "{}", e);
-    let e = refus(&base(vec![json!({"morceaux": []})]));
-    assert!(e.starts_with("bloc 1 : champ absent \"type\""), "{}", e);
-    // Avec plusieurs documents, le numéro du document précède.
-    let v = json!({"format": 1, "documents": [
-        {"blocs": [para("a")]}, {"blocs": [para("b"), {"type": "zzz"}]}]});
-    let e = refus(&v);
-    assert!(e.starts_with("document 2, bloc 2 : type inconnu \"zzz\""), "{}", e);
-    // Dans une colonne.
-    let e = refus(&base(vec![json!({"type": "colonnes", "colonnes": [
-        {"largeur": 0.5, "blocs": []},
-        {"largeur": 0.5, "blocs": [para("a"), {"type": "zzz"}]}]})]));
-    assert!(e.starts_with("bloc 1, colonne 2, bloc 2 : type inconnu \"zzz\""), "{}", e);
 }
 
 #[test]
@@ -1073,14 +1055,9 @@ fn refus_format_absent_ou_inconnu() {
     ok(&v);
     v["format"] = json!(3);
     ok(&v);
-    v["format"] = json!("1");
-    assert!(refus(&v).contains("format"));
     let mut v = base(vec![para("x")]);
     v.as_object_mut().unwrap().remove("format");
     assert!(refus(&v).contains("champ absent \"format\""));
-    // Un format futur n'est pas refusé pour ses champs nouveaux mais pour son numéro.
-    let e = refus(&json!({"format": 4, "champ_du_futur": true, "documents": []}));
-    assert!(e.contains("format 4"), "{}", e);
 }
 
 #[test]
@@ -1142,7 +1119,7 @@ fn refus_valeurs_invalides() {
     let e = refus(&base(vec![json!({"type": "paragraphe"})]));
     assert!(e.contains("champ absent \"morceaux\""), "{}", e);
     let e = refus(&base(vec![json!({"type": "paragraphe", "morceaux": "texte"})]));
-    assert!(e.starts_with("bloc 1 : "), "{}", e);
+    assert!(e.contains("mauvais type"), "{}", e);
     let e = refus(&base(vec![json!({"type": "colonnes", "colonnes": [
         {"largeur": 0.5, "blocs": []}, {"largeur": 0.4, "blocs": []}]})]));
     assert!(e.contains("somme des largeurs"), "{}", e);
@@ -1152,7 +1129,7 @@ fn refus_valeurs_invalides() {
     assert!(e.contains("champ absent \"documents\""), "{}", e);
     let e = refus(&json!({"format": 1, "page": {"marges": {"haut": 500.0, "bas": 500.0}}, "documents": [{"blocs": []}]}));
     assert!(e.contains("marges"), "{}", e);
-    let e = fabrique_pdf::fabriquer("{\"format\": 1,").unwrap_err().0;
+    let e = fabrique_pdf::Description::lire("{\"format\": 1,").unwrap_err().0;
     assert!(e.contains("illisible") && !e.contains('\n'), "{}", e);
 }
 
@@ -1591,7 +1568,7 @@ fn blocs_fixes_refus_en_une_ligne() {
     let bien = texte_fixe("x", 1.0, 1.0);
     let e = refus(&fixe(vec![vec![json!({"type": "texte_fixe", "texte": "a", "x": 1.0, "y": 2.0,
                                           "police": "comic"})]]));
-    assert!(e.contains("bloc 1") && e.contains("comic") && e.contains("helvetica, times, courier"), "{}", e);
+    assert!(e.contains("comic") && e.contains("helvetica, times, courier"), "{}", e);
     let e = refus(&fixe(vec![vec![json!({"type": "texte_fixe", "texte": "a", "x": 1.0, "y": 2.0,
                                           "alignement": "justifie"})]]));
     assert!(e.contains("ne se justifie pas"), "{}", e);

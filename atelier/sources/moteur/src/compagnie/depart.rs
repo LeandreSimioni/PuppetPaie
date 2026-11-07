@@ -1020,7 +1020,7 @@ fn imprimer(ctx: &Contexte, mois: &str, ent: &droit::contexte::EntrepriseDuDocum
     imprimees.dedup();
     let leurs_paies: Vec<Paie> = imprimees.iter().map(|i| paies[*i].clone()).collect();
     let passe = documents::bulletin::passe_des_bulletins(ctx, &leurs_paies, mois, &departs).map_err(valeur)?;
-    let bulletins = |rangs: &[usize], toutes: Option<&[Paie]>| -> R<Value> {
+    let bulletins = |rangs: &[usize], toutes: Option<&[Paie]>| -> R<fabrique_pdf::Description> {
         let imprimees: Vec<Paie> = rangs.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = rangs.iter().enumerate().filter_map(|(k, i)| imp.rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
         let leurs_numeros: Vec<Option<String>> = rangs.iter().map(|i| imp.numeros[*i].clone()).collect();
@@ -1492,7 +1492,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[envois::journal::Lign
                     .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?
                     .date()
             };
-            let modifs = crate::compagnie::signature::pour_la_piece(premier.modifications.as_deref().unwrap_or_default())?;
+            let modifs = crate::compagnie::signature::pour_la_piece(premier.modifications.as_deref().unwrap_or_default());
             return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&date_contrat)?, &jj(premier.effet.as_deref().unwrap_or(""))?, &jour.jj_mm_aaaa(), premier.ailleurs)
                 .map_err(Echec::from);
         }

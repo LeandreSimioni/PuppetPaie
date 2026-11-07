@@ -315,8 +315,9 @@ pub fn lire(chemin: &Path) -> Result<Vec<PageAem>, String> {
 /// comprise, n'a pas ces champs).
 pub fn lire_aer(octets: &[u8]) -> Option<Vec<Lecture>> {
     let champs = documents::aer::champs(octets).ok()?;
-    let v = |nom: &str| champs.get(nom).and_then(|c| c.get("valeur")).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
-    if !champs.get("SALARIE_NIR").is_some_and(Value::is_object) || !champs.get("SAL_DT_DEB_01").is_some_and(Value::is_object) {
+    let champ = |nom: &str| champs.iter().find(|c| c.nom == nom);
+    let v = |nom: &str| champ(nom).and_then(|c| c.valeur.texte()).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
+    if champ("SALARIE_NIR").is_none() || champ("SAL_DT_DEB_01").is_none() {
         return None;
     }
     let jour = |nom: &str| v(nom).and_then(|t| Jour::lire(&t).ok());
@@ -335,7 +336,7 @@ pub fn lire_aer(octets: &[u8]) -> Option<Vec<Lecture>> {
             numero_objet = v(&nom("CON_OBJET_"));
         }
         let (Some(debut), Some(fin)) = (jour(&nom("SAL_DT_DEB_")), jour(&nom("SAL_DT_FIN_"))) else { continue };
-        let page = champs.get(&nom("SAL_DT_DEB_")).and_then(|c| c.get("page")).and_then(Value::as_u64).unwrap_or(0) as usize;
+        let page = champ(&nom("SAL_DT_DEB_")).and_then(|c| c.page).unwrap_or(0);
         let a = Aem {
             page,
             mois: Some(debut.mois_civil().to_string()),

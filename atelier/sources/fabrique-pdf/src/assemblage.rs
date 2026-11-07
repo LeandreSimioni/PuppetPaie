@@ -16,23 +16,29 @@ use serde::Deserialize;
 
 use crate::description::Refus;
 
-/// Ce qu'on lit sur l'entrée standard : `{"format": 1, "pieces": [ … ]}`.
-#[derive(Debug, Deserialize)]
+/// Un assemblage : `{"format": 1, "pieces": [ … ]}` sur l'entrée standard (`--assembler`).
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Assemblage {
-    #[serde(default)]
-    format: Option<u32>,
-    pieces: Vec<Piece>,
+pub struct Assemblage {
+    /// 1 s'il est dit.
+    pub format: Option<u32>,
+    pub pieces: Vec<Piece>,
+}
+
+impl Assemblage {
+    /// La porte du texte (`--assembler`) : lu une fois, strictement.
+    pub fn lire(texte: &str) -> Result<Assemblage, Refus> {
+        crate::forme::lire(texte, "description d'assemblage")
+    }
 }
 
 /// Une pièce : un fichier PDF, en entier ou pour les pages données (numérotées à partir de 1,
-/// dans l'ordre voulu, une page peut revenir).
-#[derive(Debug, Deserialize)]
+/// dans l'ordre voulu, une page peut revenir) ; sans pages dites, toutes.
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Piece {
-    fichier: String,
-    #[serde(default)]
-    pages: Option<Vec<u32>>,
+pub struct Piece {
+    pub fichier: String,
+    pub pages: Option<Vec<u32>>,
 }
 
 fn refus<T>(m: String) -> Result<T, Refus> {
@@ -45,9 +51,7 @@ const HERITES: [&[u8]; 4] = [b"Resources", b"MediaBox", b"CropBox", b"Rotate"];
 /// Les octets du PDF assemblé, et vrai quand une pièce était verrouillée : une pièce s'ouvre par
 /// `lecture::ouvrir` (le mot de passe vide), et c'est à qui écrit l'assemblage de le verrouiller
 /// comme elle (`chiffrement::verrouiller`), pour que le verrou de la pièce ne se perde pas en route.
-pub fn assembler(texte: &str) -> Result<(Vec<u8>, bool), Refus> {
-    let a: Assemblage = serde_json::from_str(texte)
-        .map_err(|e| Refus(format!("description d'assemblage illisible : {}", e)))?;
+pub fn assembler(a: &Assemblage) -> Result<(Vec<u8>, bool), Refus> {
     if let Some(f) = a.format {
         if f != 1 {
             return refus(format!("format {} inconnu : cette fabrique parle le format 1", f));

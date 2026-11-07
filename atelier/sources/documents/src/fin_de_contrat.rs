@@ -7,10 +7,10 @@
 use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use fabrique_pdf::forme::{Document, Style};
 
 use crate::bulletin::{fmt_eur, identite_de};
-use crate::marqueurs::{dans_la_description, Marqueur, ModeleLu, Valeurs};
+use crate::marqueurs::{Marqueur, ModeleLu, Valeurs};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use socle::date::Jour;
@@ -108,16 +108,11 @@ fn inventaire(p: &Paie) -> String {
 /// l'employeur.
 fn ecrire_papier(modele: &Path, valeurs: Valeurs, chemin: &Path, ent: &droit::contexte::EntrepriseDuDocument, signe: bool) -> R<()> {
     let lu = ModeleLu::du_fichier(modele)?;
-    let mut d = crate::contrat::enveloppe("attestation", ent);
-    let mut un = Map::new();
-    un.insert("texte".into(), json!(lu.texte));
-    un.insert("valeurs".into(), dans_la_description(&valeurs));
+    let mut un = crate::contrat::document_modele(&lu, &valeurs);
     if signe {
-        if let Some(s) = identite_de(&ent.gabarits, "signature") {
-            un.insert("signature_employeur".into(), json!(crate::conges_spectacles::chemin_texte(&s)));
-        }
+        un.signature_employeur = identite_de(&ent.gabarits, "signature").as_deref().map(crate::conges_spectacles::chemin_texte);
     }
-    d.insert("documents".into(), json!([{ "modele": Value::Object(un) }]));
-    crate::fabrique::ecrire(&Value::Object(d), chemin).map_err(|m| erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))?;
+    let d = crate::contrat::enveloppe(Style::Attestation, ent, vec![Document::Modele(un)]);
+    crate::fabrique::ecrire(&d, chemin).map_err(|m| erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))?;
     Ok(())
 }

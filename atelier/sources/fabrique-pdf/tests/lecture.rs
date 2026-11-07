@@ -97,7 +97,7 @@ fn texte_d_un_paragraphe_long_une_ligne_par_ligne_du_pdf() {
         "documents": [{"blocs": [{"type": "paragraphe", "morceaux": [{"texte":
             "Un paragraphe assez long pour passer à la ligne plusieurs fois dans une page étroite, sans rien perdre."}]}]}]
     });
-    let octets = fabrique_pdf::fabriquer(&desc.to_string()).unwrap();
+    let octets = fabrique_pdf::Description::lire(&desc.to_string()).and_then(|d| fabrique_pdf::fabriquer(&d)).unwrap();
     let p = d.join("long.pdf");
     std::fs::write(&p, octets).unwrap();
     let r = lancer(&["--texte", p.to_str().unwrap()]);

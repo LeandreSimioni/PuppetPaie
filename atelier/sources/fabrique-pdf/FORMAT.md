@@ -53,15 +53,21 @@ fabrique-pdf --version                         # « fabrique-pdf 3 » : le numé
 
 Code de sortie 0 : le PDF est écrit. Sinon : rien n'est écrit (ou le fichier
 partiel est effacé), et **une ligne en français** sur la sortie d'erreur dit
-ce qui ne va pas (« bloc 12 : type inconnu "tablo" »). Le Python la relaie
-telle quelle.
+ce qui ne va pas.
+
+Cette page décrit le texte JSON que lit la ligne de commande. Il se lit une fois, strictement, en la forme
+déclarée dans `src/forme.rs` (`Description`, `Remplissage`, `assemblage::Assemblage`) ; le moteur, lui, construit
+cette forme en Rust et la donne à la bibliothèque (`fabriquer(&Description)`, `formulaire::remplir(octets,
+&Remplissage)`), sans texte. Ce que la porte refuse (une clé inconnue, une valeur de mauvais type, un type de bloc
+inconnu) se situe par sa ligne et sa colonne dans le texte ; ce que la validation refuse ensuite (une couleur, une
+largeur, une page), par le numéro du bloc (« bloc 12 : … »).
 
 ## Unités et conventions
 
 - Longueurs en **points** (1/72 de pouce), nombres décimaux.
 - Couleurs en `"#RRGGBB"`.
 - Chemins de fichiers absolus, en UTF-8.
-- Un champ absent prend sa valeur par défaut ; **un champ inconnu est un
+- Un champ absent prend la valeur que `src/forme.rs` nomme pour lui ; **un champ inconnu est un
   refus** (faute de frappe attrapée, pas ignorée).
 
 ## Le document
@@ -97,7 +103,7 @@ telle quelle.
   fixée, hauteur selon les proportions. SVG (vectoriel), PNG ou JPEG.
 - `documents` : chacun **commence sur une nouvelle page** (un contrat par
   salarié) ; un document long continue sur les pages suivantes. Un document
-  porte `blocs` **ou** `modele`, pas les deux.
+  porte `blocs` **ou** `modele` : l'un des deux, ni les deux ni aucun.
 
 ## Le document modèle
 

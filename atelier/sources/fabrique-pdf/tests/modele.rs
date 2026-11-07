@@ -27,7 +27,7 @@ fn ecrire_modele(nom: &str, texte: &str) -> String {
 }
 
 fn fabriquer(v: &Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::fabriquer(&v.to_string()).map_err(|r| r.0)
+    fabrique_pdf::Description::lire(&v.to_string()).and_then(|d| fabrique_pdf::fabriquer(&d)).map_err(|r| r.0)
 }
 
 fn refus(v: &Value) -> String {
@@ -293,7 +293,7 @@ fn refus_du_document_modele() {
     d["style"] = json!("facture");
     let e = refus(&d);
     assert!(
-        e.contains("style inconnu \"facture\"") && e.contains("styles connus : contrat, avenant, attestation"),
+        e.contains("valeur inconnue \"facture\"") && e.contains("contrat, avenant, attestation"),
         "{}",
         e
     );

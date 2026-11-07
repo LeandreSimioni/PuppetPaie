@@ -9,7 +9,7 @@
 
 use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use fabrique_pdf::forme::{self, Description, Document, Style};
 
 use crate::avenant::valeurs_de_la_paie;
 use crate::bulletin::{identite_de, FORMAT, LOGO_LARGEUR, LOGO_MARGE_DROITE, LOGO_MARGE_HAUT};
@@ -18,24 +18,42 @@ use engagement::calcul::Paie;
 use crate::conges_spectacles::chemin_texte;
 use droit::contexte::Contexte;
 use socle::echec::Refus;
-use crate::marqueurs::{dans_la_description, Marqueur, ModeleLu, Valeurs};
+use crate::marqueurs::{pour_la_fabrique, Marqueur, ModeleLu, Valeurs};
 
 type R<T> = Result<T, Refus>;
 
 
-/// Le haut d'une description : le format, le style, le logo de la compagnie.
-pub fn enveloppe(style: &str, ent: &EntrepriseDuDocument) -> Map<String, Value> {
-    let mut d = Map::new();
-    d.insert("format".into(), json!(FORMAT));
-    d.insert("style".into(), json!(style));
-    if let Some(logo) = identite_de(&ent.gabarits, "logo") {
-        d.insert(
-            "logo".into(),
-            json!({"chemin": chemin_texte(&logo), "largeur": LOGO_LARGEUR, "marge_haut": LOGO_MARGE_HAUT,
-                   "marge_droite": LOGO_MARGE_DROITE}),
-        );
+/// Une description de documents modeles : le format, le style, le logo de la compagnie, et ses documents.
+pub fn enveloppe(style: Style, ent: &EntrepriseDuDocument, documents: Vec<Document>) -> Description {
+    Description {
+        format: FORMAT,
+        page: None,
+        police: None,
+        style: Some(style),
+        logo: identite_de(&ent.gabarits, "logo").map(|logo| forme::Logo {
+            chemin: chemin_texte(&logo),
+            largeur: LOGO_LARGEUR,
+            marge_haut: Some(LOGO_MARGE_HAUT),
+            marge_droite: Some(LOGO_MARGE_DROITE),
+        }),
+        titre: None,
+        documents,
+        entete_page: None,
+        pied_page: None,
     }
-    d
+}
+
+/// Un document modele : le texte du modele `lu` et ses valeurs, rien d'autre.
+pub fn document_modele(lu: &ModeleLu, valeurs: &Valeurs) -> forme::Modele {
+    forme::Modele {
+        chemin: None,
+        texte: Some(lu.texte.clone()),
+        valeurs: pour_la_fabrique(valeurs),
+        remplace: None,
+        signature: None,
+        signature_employeur: None,
+        modifications: None,
+    }
 }
 
 /// Les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
@@ -57,8 +75,7 @@ pub type Remplacements = [((String, String, String), (String, String))];
 /// `contrat.description` puis `fabrique.figer` : la description de ces contrats, un document par
 /// paie, le modele en texte. `remplacements` : ces contrats-la annulent et remplacent celui qui est parti avant
 /// eux, et le disent en tete.
-pub fn description(ctx: &Contexte, paies: &[Paie], ent: &EntrepriseDuDocument, remplacements: &Remplacements) -> R<Value> {
-    let mut d = enveloppe("contrat", ent);
+pub fn description(ctx: &Contexte, paies: &[Paie], ent: &EntrepriseDuDocument, remplacements: &Remplacements) -> R<Description> {
     let signature = identite_de(&ent.gabarits, "signature");
     let mut documents = Vec::new();
     for p in paies {
@@ -69,27 +86,22 @@ pub fn description(ctx: &Contexte, paies: &[Paie], ent: &EntrepriseDuDocument, r
         if v.values().any(|t| t.contains("VALEUR-SANS-TEXTE")) {
             return Err(Refus::from("description illisible : une valeur du modele de contrat n'est pas un texte"));
         }
-        let mut un = Map::new();
-        un.insert("valeurs".into(), dans_la_description(&v));
+        let mut un = document_modele(&lu, &v);
         let cle = (
             p.salarie.id.to_string(),
             p.engagement.debut.iso(),
             p.engagement.numero.as_deref().unwrap_or_default().to_string(),
         );
         if let Some((_, (numero, date))) = remplacements.iter().find(|(k, _)| *k == cle) {
-            un.insert("remplace".into(), json!({"numero": numero, "date": date}));
+            un.remplace = Some(forme::Remplace { numero: numero.clone(), date: date.clone() });
         }
-        if let Some(s) = &signature {
-            un.insert("signature".into(), json!(chemin_texte(s)));
-        }
+        un.signature = signature.as_deref().map(chemin_texte);
         refuser_ce_que_le_modele_tairait(&modele, &lu, &v)?;
         crate::contrat_ecrit::refuser_les_mentions_absentes(&modele, &lu, &nat, &v)
             .map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
-        un.insert("texte".into(), json!(lu.texte));
-        documents.push(json!({ "modele": Value::Object(un) }));
+        documents.push(Document::Modele(un));
     }
-    d.insert("documents".into(), Value::Array(documents));
-    Ok(Value::Object(d))
+    Ok(enveloppe(Style::Contrat, ent, documents))
 }
 
 /// Les valeurs qu'un modele de contrat DOIT citer des qu'elles ne sont pas vides. `remuneration.detail` ne cite que
@@ -162,9 +174,8 @@ fn nom_de_l_avenant(nat: &droit::natures::Nature) -> R<String> {
 /// `avenant.description` puis `fabrique.figer` : le modele de l'avenant (`lu`) en texte, les valeurs du contrat et les
 /// siennes (`extra`), et les articles modifies avec l'ancien texte et le nouveau. Un avenant au contrat signe ailleurs
 /// (`ailleurs`) ne cite aucun article du modele de contrat : les refus qui gardent ces articles ne le regardent pas.
-fn description_avenant(ctx: &Contexte, p: &Paie, ent: &EntrepriseDuDocument, lu: &ModeleLu, modifs: &[Value], extra: Valeurs, ailleurs: bool) -> R<Value> {
+fn description_avenant(ctx: &Contexte, p: &Paie, ent: &EntrepriseDuDocument, lu: &ModeleLu, modifs: &[forme::Modification], extra: Valeurs, ailleurs: bool) -> R<Description> {
     let nat = p.engagement.nat()?;
-    let mut d = enveloppe("avenant", ent);
     let mut v = valeurs_de_paie(ctx, ent, p)?;
     // Les memes refus que le contrat : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
     // et un modele qui n'a pas le marqueur d'une valeur a citer ferait un avenant qui la tait.
@@ -172,25 +183,16 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &EntrepriseDuDocument, lu:
         return Err(Refus::from("description illisible : une valeur du modele de contrat n'est pas un texte"));
     }
     v.extend(extra);
-    let mut un = Map::new();
-    un.insert("valeurs".into(), dans_la_description(&v));
     if !ailleurs {
         let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, Some(&ent.gabarits), &ctx.gabarits());
         let du_contrat = ModeleLu::du_fichier(&contrat)?;
         refuser_ce_que_le_modele_tairait(&contrat, &du_contrat, &v)?;
         crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &du_contrat, &nat, &v).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
     }
-    let articles: Vec<Value> = modifs
-        .iter()
-        .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"], "phrase": m.get("phrase").cloned().unwrap_or(Value::Null)}))
-        .collect();
-    un.insert("modifications".into(), Value::Array(articles));
-    if let Some(s) = identite_de(&ent.gabarits, "signature") {
-        un.insert("signature".into(), json!(chemin_texte(&s)));
-    }
-    un.insert("texte".into(), json!(lu.texte));
-    d.insert("documents".into(), json!([{ "modele": Value::Object(un) }]));
-    Ok(Value::Object(d))
+    let mut un = document_modele(lu, &v);
+    un.modifications = Some(modifs.to_vec());
+    un.signature = identite_de(&ent.gabarits, "signature").as_deref().map(chemin_texte);
+    Ok(enveloppe(Style::Avenant, ent, vec![Document::Modele(un)]))
 }
 
 /// Le contrat que l'avenant modifie, comme il le nomme (`{{avenant.reference}}`) : « n° FA1.26.13 du 12/10/2026 », ou,
@@ -214,7 +216,7 @@ pub fn ecrire_avenant(
     p: &Paie,
     ent: &EntrepriseDuDocument,
     chemin: &Path,
-    modifs: &[Value],
+    modifs: &[forme::Modification],
     numero: i64,
     date_contrat: &str,
     effet: &str,

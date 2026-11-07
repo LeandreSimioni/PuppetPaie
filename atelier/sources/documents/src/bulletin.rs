@@ -1,7 +1,5 @@
-//! La description du bulletin de paie (FORMAT.md de
-//! `fabrique-pdf`) : des blocs JSON que la fabrique met en page. Ce module
-//! s'arrete a la `Value` de la description ; l'ecriture du PDF est
-//! `fabrique::ecrire`.
+//! La description du bulletin de paie (`fabrique_pdf::forme`) : des blocs que la fabrique met en page. Ce module
+//! s'arrete a la description ; l'ecriture du PDF est `fabrique::ecrire`.
 
 use engagement::calcul::Paie;
 use engagement::conges::CompteurConges;
@@ -16,7 +14,8 @@ use socle::texte::euros;
 use socle::num::{dec_f64, div, sub, Decimal, Resultat};
 use droit::pas::Versement;
 use rust_decimal::RoundingStrategy;
-use serde_json::{json, Map, Value};
+use fabrique_pdf::forme::{self as f, Bloc, Cellule, Description, Document, Ligne, Morceau};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -33,17 +32,17 @@ const NBSP: &str = "\u{a0}";
 const BLANC: &str = "#FFFFFF";
 
 /// Emplacement du logo sur la page, en points PDF (A4 = 595 x 842).
-pub const LOGO_LARGEUR: i64 = 74;
-pub const LOGO_MARGE_DROITE: i64 = 34;
-pub const LOGO_MARGE_HAUT: i64 = 28;
+pub const LOGO_LARGEUR: f32 = 74.0;
+pub const LOGO_MARGE_DROITE: f32 = 34.0;
+pub const LOGO_MARGE_HAUT: f32 = 28.0;
 
 /// Le pied de chaque page du bulletin : « Édité avec » et le mot Puppetpaie dessiné (`donnees/puppetpaie-mot.svg`),
 /// en gris clair, en bas a droite. Le mot a 657,2 sur 195,4 de cadre, sa ligne de base a 84,1 du bas : a 33 points de
 /// large, il descend de 4,2 points sous celle du texte.
 const PIED_TEXTE: &str = "Édité avec";
 const PIED_GRIS: &str = "#C5C9CE";
-const PIED_MOT_LARGEUR: f64 = 33.0;
-const PIED_MOT_DESCENTE: f64 = 4.2;
+const PIED_MOT_LARGEUR: f32 = 33.0;
+const PIED_MOT_DESCENTE: f32 = 4.2;
 
 /// Dans l'ordre de preference : le vectoriel d'abord.
 pub const IDENTITE_EXTENSIONS: [&str; 3] = [".svg", ".png", ".jpg"];
@@ -105,10 +104,6 @@ fn jours_option(x: Option<f64>) -> Resultat<String> {
 
 // ------------------------------------------------------------ les briques
 
-fn num(x: f64) -> Value {
-    json!(x)
-}
-
 fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
     o.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
@@ -124,110 +119,138 @@ fn du_spectacle(sp: Option<&droit::fiche::Spectacle>, case: fn(&droit::fiche::Sp
 }
 
 
-/// Un morceau de texte d'un paragraphe ou d'une cellule.
-fn m(texte: impl Into<String>, gras: bool, couleur: Option<&str>) -> Value {
-    let mut o = Map::new();
-    o.insert("texte".into(), Value::String(texte.into()));
-    if gras {
-        o.insert("gras".into(), Value::Bool(true));
-    }
-    if let Some(c) = couleur {
-        o.insert("couleur".into(), c.into());
-    }
-    Value::Object(o)
+/// Un morceau de texte d'un paragraphe ou d'une cellule ; maigre et sans couleur, il ne le dit pas.
+fn m(texte: impl Into<String>, gras: bool, couleur: Option<&str>) -> Morceau {
+    Morceau { texte: texte.into(), gras: gras.then_some(true), italique: None, couleur: couleur.map(str::to_string) }
 }
 
-fn mt(texte: impl Into<String>) -> Value {
+fn mt(texte: impl Into<String>) -> Morceau {
     m(texte, false, None)
 }
 
-/// Un paragraphe du bulletin : ses morceaux, sa taille, sa couleur, l'espace avant et apres.
-fn para(morceaux: Vec<Value>, taille: f64, couleur: Option<&str>, avant: f64, apres: f64) -> Value {
-    let mut o = Map::new();
-    o.insert("type".into(), "paragraphe".into());
-    o.insert("morceaux".into(), Value::Array(morceaux));
-    if taille != 0.0 {
-        o.insert("taille".into(), num(taille));
-    }
-    if let Some(c) = couleur {
-        o.insert("couleur".into(), c.into());
-    }
-    if avant != 0.0 {
-        o.insert("espace_avant".into(), num(avant));
-    }
-    if apres != 0.0 {
-        o.insert("espace_apres".into(), num(apres));
-    }
-    Value::Object(o)
+/// Une mesure du bulletin ; nulle, elle ne se dit pas.
+fn dite(x: f64) -> Option<f32> {
+    (x != 0.0).then_some(x as f32)
+}
+
+/// Un paragraphe du bulletin : ses morceaux, sa taille, sa couleur, l'espace avant et apres ; ce qui est nul ne se dit
+/// pas.
+fn para(morceaux: Vec<Morceau>, taille: f64, couleur: Option<&str>, avant: f64, apres: f64) -> Bloc {
+    Bloc::Paragraphe(f::Paragraphe {
+        morceaux,
+        taille: dite(taille),
+        couleur: couleur.map(str::to_string),
+        alignement: None,
+        majuscules: None,
+        espace_avant: dite(avant),
+        espace_apres: dite(apres),
+        retrait: None,
+    })
+}
+
+/// Une cellule de morceaux, de la couleur dite.
+fn cm(morceaux: Vec<Morceau>, couleur: Option<&str>) -> Cellule {
+    Cellule::Decrite(f::CelluleDecrite {
+        texte: None,
+        morceaux: Some(morceaux),
+        gras: None,
+        couleur: couleur.map(str::to_string),
+        alignement: None,
+        etendue: None,
+    })
 }
 
 /// Une cellule du bulletin : son texte, sur combien de colonnes, en gras ou non, sa couleur.
-fn cell(texte: impl Into<String>, etendue: i64, gras: bool, couleur: Option<&str>) -> Value {
-    let mut o = Map::new();
-    o.insert("texte".into(), Value::String(texte.into()));
-    if etendue != 1 {
-        o.insert("etendue".into(), json!(etendue));
-    }
-    if gras {
-        o.insert("gras".into(), Value::Bool(true));
-    }
-    if let Some(c) = couleur {
-        o.insert("couleur".into(), c.into());
-    }
-    Value::Object(o)
+fn cell(texte: impl Into<String>, etendue: i64, gras: bool, couleur: Option<&str>) -> Cellule {
+    Cellule::Decrite(f::CelluleDecrite {
+        texte: Some(texte.into()),
+        morceaux: None,
+        gras: gras.then_some(true),
+        couleur: couleur.map(str::to_string),
+        alignement: None,
+        etendue: (etendue != 1).then_some(etendue as usize),
+    })
 }
 
-fn cel(texte: impl Into<String>, etendue: i64) -> Value {
+fn cel(texte: impl Into<String>, etendue: i64) -> Cellule {
     cell(texte, etendue, false, None)
 }
 
-fn s(texte: impl Into<String>) -> Value {
-    Value::String(texte.into())
+fn s(texte: impl Into<String>) -> Cellule {
+    Cellule::Texte(texte.into())
+}
+
+/// Ce qu'une ligne dit en plus de ses cellules.
+enum Opt {
+    Gras,
+    Fond(&'static str),
+    Couleur(&'static str),
+    Taille(f64),
+    FiletHaut(&'static str, f64),
 }
 
 /// Les options absentes ne s'ecrivent pas.
-fn ligne(cellules: Vec<Value>, options: Vec<(&str, Value)>) -> Value {
-    let mut o = Map::new();
-    o.insert("cellules".into(), Value::Array(cellules));
-    for (k, v) in options {
-        o.insert(k.into(), v);
+fn ligne(cellules: Vec<Cellule>, options: Vec<Opt>) -> Ligne {
+    let mut l = Ligne { cellules, gras: None, fond: None, couleur: None, taille: None, filet_haut: None, filet_bas: None };
+    for o in options {
+        match o {
+            Opt::Gras => l.gras = Some(true),
+            Opt::Fond(c) => l.fond = Some(c.to_string()),
+            Opt::Couleur(c) => l.couleur = Some(c.to_string()),
+            Opt::Taille(t) => l.taille = Some(t as f32),
+            Opt::FiletHaut(c, e) => l.filet_haut = Some(filet(c, e)),
+        }
     }
-    Value::Object(o)
+    l
 }
 
-fn gras() -> (&'static str, Value) {
-    ("gras", Value::Bool(true))
+fn gras() -> Opt {
+    Opt::Gras
 }
 
-fn filet_haut(couleur: &str, epaisseur: f64) -> (&'static str, Value) {
-    ("filet_haut", json!({"couleur": couleur, "epaisseur": epaisseur}))
+fn filet_haut(couleur: &'static str, epaisseur: f64) -> Opt {
+    Opt::FiletHaut(couleur, epaisseur)
+}
+
+fn filet(couleur: &str, epaisseur: f64) -> f::Filet {
+    f::Filet { couleur: Some(couleur.to_string()), epaisseur: Some(epaisseur as f32) }
 }
 
 /// Les cellules des tableaux : 7 pt, 1,4 pt au-dessus et au-dessous, 3 pt de chaque cote.
-fn marge_cellule() -> Value {
-    json!({"haut": 1.4, "droite": 3, "bas": 1.4, "gauche": 3})
+fn marge_cellule() -> f::MargeCellule {
+    f::MargeCellule { haut: Some(1.4), droite: Some(3.0), bas: Some(1.4), gauche: Some(3.0) }
 }
 
 /// Premiere colonne a gauche, les autres a droite, un filet fin sous chaque ligne.
-fn tableau(largeurs: &[f64], entete: Vec<Value>, lignes: Vec<Value>, filet: &str) -> Value {
-    let colonnes: Vec<Value> = largeurs
+fn tableau(largeurs: &[f64], entete: Vec<Ligne>, lignes: Vec<Ligne>, teinte: &str) -> Bloc {
+    let colonnes = largeurs
         .iter()
         .enumerate()
-        .map(|(i, l)| json!({"largeur": l, "alignement": if i == 0 { "gauche" } else { "droite" }}))
+        .map(|(i, l)| f::ColonneTableau {
+            largeur: *l as f32,
+            alignement: Some(if i == 0 { f::Alignement::Gauche } else { f::Alignement::Droite }),
+        })
         .collect();
-    json!({
-        "type": "tableau", "taille": 7, "interligne": 1.27,
-        "colonnes": colonnes, "marge_cellule": marge_cellule(),
-        "filet_lignes": {"couleur": filet, "epaisseur": 0.3},
-        "entete": entete, "lignes": lignes
+    Bloc::Tableau(f::Tableau {
+        colonnes,
+        entete: Some(entete),
+        lignes: Some(lignes),
+        taille: Some(7.0),
+        couleur: None,
+        interligne: Some(1.27),
+        marge_cellule: Some(marge_cellule()),
+        filet_lignes: Some(filet(teinte, 0.3)),
+        filets_cellules: None,
+        espace_avant: None,
+        espace_apres: None,
     })
 }
 
 /// Une ligne « net », blanc sur rouge, 9,5 pt, en gras.
-fn ligne_net(libelle: &str, montant: Decimal, colonnes: i64) -> Value {
+fn ligne_net(libelle: &str, montant: Decimal, colonnes: i64) -> Ligne {
     ligne(
         vec![cel(libelle, colonnes - 1), s(fmt_eur(montant))],
-        vec![gras(), ("fond", ROUGE.into()), ("couleur", BLANC.into()), ("taille", num(9.5))],
+        vec![gras(), Opt::Fond(ROUGE), Opt::Couleur(BLANC), Opt::Taille(9.5)],
     )
 }
 
@@ -318,7 +341,7 @@ pub fn remplace_en_entier(r: &Value) -> bool {
 }
 
 /// Le bas d'un bulletin RECTIFICATIF.
-fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
+fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Ligne>> {
     let lignes = [
         ("Net à payer avant impôt du bulletin rectifié", "net_avant"),
         ("Net à payer avant impôt rectifié", "net_apres"),
@@ -361,7 +384,7 @@ fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
 /// 25/02/2016 (art. 1, I : « IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE », colonnes Base, Taux, Salarié) : son assiette
 /// (le montant soumis, apres l'abattement d'un contrat court ; C. trav. R. 3243-1, 9°), son taux, son montant. Le
 /// « Cumul annuel » du modele (art. 1, V) n'est pas imprime : le moteur ne le calcule pas.
-fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resultat<Vec<Value>> {
+fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resultat<Vec<Ligne>> {
     let taux = match pas.and_then(|v| v.taux.as_ref()) {
         Some(t) if t.non_nul() => t.dec()?,
         _ => dec(&json!("0.00"))?,
@@ -378,15 +401,15 @@ fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resul
 }
 
 /// Une colonne de libelles, une par fenetre.
-fn tableau_des_cumuls(colonnes: &[Colonne]) -> Value {
+fn tableau_des_cumuls(colonnes: &[Colonne]) -> Bloc {
     let n = colonnes.len() as f64;
     let mut cellules = vec![cell("CUMULS", 1, true, Some(ARDOISE))];
     for c in colonnes {
-        cellules.push(json!({"morceaux": [m(c.titre.clone(), true, None), mt("\n"), mt(c.sous_titre.clone())]}));
+        cellules.push(cm(vec![m(c.titre.clone(), true, None), mt("\n"), mt(c.sous_titre.clone())], None));
     }
     let entete = vec![ligne(
         cellules,
-        vec![("couleur", ROUGE.into()), ("taille", num(6.8)), ("fond", FOND_FAMILLE.into()), filet_haut(ROUGE, 0.8)],
+        vec![Opt::Couleur(ROUGE), Opt::Taille(6.8), Opt::Fond(FOND_FAMILLE), filet_haut(ROUGE, 0.8)],
     )];
     let enseigne = colonnes.iter().any(|c| c.enseignement != 0);
     // (libelle, valeur de chaque colonne, suffixe)
@@ -419,22 +442,26 @@ fn tableau_des_cumuls(colonnes: &[Colonne]) -> Value {
 }
 
 /// Le compteur de conges payes d'un permanent.
-fn tableau_conges(cpt: &CompteurConges) -> Value {
+fn tableau_conges(cpt: &CompteurConges) -> Bloc {
     let mut lignes = vec![("Acquis sur la période", cpt.acquis), ("Pris", cpt.pris)];
     if !cpt.reports.is_zero() {
         lignes.insert(1, ("Report de la période précédente", cpt.reports));
     }
     let entete = vec![ligne(
         vec![
-            json!({"morceaux": [
-                m("CONGÉS PAYÉS", true, None), mt("\n"),
-                mt(format!("période du {} au {}", cpt.periode_debut.jj_mm_aaaa(), cpt.periode_fin.jj_mm_aaaa()))],
-                "couleur": ARDOISE}),
+            cm(
+                vec![
+                    m("CONGÉS PAYÉS", true, None),
+                    mt("\n"),
+                    mt(format!("période du {} au {}", cpt.periode_debut.jj_mm_aaaa(), cpt.periode_fin.jj_mm_aaaa())),
+                ],
+                Some(ARDOISE),
+            ),
             cell("Jours ouvrables", 1, true, None),
         ],
-        vec![("couleur", ROUGE.into()), ("taille", num(6.8)), ("fond", FOND_FAMILLE.into()), filet_haut(ROUGE, 0.8)],
+        vec![Opt::Couleur(ROUGE), Opt::Taille(6.8), Opt::Fond(FOND_FAMILLE), filet_haut(ROUGE, 0.8)],
     )];
-    let mut corps: Vec<Value> =
+    let mut corps: Vec<Ligne> =
         lignes.iter().map(|(l, v)| ligne(vec![s(*l), s(format!("{} j", jours(*v)))], vec![])).collect();
     corps.push(ligne(vec![s("Solde"), s(format!("{} j", jours(cpt.solde())))], vec![gras()]));
     tableau(&[0.40, 0.60], entete, corps, "#eeeeee")
@@ -542,8 +569,8 @@ pub fn modele_du_bulletin(ent: &ChampsEntreprise, sal: &FicheSalarie) -> Resulta
 
 /// Le style d'un titre de rubrique du modele (« COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES », « IMPÔT SUR LE
 /// REVENU »...) : en gras, rouge, sur fond rose.
-fn style_section() -> Vec<(&'static str, Value)> {
-    vec![gras(), ("couleur", ROUGE.into()), ("taille", num(6.8)), ("fond", FOND_FAMILLE.into())]
+fn style_section() -> Vec<Opt> {
+    vec![gras(), Opt::Couleur(ROUGE), Opt::Taille(6.8), Opt::Fond(FOND_FAMILLE)]
 }
 
 /// Ou une ligne de cotisation se range dans le modele : son rang (l'ordre du modele), le titre du groupe qui la porte
@@ -707,7 +734,7 @@ fn base_et_taux(l: &engagement::calcul::LigneCotisation) -> Resultat<(String, St
 
 /// Une ligne de cotisation du bulletin : libelle, base (sauf `masquer_base_et_taux`), taux salarial, montant salarial,
 /// montant employeur ; un montant nul ne s'ecrit pas.
-fn ligne_cotisation(libelle: String, l: &engagement::calcul::LigneCotisation) -> Resultat<Value> {
+fn ligne_cotisation(libelle: String, l: &engagement::calcul::LigneCotisation) -> Resultat<Ligne> {
     let ts = match l.taux_sal {
         Some(t) => fmt_taux(dec_f64(t)?),
         None => String::new(),
@@ -716,12 +743,12 @@ fn ligne_cotisation(libelle: String, l: &engagement::calcul::LigneCotisation) ->
     Ok(ligne(vec![s(libelle), s(base), s(ts), s(montant_ou_rien(l.montant_sal)), s(montant_ou_rien(l.montant_pat))], vec![]))
 }
 
-fn titre_groupe(titre: &str, colonnes: i64) -> Value {
+fn titre_groupe(titre: &str, colonnes: i64) -> Ligne {
     ligne(vec![cel(titre, colonnes)], vec![gras()])
 }
 
 /// Les lignes d'un groupe de rangs egaux, dans l'ordre du moteur.
-fn lignes_du_rang(r: &Rang, lignes: &[&engagement::calcul::LigneCotisation]) -> Resultat<Vec<Value>> {
+fn lignes_du_rang(r: &Rang, lignes: &[&engagement::calcul::LigneCotisation]) -> Resultat<Vec<Ligne>> {
     let mut out = Vec::new();
     match r {
         Rang::Sante | Rang::Retraite => {
@@ -782,7 +809,7 @@ fn somme_des_rangs(
 /// - « COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES » : la prevoyance.
 /// Aucun montant ne change : chaque ligne de la paie s'imprime une fois, et les trois sommes refont les totaux de la
 /// paie (sinon refus).
-fn tableau_modele(p: &Paie) -> Resultat<Vec<Value>> {
+fn tableau_modele(p: &Paie) -> Resultat<Vec<Ligne>> {
     let rangees = rangees(p);
     let (oblig_sal, oblig_pat) = somme_des_rangs(&rangees, &obligatoire);
     let (fac_sal, fac_pat) = somme_des_rangs(&rangees, &|r| matches!(r, Rang::Facultative(_)));
@@ -818,7 +845,7 @@ fn tableau_modele(p: &Paie) -> Resultat<Vec<Value>> {
 /// cotisation -- chaque ligne du bareme sous la ligne (ou le groupe) du bulletin qui la porte, avec sa base, le taux et
 /// le montant de la part salariale et de la part employeur --, puis les trois totaux du bulletin, aux memes montants.
 /// Elle ne dit rien que la paie ne dise : chaque ligne de la paie s'y imprime une fois.
-fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
+fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Bloc>> {
     let sal = &p.salarie;
     let mut blocs = vec![
         para(vec![m("Détail des cotisations et contributions", true, None)], 11.0, Some(ROUGE), 0.0, 1.0),
@@ -839,7 +866,7 @@ fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
             6.0,
         ),
     ];
-    let th = vec![("couleur", Value::from(BLANC)), gras(), ("taille", num(6.6)), ("fond", Value::from(ROUGE))];
+    let th = vec![Opt::Couleur(BLANC), gras(), Opt::Taille(6.6), Opt::Fond(ROUGE)];
     let entete = vec![ligne(
         vec![
             cell("LIBELLÉ", 1, true, None),
@@ -852,7 +879,7 @@ fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
         th,
     )];
     let rangees = rangees(p);
-    let detail = |r: &Rang, lignes: &[&engagement::calcul::LigneCotisation], corps: &mut Vec<Value>| -> Resultat<()> {
+    let detail = |r: &Rang, lignes: &[&engagement::calcul::LigneCotisation], corps: &mut Vec<Ligne>| -> Resultat<()> {
         // Les exonerations n'ont pas de titre : la ligne du bulletin qui les porte est leur total, qui les suit.
         if *r != Rang::Allegement {
             if let Some(titre) = r.titre() {
@@ -921,7 +948,7 @@ pub struct Jeu<'a> {
 }
 
 /// Les blocs d'UN bulletin.
-fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
+fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Bloc>> {
     let p = j.paie;
     let (sal, e, sp) = (&p.salarie, &p.engagement, &p.spectacle);
     let conv = convention_du_contrat(ent, sp.as_ref(), sal, &e.fin_mois()?)?;
@@ -1086,12 +1113,19 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
         k("Licence spec. :"),
         mt(format!(" {}", licence)),
     ]);
-    blocs.push(json!({
-        "type": "tableau", "taille": 7, "interligne": 1.27,
-        "colonnes": [{"largeur": 0.5}, {"largeur": 0.5}],
-        "marge_cellule": marge_cellule(),
-        "filets_cellules": {"couleur": "#dddddd", "epaisseur": 0.5},
-        "lignes": [{"cellules": [{"morceaux": salarie}, {"morceaux": employeur}]}]
+    let moitie = || f::ColonneTableau { largeur: 0.5, alignement: None };
+    blocs.push(Bloc::Tableau(f::Tableau {
+        colonnes: vec![moitie(), moitie()],
+        entete: None,
+        lignes: Some(vec![ligne(vec![cm(salarie, None), cm(employeur, None)], vec![])]),
+        taille: Some(7.0),
+        couleur: None,
+        interligne: Some(1.27),
+        marge_cellule: Some(marge_cellule()),
+        filet_lignes: None,
+        filets_cellules: Some(filet("#dddddd", 0.5)),
+        espace_avant: None,
+        espace_apres: None,
     }));
 
     let contrat_long = if permanent {
@@ -1126,7 +1160,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     // 01/01/2026 ; atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml),
     // ses colonnes (Base, Taux, Salarié, Employeur), ses libelles, son ordre et ses regroupements : voir `tableau_modele`.
     let th = || {
-        vec![("couleur", Value::from(BLANC)), gras(), ("taille", num(6.6)), ("fond", Value::from(ROUGE))]
+        vec![Opt::Couleur(BLANC), gras(), Opt::Taille(6.6), Opt::Fond(ROUGE)]
     };
     let entete =
         vec![ligne(vec![cell("LIBELLÉ", 1, true, None), s("Base"), s("Taux"), s("Salarié"), s("Employeur")], th())];
@@ -1141,7 +1175,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
         };
         corps.push(ligne(
             vec![s(format!("{} — MONTANT BRUT", titre)), s(fmt_eur(p.brut))],
-            vec![gras(), ("fond", FOND_BRUT.into())],
+            vec![gras(), Opt::Fond(FOND_BRUT)],
         ));
     } else {
         for l in &rem {
@@ -1150,7 +1184,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
                 vec![],
             ));
         }
-        corps.push(ligne(vec![s("MONTANT BRUT"), s(fmt_eur(p.brut))], vec![gras(), ("fond", FOND_BRUT.into())]));
+        corps.push(ligne(vec![s("MONTANT BRUT"), s(fmt_eur(p.brut))], vec![gras(), Opt::Fond(FOND_BRUT)]));
     }
     corps.extend(tableau_modele(p)?);
     // Le bas du tableau : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DÉDUCTIONS DIVERSES », puis
@@ -1230,37 +1264,50 @@ pub fn identite_de(gabarits: &Path, nom: &str) -> Option<PathBuf> {
 
 /// `description` : un document par jeu, chacun sur sa page ; au modele complet (la case du salarie, sinon celle de la
 /// compagnie : `modele_du_bulletin`), l'annexe suit le bulletin, document a part (une page neuve).
-pub fn description(jeux: &[Jeu], ent: &droit::contexte::EntrepriseDuDocument) -> Resultat<Value> {
-    let mut d = Map::new();
-    d.insert("format".into(), json!(FORMAT));
-    d.insert(
-        "page".into(),
-        json!({"largeur": 595.28, "hauteur": 841.89, "marges": {"haut": 42, "droite": 42, "bas": 42, "gauche": 42}}),
-    );
-    d.insert("police".into(), json!({"taille": 7.4, "interligne": 1.2, "couleur": ARDOISE}));
-    d.insert(
-        "pied_page".into(),
-        json!({"droite": PIED_TEXTE, "taille": 6, "couleur": PIED_GRIS, "distance": 24,
-               "image": {"chemin": chemin_texte(&socle::fichiers::dossier_du_code().join("puppetpaie-mot.svg")),
-                         "largeur": PIED_MOT_LARGEUR, "descente": PIED_MOT_DESCENTE}}),
-    );
-    if let Some(logo) = identite_de(&ent.gabarits, "logo") {
-        d.insert(
-            "logo".into(),
-            json!({"chemin": chemin_texte(&logo), "largeur": LOGO_LARGEUR,
-                   "marge_haut": LOGO_MARGE_HAUT, "marge_droite": LOGO_MARGE_DROITE}),
-        );
-    }
+pub fn description(jeux: &[Jeu], ent: &droit::contexte::EntrepriseDuDocument) -> Resultat<Description> {
     let mut documents = Vec::new();
     for j in jeux {
         let modele = modele_du_bulletin(ent, &j.paie.salarie)?;
-        documents.push(json!({"blocs": blocs_un(j, ent)?}));
+        documents.push(Document::Blocs(blocs_un(j, ent)?));
         if modele == Modele::Complet {
-            documents.push(json!({"blocs": blocs_annexe(j.paie, j.numero)?}));
+            documents.push(Document::Blocs(blocs_annexe(j.paie, j.numero)?));
         }
     }
-    d.insert("documents".into(), Value::Array(documents));
-    Ok(Value::Object(d))
+    let marge = Some(42.0);
+    Ok(Description {
+        format: FORMAT,
+        page: Some(f::Page {
+            largeur: Some(595.28),
+            hauteur: Some(841.89),
+            marges: Some(f::Marges { haut: marge, droite: marge, bas: marge, gauche: marge }),
+        }),
+        police: Some(f::Police { taille: Some(7.4), interligne: Some(1.2), couleur: Some(ARDOISE.to_string()) }),
+        style: None,
+        logo: identite_de(&ent.gabarits, "logo").map(|logo| f::Logo {
+            chemin: chemin_texte(&logo),
+            largeur: LOGO_LARGEUR,
+            marge_haut: Some(LOGO_MARGE_HAUT),
+            marge_droite: Some(LOGO_MARGE_DROITE),
+        }),
+        titre: None,
+        documents,
+        entete_page: None,
+        pied_page: Some(f::Repere {
+            gauche: None,
+            centre: None,
+            droite: Some(PIED_TEXTE.to_string()),
+            taille: Some(6.0),
+            couleur: Some(PIED_GRIS.to_string()),
+            gras: None,
+            distance: Some(24.0),
+            premiere_page: None,
+            image: Some(f::ImageRepere {
+                chemin: chemin_texte(&socle::fichiers::dossier_du_code().join("puppetpaie-mot.svg")),
+                largeur: PIED_MOT_LARGEUR,
+                descente: Some(PIED_MOT_DESCENTE),
+            }),
+        }),
+    })
 }
 
 /// Les lignes de remuneration d'une paie qui s'impriment sous « REMBOURSEMENTS ET DEDUCTIONS DIVERSES » : hors assiette
@@ -1295,7 +1342,7 @@ pub fn jeux_et_description(
     rectificatifs: &HashMap<usize, Value>,
     departs: &engagement::departs::Departs,
     passe: &Passe,
-) -> Resultat<Value> {
+) -> Resultat<Description> {
     if numeros.len() != paies.len() {
         return Err(format!("{} numeros de bulletin pour {} paies.", numeros.len(), paies.len()));
     }

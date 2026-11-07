@@ -274,7 +274,7 @@ fn bulletin_lu_un_ecart_est_un_avertissement_pas_une_correction() {
     // dit qu'elle a ete lue ainsi.
     let sans_net = d.join("sans-net.pdf");
     let mut page = page_a(&a_repetitions());
-    page.retain(|x| !x["texte"].as_str().unwrap_or("").ends_with('€'));
+    page.retain(|x| !matches!(x, fabrique_pdf::forme::Bloc::TexteFixe(t) if t.texte.ends_with('€')));
     pdf(vec![page], &sans_net);
     let l = lire(&sans_net).unwrap();
     let b = lu(&l[0]);

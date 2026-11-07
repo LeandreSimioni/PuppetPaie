@@ -6,7 +6,6 @@ fn usage() -> ! {
          \x20       moteur route [--racine R] [--date D]   (route et charge en JSON sur l entree standard : les routes de l interface)\n\
          \x20       moteur routes [NOM] [--avance] [--json]   (le catalogue des routes, et la fiche d une route)\n\
          \x20       moteur pdf ...   (la ligne de commande de la fabrique : moteur pdf --aide)\n\
-         \x20       moteur fabrique DESCRIPTION.json SORTIE.pdf   (outil d'atelier)\n\
          \x20       moteur guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
          \x20       moteur verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)\n\
          \x20       moteur generer-tables SOURCES ESPACE   (les tables Unicode du moteur, depuis atelier/reference/sources, dans atelier/sources)\n\
@@ -63,20 +62,8 @@ fn main() -> std::process::ExitCode {
         Some("guet") => return std::process::ExitCode::from(moteur::atelier::guet::commande(&args[1..]).clamp(0, 255) as u8),
         // Le garde avant commit (le crochet `atelier/.githooks/pre-commit`) : les donnees reelles dans ce que git emporterait.
         Some("verifier-avant-commit") => return std::process::ExitCode::from(moteur::atelier::verifier_avant_commit::commande(&args[1..]).clamp(0, 255) as u8),
-        // Outil d'atelier : une description JSON -> un PDF, par la bibliotheque.
-        Some("fabrique") if args.len() == 3 => {
-            let r = std::fs::read_to_string(&args[1])
-                .map_err(|e| format!("{} illisible ({})", args[1], e))
-                .and_then(|t| serde_json::from_str(&t).map_err(|e| e.to_string()))
-                .and_then(|d| documents::fabrique::ecrire(&d, std::path::Path::new(&args[2])));
-            if let Err(m) = r {
-                eprintln!("{}", m);
-                std::process::exit(1);
-            }
-        }
         // Le reste est la ligne de commande du produit (`moteur [--dev] COMMANDE ...`).
         Some(_) => return std::process::ExitCode::from(moteur::commandes::executer(&args).clamp(0, 255) as u8),
         None => usage(),
     }
-    std::process::ExitCode::SUCCESS
 }

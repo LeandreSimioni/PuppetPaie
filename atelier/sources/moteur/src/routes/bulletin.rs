@@ -224,7 +224,7 @@ struct SaisieDeLApercu {
 }
 
 /// La description du bulletin de la paie fictive sous `modele` : le moteur du jour, la compagnie fictive, rien d'ecrit.
-pub fn apercu_description(modele: Modele) -> Result<Value, String> {
+pub fn apercu_description(modele: Modele) -> Result<fabrique_pdf::Description, String> {
     let racine = dossier_apercu();
     let lue: SaisieDeLApercu = socle::forme::lire(&lire_json(&racine.join("saisie.json"))?, "La paie de l'aperçu ne se lit pas.")?;
     let saisie = engagement::saisie::VueDuMois { mois: lue.mois, taux_cachet: None, engagements: lue.engagements };

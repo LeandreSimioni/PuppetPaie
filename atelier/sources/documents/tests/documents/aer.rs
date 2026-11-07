@@ -11,7 +11,8 @@
 
 use documents::aer::{self, Authentification, Echec, PaieAer};
 use socle::date::Jour;
-use serde_json::{json, Value};
+use fabrique_pdf::formulaire::{ChampLu, ValeurLue};
+use serde_json::json;
 
 const HAUTEUR: f64 = 842.0;
 
@@ -174,8 +175,12 @@ fn signer(pdf: &[u8], ent: &droit::fiche::ChampsEntreprise, paies: Option<&[Paie
 }
 
 
-fn valeur_de(champs: &Value, nom: &str) -> Value {
-    champs[nom]["valeur"].clone()
+fn le_champ<'a>(champs: &'a [ChampLu], nom: &str) -> &'a ChampLu {
+    champs.iter().find(|c| c.nom == nom).unwrap_or_else(|| panic!("pas de champ {}", nom))
+}
+
+fn valeur_de<'a>(champs: &'a [ChampLu], nom: &str) -> &'a ValeurLue {
+    &le_champ(champs, nom).valeur
 }
 
 // ------------------------------------------------------------------ verifier
@@ -260,19 +265,19 @@ fn authentifier_remplit_le_cadre_5_et_ne_touche_pas_aux_chiffres() {
         ("EMPLOYEUR_CORRES_EMAIL", "lou.durand@exemple.test"), // en minuscules
     ];
     for (nom, v) in attendu {
-        assert_eq!(valeur_de(&apres, nom), v, "{}", nom);
+        assert_eq!(valeur_de(&apres, nom).texte(), Some(v), "{}", nom);
     }
     assert_eq!(attendu.map(|(n, _)| n), aer::CHAMPS_TEXTE);
     // les chiffres de France Travail : identiques, y compris leur lecture seule
-    for (nom, c) in avant.as_object().unwrap() {
-        if nom.starts_with("SAL_") || nom.starts_with("CON_") {
-            assert_eq!(&apres[nom], c, "{}", nom);
-            assert_eq!(apres[nom]["lecture_seule"], true);
+    for c in &avant {
+        if c.nom.starts_with("SAL_") || c.nom.starts_with("CON_") {
+            assert_eq!(le_champ(&apres, &c.nom), c, "{}", c.nom);
+            assert!(le_champ(&apres, &c.nom).lecture_seule);
         }
     }
     // la signature et le cachet ne sont pas des textes tapes
-    assert!(apres["EMPLOYEUR_SIGNATURE"]["valeur"].is_null());
-    assert!(apres["EMPLOYEUR_CACHET"]["valeur"].is_null());
+    assert_eq!(valeur_de(&apres, "EMPLOYEUR_SIGNATURE"), &ValeurLue::Rien);
+    assert_eq!(valeur_de(&apres, "EMPLOYEUR_CACHET"), &ValeurLue::Rien);
     // le contenu qu'on lit toujours : l'attestation ne se lit pas autrement
     assert_eq!(aer::lire_quantites(&apres), aer::lire_quantites(&avant));
     assert_eq!(aer::verifier(&signe, &paies_justes()), Ok(vec![]));

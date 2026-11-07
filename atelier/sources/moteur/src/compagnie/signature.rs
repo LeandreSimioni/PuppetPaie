@@ -22,8 +22,6 @@ use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde_json::Value;
-
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use envois::courriel::Courriel;
@@ -790,10 +788,18 @@ impl UnAvenant {
     }
 }
 
-/// Les modifications telles que la fabrique de l'avenant les lit (`documents::contrat::ecrire_avenant`, qui les lit encore
-/// en `Value`).
-pub(crate) fn pour_la_piece(modifications: &[ArticleModifie]) -> R<Vec<Value>> {
-    modifications.iter().map(|m| serde_json::to_value(m).map_err(|e| Echec::from(e.to_string()))).collect()
+/// Les modifications telles que la fabrique de l'avenant les met en page (`documents::contrat::ecrire_avenant`).
+pub(crate) fn pour_la_piece(modifications: &[ArticleModifie]) -> Vec<fabrique_pdf::forme::Modification> {
+    modifications
+        .iter()
+        .map(|m| fabrique_pdf::forme::Modification {
+            numero: m.numero.map(|n| n as i64),
+            article: m.article.clone(),
+            avant: m.avant.clone(),
+            apres: m.apres.clone(),
+            phrase: m.phrase.clone(),
+        })
+        .collect()
 }
 
 /// Ce qui se dit du contrat d'une paie dans un courriel et dans l'apercu de son avenant : son nom (`contrat_ecrit.nom`
@@ -853,7 +859,7 @@ fn avenant_ecrit(
         }
         None => {
             let f = dossier.join(format!("Avenant{}_{}_{}_{}.pdf", a.numero, salarie, a.contrat.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans-numero"), a.mois.etiquette()));
-            documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &pour_la_piece(&a.modifications)?, a.numero, &jj(&a.date_contrat)?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
+            documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &pour_la_piece(&a.modifications), a.numero, &jj(&a.date_contrat)?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
             f
         }
     };

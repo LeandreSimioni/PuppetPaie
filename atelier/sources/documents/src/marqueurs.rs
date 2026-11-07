@@ -9,7 +9,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{Map, Value};
 
 use socle::echec::Refus;
 
@@ -138,11 +137,6 @@ pub type Valeurs = BTreeMap<Marqueur, String>;
 /// Les valeurs telles que la fabrique de PDF les lit, par leur nom.
 pub fn pour_la_fabrique(v: &Valeurs) -> fabrique_pdf::modele::Valeurs {
     v.iter().map(|(k, x)| (k.nom().to_string(), x.clone())).collect()
-}
-
-/// Les valeurs telles que la description d'un document les ecrit, dans l'ordre des marqueurs.
-pub fn dans_la_description(v: &Valeurs) -> Value {
-    Value::Object(v.iter().map(|(k, x)| (k.nom().to_string(), Value::String(x.clone()))).collect::<Map<String, Value>>())
 }
 
 /// UN MORCEAU D'UN MODELE : du texte, ou un marqueur.
